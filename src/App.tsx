@@ -1,15 +1,22 @@
-// Placeholder only — proves the build, deploy and preview pipeline works.
-// The real design (MICHELIN-style splash, light + dark) is built in M1/M2,
-// after the mockups are approved.
+import { Route, Routes } from 'react-router-dom'
+import SiteHeader from './components/SiteHeader'
+import Home from './pages/Home'
+import Wanderlog from './pages/Wanderlog'
+import Savorlog from './pages/Savorlog'
+import SignIn from './pages/SignIn'
+import NotFound from './pages/NotFound'
+
 export default function App() {
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', padding: '64px 24px', maxWidth: 640, margin: '0 auto' }}>
-      <h1>Hanh's Log</h1>
-      <p>Coming soon: Wanderlog and Savorlog in one place.</p>
-      <p>
-        Planning a trip today? Use the current{' '}
-        <a href="https://hellohanh.github.io/hanhs-wanderlog/">Wanderlog</a>.
-      </p>
-    </main>
+    <>
+      <SiteHeader />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/wander/*" element={<Wanderlog />} />
+        <Route path="/savor/*" element={<Savorlog />} />
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   )
 }
