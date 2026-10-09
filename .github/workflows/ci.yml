@@ -1,0 +1,28 @@
+# Runs on every pull request: the app must build and every migration must
+# follow the database rules (docs/database.md).
+name: Checks
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Migration rules
+        run: |
+          # Migrations this PR modified or deleted (adding new ones is fine).
+          changed=$(git diff --name-only --diff-filter=MDR "origin/${{ github.base_ref }}...HEAD" -- supabase/migrations | tr '\n' ' ')
+          node scripts/check-migrations.mjs --changed="$changed"

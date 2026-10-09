@@ -13,6 +13,12 @@ login and one database. Live at https://hellohanh.github.io/hanhs-log/
 
 No files are copied by hand and no zips are needed: git history is the record.
 
+## Database
+
+The database is shared with Wanderlog, so it has its own rules, nightly
+encrypted backups and an approval step before any change runs. See
+[docs/database.md](docs/database.md).
+
 ## Running it on your own computer (optional)
 
 ```
