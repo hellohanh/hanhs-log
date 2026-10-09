@@ -32,23 +32,28 @@ jobs:
 
   security-tests:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pg17
+      - name: Start a throwaway local Postgres 17
+        # Installed from the official PostgreSQL package source (same as the
+        # backups) rather than a Docker image, so a Docker Hub hiccup can't
+        # block the tests.
+        run: |
+          echo "create_main_cluster = false" | sudo tee -a /etc/postgresql-common/createcluster.conf > /dev/null
+          sudo apt-get install -y -qq postgresql-17 > /dev/null
+          /usr/lib/postgresql/17/bin/initdb -D "$RUNNER_TEMP/pg" -A trust -U postgres > /dev/null
+          /usr/lib/postgresql/17/bin/pg_ctl -D "$RUNNER_TEMP/pg" -o "-p 55432 -k /tmp" -l "$RUNNER_TEMP/pg.log" -w start
       - name: Owner, stranger, guest and visitor checks
         env:
-          TEST_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          TEST_DB_URL: postgresql://postgres@localhost:55432/postgres
         run: |
+          set -o pipefail
           tests/db/run.sh | tee security-tests.txt
+      - name: Show results on the run page
+        if: always()
+        run: |
+          [ -f security-tests.txt ] || exit 0
           { echo '### Security tests'; echo '```'; cat security-tests.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
   browser-tests:
