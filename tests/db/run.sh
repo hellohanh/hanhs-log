@@ -22,18 +22,18 @@ cleanup() { for d in "${dbs[@]}"; do psql "$TEST_DB_URL" -X -q -c "drop database
 trap cleanup EXIT
 
 # 1. Template: Supabase shim → live schema snapshot → our migrations → helpers.
-q "$TEST_DB_URL" -c "drop database if exists $tmpl" -c "create database $tmpl"
-q "$base_url/$tmpl" -f tests/db/00_supabase_shim.sql
+PGOPTIONS="-c client_min_messages=warning" q "$TEST_DB_URL" -c "drop database if exists $tmpl" -c "create database $tmpl"
+q "$base_url/$tmpl" -f tests/db/00_supabase_shim.sql > /dev/null
 # The snapshot re-creates the public schema, which already exists here.
-sed '/^CREATE SCHEMA public;$/d; /^COMMENT ON SCHEMA public /d' "$baseline" | q "$base_url/$tmpl" -f -
+sed '/^CREATE SCHEMA public;$/d; /^COMMENT ON SCHEMA public /d' "$baseline" | q "$base_url/$tmpl" -f - > /dev/null
 SUPABASE_DB_URL="$base_url/$tmpl" scripts/apply-migrations.sh > /dev/null
-q "$base_url/$tmpl" -f tests/db/01_test_helpers.sql
+q "$base_url/$tmpl" -f tests/db/01_test_helpers.sql > /dev/null
 
 # 2. Each test file gets its own fresh copy of the template.
 failed=0; passed=0; i=0
 for t in tests/db/*.test.sql; do
   i=$((i + 1)); db="hl_test_$i"; dbs+=("$db")
-  q "$TEST_DB_URL" -c "drop database if exists $db" -c "create database $db template $tmpl"
+  PGOPTIONS="-c client_min_messages=warning" q "$TEST_DB_URL" -c "drop database if exists $db" -c "create database $db template $tmpl"
   echo "── $(basename "$t")"
   if ! q "$base_url/$db" -f "$t" > /dev/null 2> /tmp/hl_test_err.txt; then
     echo "  ✗ stopped with an error:"; sed 's/^/    /' /tmp/hl_test_err.txt; failed=$((failed + 1))
