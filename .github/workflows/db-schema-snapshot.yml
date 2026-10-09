@@ -1,0 +1,45 @@
+# Run by hand (Actions → Snapshot live schema → Run workflow). Copies the
+# STRUCTURE of the live database's public schema (tables, columns, security
+# rules, functions, grants; no rows) into supabase/baseline/ on a new branch,
+# so the automated tests can run against an exact copy of the real rules
+# instead of guessing. The live database is only read, never changed.
+#
+# The baseline is the database as it was BEFORE Hanh's Log migrations;
+# tests apply supabase/migrations on top of it. Refresh it only when told
+# to (e.g. after a change made outside this repo), not after our own
+# migrations run — those would then be applied twice in tests.
+name: Snapshot live schema
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pg17
+      - name: Dump structure only
+        run: |
+          mkdir -p supabase/baseline
+          pg_dump "$SUPABASE_DB_URL" --schema-only --schema=public --no-owner \
+            --file=supabase/baseline/live_public_schema.sql
+          # Newer pg_dump adds a random \restrict key on each run; drop it so
+          # re-snapshots only differ when the schema really changed.
+          sed -i '/^\\restrict /d; /^\\unrestrict /d' supabase/baseline/live_public_schema.sql
+          echo "Snapshot: $(grep -c '^CREATE TABLE' supabase/baseline/live_public_schema.sql) tables, $(grep -c '^CREATE POLICY' supabase/baseline/live_public_schema.sql) policies" >> "$GITHUB_STEP_SUMMARY"
+      - name: Push to a branch for review
+        run: |
+          branch="snapshot/live-schema-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add supabase/baseline/live_public_schema.sql
+          git commit -m "Snapshot live public schema (structure only)"
+          git push origin "$branch"
+          echo "Pushed branch **$branch**. Claude opens the pull request from it." >> "$GITHUB_STEP_SUMMARY"
