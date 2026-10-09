@@ -15,6 +15,7 @@ const pages = [
   { name: 'wanderlog', path: './wander' },
   { name: 'savorlog', path: './savor' },
   { name: 'signin', path: './signin' },
+  { name: 'city-search', path: './search?city=Rome' },
   { name: 'not-found', path: './no-such-page' }
 ]
 

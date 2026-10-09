@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import Wanderlog from './pages/Wanderlog'
 import Savorlog from './pages/Savorlog'
 import SignIn from './pages/SignIn'
+import Search from './pages/Search'
 import NotFound from './pages/NotFound'
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/wander/*" element={<Wanderlog />} />
         <Route path="/savor/*" element={<Savorlog />} />
+        <Route path="/search" element={<Search />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
