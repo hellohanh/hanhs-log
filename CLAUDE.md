@@ -4,8 +4,10 @@
   The PR description says what changed and what to check on the preview link.
 - Run `npm run build` before every push; a failing build is never pushed.
 - Visual or interaction changes need a mockup the user approves before code.
-- Database changes only as numbered migration files; never hand over a full
-  schema to run. Every new table ships with its GRANTs and RLS policies together.
+- Database changes only as numbered migration files in supabase/migrations,
+  applied by the "Database migrations" workflow; never hand over SQL to paste
+  into Supabase. Rules and template: docs/database.md (enforced by
+  scripts/check-migrations.mjs). The database is shared with live Wanderlog.
 - Never put API keys or secrets in code or chat; they live in GitHub
   Settings → Secrets.
 - Wanderlog's decision log and lessons (hanhs-wanderlog repo, SKILL.md) are

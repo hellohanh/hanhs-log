@@ -1,0 +1,51 @@
+# When a merged pull request adds migration files, this waits for your
+# approval (the "production-db" environment), takes a fresh encrypted backup,
+# then applies only the new migrations, each in its own transaction.
+# Run it by hand with "dry run" to see what would apply without changing anything.
+name: Database migrations
+
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/migrations/**']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: List pending migrations without applying them
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production-db
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pg17
+      - name: Check the migration rules again
+        run: node scripts/check-migrations.mjs
+      - name: Back up first
+        if: env.DRY_RUN != 'true'
+        run: scripts/backup-db.sh "pre-migration-${{ github.run_id }}"
+      - uses: actions/upload-artifact@v4
+        if: env.DRY_RUN != 'true'
+        with:
+          name: pre-migration-backup-${{ github.run_id }}
+          path: pre-migration-${{ github.run_id }}.dump.gpg
+          retention-days: 90
+          if-no-files-found: error
+      - name: Apply new migrations
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then scripts/apply-migrations.sh --dry-run
+          else scripts/apply-migrations.sh; fi

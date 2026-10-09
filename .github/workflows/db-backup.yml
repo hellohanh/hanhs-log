@@ -1,0 +1,37 @@
+# Nightly encrypted backup of the live database (Supabase's free plan keeps
+# none — Wanderlog lesson L21). Each backup is kept 30 days as a workflow
+# artifact. Artifacts on a public repo can be downloaded by any signed-in
+# GitHub user, which is why the dump is encrypted before upload and the
+# plain copy never leaves the runner. Also keeps the free project from
+# pausing after a week without activity.
+name: Nightly database backup
+
+on:
+  schedule:
+    - cron: '17 8 * * *'   # 08:17 UTC: 3:17am Chicago in summer, 2:17am in winter
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pg17
+      - name: Dump, check and encrypt
+        run: scripts/backup-db.sh "nightly-$(date -u +%Y-%m-%d)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nightly-backup-${{ github.run_id }}
+          path: nightly-*.dump.gpg
+          retention-days: 30
+          if-no-files-found: error

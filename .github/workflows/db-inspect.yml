@@ -1,0 +1,28 @@
+# Run by hand (Actions → Inspect database → Run workflow) to see the live
+# database's tables, security rules, policies and grants on the run's
+# summary page. Read-only: it never changes anything and never reads row
+# data, so nothing private appears in the (public) run log.
+name: Inspect database
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pg17
+      - name: Snapshot the schema
+        run: |
+          {
+            echo '```'
+            # The meta table exists only after the first migration; don't fail before then.
+            psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=0 -c "set default_transaction_read_only = on" -f scripts/inspect-db.sql 2>&1
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
