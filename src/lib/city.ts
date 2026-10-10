@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import { mapQuery, type MapFields, type TripPlace } from './trips'
 
 // Where a trip's map opens (M3 step 3, reworked session 4): the trip's
-// Primary City in its Country, fitted so the whole city shows. It's looked up
+// Primary City in its Country, opened on its centre at zoom 13. It's looked up
 // with Google Places when the trip is saved (the form shows the match first)
 // and stored on the trip, so later opens need no lookup.
 

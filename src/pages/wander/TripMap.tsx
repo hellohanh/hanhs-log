@@ -6,7 +6,7 @@ import { useIsDark } from '../../lib/theme'
 import styles from './TripMap.module.css'
 
 // The trip map (M3 step 3, approved mockup v2, session 4): opens on the
-// trip's city with the whole city showing, no pins yet (old Wanderlog pins
+// trip's Primary City centre at zoom 13, no pins yet (old Wanderlog pins
 // appear only after Hanh sorts them). Map look switcher with 11 looks,
 // remembered per mode on this device; HCMC Districts overlay on trips
 // within 20 km of Ho Chi Minh City.
@@ -15,6 +15,7 @@ export type CityState = { state: 'loading' } | { state: 'ready'; city: City } | 
 
 const WORLD = { center: { lat: 20, lng: 0 }, zoom: 2 }
 const HCMC_KM = 20
+const OPENING_ZOOM = 13
 
 export default function TripMap({ city }: { city: CityState }) {
   const box = useRef<HTMLDivElement>(null)
@@ -62,17 +63,14 @@ export default function TripMap({ city }: { city: CityState }) {
     m.setOptions({ mapTypeId: look.mapTypeId, styles: look.styles ?? null })
   }, [ready, look])
 
-  // Fit the whole city when it's known (and whenever it changes).
+  // Open on the Primary City's centre at zoom 13 (Hanh, session 4). Google's
+  // city outlines don't work for this: HCMC's covers half of southern Vietnam
+  // since the 2025 merger, while Paris's is tiny.
   useEffect(() => {
     const m = mapRef.current
     if (!ready || !m || city.state !== 'ready') return
-    const c = city.city
-    if (c.north != null && c.south != null && c.east != null && c.west != null) {
-      m.fitBounds({ north: c.north, south: c.south, east: c.east, west: c.west }, 0)
-    } else {
-      m.setCenter({ lat: c.lat, lng: c.lng })
-      m.setZoom(12)
-    }
+    m.setCenter({ lat: city.city.lat, lng: city.city.lng })
+    m.setZoom(OPENING_ZOOM)
   }, [ready, city])
 
   // Districts overlay.
