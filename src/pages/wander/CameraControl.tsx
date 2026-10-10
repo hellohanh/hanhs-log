@@ -9,7 +9,8 @@ import styles from './CameraControl.module.css'
 //   [rotate left, rotate right, open/close]
 // Tilt steps 10°, rotate 15°. Reset returns to the trip's starting view:
 // its city centre, zoom 13, flat, north up. Tilt and rotate need Google's
-// vector map; on the older raster map they do nothing.
+// vector map; on the older raster map they do nothing. The grid starts
+// closed, showing only the open/close button.
 
 const PAN = 150
 const TILT_STEP = 10
@@ -30,7 +31,8 @@ export default function CameraControl({
   /** On the flat map: grey the tilt/rotate buttons out, or hide them. */
   flatMode?: 'grey' | 'hide'
 }) {
-  const [open, setOpen] = useState(true)
+  // Starts closed: only the open/close button shows (Hanh, session 4).
+  const [open, setOpen] = useState(false)
   const off = !tiltable
   const hide = off && flatMode === 'hide'
   const T = (props: { label: string; onClick: () => void; children: React.ReactNode }) =>
