@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from './supabase'
+import { supabase, supabaseHost } from './supabase'
 
 interface AuthState {
   session: Session | null
@@ -30,8 +30,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // The link in the email brings the person back to Hanh's Log itself
     // (main site or the preview they started from).
     const redirectTo = window.location.origin + import.meta.env.BASE_URL
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
-    return { error: error ? error.message : null }
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
+      if (!error) return { error: null }
+      if (/fetch/i.test(error.message)) return { error: unreachable() }
+      return { error: error.message }
+    } catch {
+      return { error: unreachable() }
+    }
   }
 
   async function signOut() {
@@ -41,6 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{ session, loading, signInWithEmail, signOut }}>{children}</AuthContext.Provider>
   )
+}
+
+function unreachable() {
+  const host = supabaseHost ?? 'the sign-in service'
+  const hint = supabaseHost && !supabaseHost.endsWith('.supabase.co')
+    ? ' That address doesn’t look like a Supabase project (it should end in .supabase.co).'
+    : ' Check your connection and try again.'
+  return `Couldn’t reach ${host}.${hint}`
 }
 
 export function useAuth(): AuthState {
