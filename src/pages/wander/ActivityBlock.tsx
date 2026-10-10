@@ -231,6 +231,7 @@ export function ActivityBlock({
       role="button"
       tabIndex={0}
       aria-label={`${label}. Drag to move, or press Enter to edit`}
+      title={label}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
