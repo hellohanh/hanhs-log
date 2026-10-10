@@ -40,6 +40,35 @@ jobs:
               if [ -n "$value" ]; then echo "- $name: set ✅"; else echo "- $name: **missing** ❌"; fi
             done
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Connection check (read-only; reports facts, never secret values)
+        if: github.event.action != 'closed'
+        continue-on-error: true
+        env:
+          A: ${{ secrets.VITE_SUPABASE_URL }}
+          B: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          url="${A%/}"; url="${url%/rest/v1}"
+          ref=$(printf '%s' "$url" | sed -E 's#^https?://([^.]+)\.supabase\.co.*#\1#')
+          echo "::notice title=Website project::The website points at Supabase project $ref"
+          code=$(curl -s -o settings.json -w '%{http_code}' "$url/auth/v1/settings" -H "apikey: $B")
+          if [ "$code" = "200" ]; then
+            email=$(jq -r '.external.email' settings.json); anon=$(jq -r '.external.anonymous_users' settings.json)
+            echo "::notice title=Sign-in::Key works. Email sign-in: $email. Anonymous sign-ins (guests by link): $anon"
+          else
+            echo "::warning title=Sign-in::The anon key was refused (HTTP $code). Check VITE_SUPABASE_ANON_KEY belongs to project $ref"
+          fi
+          dbref=$(printf '%s' "$DB" | sed -nE 's#^postgres(ql)?://postgres\.([a-z0-9]+):.*#\2#p')
+          if [ "$dbref" = "$ref" ]; then echo "::notice title=Database secret::SUPABASE_DB_URL is for the same project ($ref)"
+          else echo "::warning title=Database secret::SUPABASE_DB_URL is for project '${dbref:-unknown}', not $ref"; fi
+          if out=$(psql "$DB" -X -t -A -c "select count(*) filter (where table_name = 'itinerary_days'), count(*) from information_schema.tables where table_schema = 'public'" 2>&1); then
+            old=${out%%|*}; n=${out##*|}
+            if [ "$old" != "0" ]; then echo "::warning title=Database::Connected, but this is the OLD Wanderlog database"
+            else echo "::notice title=Database::Connected to a Hanh's Log database ($n tables in public)"; fi
+          else
+            echo "::warning title=Database::Could not connect with SUPABASE_DB_URL (check the password and that it's the Session pooler URI)"
+          fi
+          rm -f settings.json
       - run: npm run build
         if: github.event.action != 'closed'
         env:
