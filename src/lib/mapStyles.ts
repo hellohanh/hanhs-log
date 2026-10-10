@@ -193,13 +193,11 @@ export const canTilt = (l: MapLook) => !l.styles
 
 // ---- Pins / No pins (Hanh, session 4) ----
 // "No pins" hides Google's place pins: the icons and names of shops,
-// restaurants, hospitals, schools, landmarks and transit stops. Street,
-// district and city names, roads and parks all stay.
+// restaurants, hospitals, schools and landmarks. Transit pins (bus, train,
+// metro, airports) stay because they're useful, as do street, district and
+// city names, roads and parks.
 
-const PINS_OFF: Style = [
-  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit.station', elementType: 'labels', stylers: [{ visibility: 'off' }] }
-]
+const PINS_OFF: Style = [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }]
 
 /** Google dark's pins can't be hidden without a Google Cloud style. */
 export const canHidePins = (l: MapLook) => !l.dark

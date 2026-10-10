@@ -175,10 +175,10 @@ test('pins toggle: hides only Google\'s place pins, and which map each look need
   // Pins shown: Google's own looks stay on the tilt map, untouched.
   expect(lookOptions(by('standard'), true)).toMatchObject({ styles: null, tiltable: true })
   expect(lookOptions(by('satellite'), true)).toMatchObject({ mapTypeId: 'hybrid', styles: null, tiltable: true })
-  // No pins: only place and transit-stop labels go; street names are not touched.
+  // No pins: only place labels go; transit pins and; street names are not touched.
   const off = JSON.stringify(lookOptions(by('standard'), false).styles)
   expect(off).toContain('"featureType":"poi","elementType":"labels","stylers":[{"visibility":"off"}]')
-  expect(off).toContain('"featureType":"transit.station"')
+  expect(off).not.toContain('transit') // transit pins stay (Hanh, session 4)
   expect(off).not.toContain('"featureType":"road"')
   expect(lookOptions(by('standard'), false).tiltable).toBe(false)
   expect(lookOptions(by('satellite'), false)).toMatchObject({ mapTypeId: 'hybrid', tiltable: false })
@@ -189,4 +189,14 @@ test('pins toggle: hides only Google\'s place pins, and which map each look need
   // Google dark's pins can't be hidden (yet).
   expect(canHidePins(by('google-dark'))).toBe(false)
   expect(lookOptions(by('google-dark'), false)).toMatchObject({ styles: null, tiltable: true })
+})
+
+test('Districts chip: shows only while an HCMC district is in view', async () => {
+  const { anyDistrictInView, DISTRICT_BOXES } = await import('../../src/lib/districts')
+  expect(DISTRICT_BOXES).toHaveLength(22)
+  // Central HCMC at zoom 13.
+  expect(anyDistrictInView({ south: 10.74, north: 10.81, west: 106.65, east: 106.75 })).toBe(true)
+  // Panned out to sea off Vũng Tàu, and over Hà Nội: no district in view.
+  expect(anyDistrictInView({ south: 10.2, north: 10.3, west: 107.3, east: 107.4 })).toBe(false)
+  expect(anyDistrictInView({ south: 20.98, north: 21.06, west: 105.78, east: 105.9 })).toBe(false)
 })
