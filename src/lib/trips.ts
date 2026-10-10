@@ -101,3 +101,105 @@ export function tripDates(start: string | null, end: string | null, today: strin
   if (s.y === e.y) return `${s.label} – ${e.label}${e.y !== thisYear ? `, ${e.y}` : ''}`
   return `${s.label}${s.y !== thisYear ? `, ${s.y}` : ''} – ${e.label}, ${e.y}`
 }
+
+// ---- One trip, its people, sharing (milestone 3, step 2) ----
+
+export interface Trip {
+  id: string
+  name: string
+  destination: string
+  start_date: string | null
+  end_date: string | null
+  owner_id: string | null
+  invite_token: string
+}
+
+export interface Person {
+  user_id: string
+  display_name: string | null
+  is_owner: boolean
+  is_me: boolean
+  joined_at: string | null
+}
+
+export async function fetchTrip(id: string): Promise<Trip | null> {
+  const { data, error } = await client()
+    .from('trips')
+    .select('id, name, destination, start_date, end_date, owner_id, invite_token')
+    .eq('id', id)
+    .limit(1)
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as Trip[])[0] ?? null
+}
+
+export async function updateTrip(id: string, fields: NewTrip): Promise<void> {
+  const { error } = await client().from('trips').update(fields).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+/** Everyone on a trip (owner first), with first names. Only people on the trip may ask. */
+export async function fetchPeople(tripId: string): Promise<Person[]> {
+  const { data, error } = await client().rpc('trip_people', { _trip: tripId })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as Person[]
+}
+
+/** People count for each trip you can see, keyed by trip id. */
+export async function fetchPeopleCounts(): Promise<Record<string, number>> {
+  const { data, error } = await client().rpc('trip_people_counts')
+  if (error) throw new Error(error.message)
+  const out: Record<string, number> = {}
+  for (const r of (data ?? []) as { trip_id: string; people: number }[]) out[r.trip_id] = r.people
+  return out
+}
+
+export async function removePerson(tripId: string, userId: string): Promise<void> {
+  const { error } = await client().rpc('remove_trip_member', { _trip: tripId, _user: userId })
+  if (error) throw new Error(error.message)
+}
+
+export async function resetInvite(tripId: string): Promise<string> {
+  const { data, error } = await client().rpc('reset_trip_invite', { _trip: tripId })
+  if (error) throw new Error(error.message)
+  return data as string
+}
+
+/** Join with an invite code; returns the trip's id. */
+export async function joinTrip(token: string): Promise<string> {
+  const { data, error } = await client().rpc('join_trip_via_invite', { _token: token })
+  if (error) throw new Error(error.message)
+  return data as string
+}
+
+/** Sign in without an email, for someone joining by link (as Wanderlog does). */
+export async function signInAsGuest(): Promise<void> {
+  const { error } = await client().auth.signInAnonymously()
+  if (error) throw new Error(error.message)
+}
+
+export function inviteUrl(token: string): string {
+  return `${window.location.origin}${import.meta.env.BASE_URL}wander/join/${token}`
+}
+
+// ---- Your first name (profiles) ----
+
+export async function fetchMyName(userId: string): Promise<string | null> {
+  const { data, error } = await client().from('profiles').select('display_name').eq('user_id', userId).limit(1)
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as { display_name: string }[])[0]?.display_name ?? null
+}
+
+export async function saveMyName(userId: string, name: string): Promise<void> {
+  const { error } = await client()
+    .from('profiles')
+    .upsert({ user_id: userId, display_name: name, updated_at: new Date().toISOString() })
+  if (error) throw new Error(error.message)
+}
+
+export function initials(name: string | null): string {
+  const n = (name ?? '').trim()
+  return n ? n[0].toUpperCase() : '?'
+}
+
+/** Avatar colours for people on a trip, in list order. */
+export const AVATAR_COLORS = ['#9E2A2B', '#378ADD', '#639922', '#BA7517', '#7F77DD', '#1D9E75']

@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from '../../lib/supabase'
 import {
   createTrip,
   deleteTrip,
+  fetchPeopleCounts,
   fetchTrips,
   splitTrips,
   todayISO,
@@ -64,11 +65,14 @@ function SignedInList({ userId }: { userId: string }) {
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [creating, setCreating] = useState(false)
   const [notice, setNotice] = useState('')
+  const [people, setPeople] = useState<Record<string, number>>({})
   const today = todayISO()
 
   const reload = useCallback(async () => {
     try {
       setLoad({ state: 'ready', trips: await fetchTrips() })
+      // People counts are a nice-to-have: if they can't load, cards still show.
+      fetchPeopleCounts().then(setPeople, () => setPeople({}))
     } catch (e) {
       setLoad({ state: 'error', message: (e as Error).message })
     }
@@ -139,7 +143,7 @@ function SignedInList({ userId }: { userId: string }) {
           ) : (
             <ul className={styles.grid}>
               {groups.upcoming.map(t => (
-                <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} onDelete={remove} />
+                <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} />
               ))}
             </ul>
           )}
@@ -149,7 +153,7 @@ function SignedInList({ userId }: { userId: string }) {
               <h2 className={`${styles.h2} ${styles.pastTitle}`}>Past</h2>
               <ul className={`${styles.grid} ${styles.past}`}>
                 {groups.past.map(t => (
-                  <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} onDelete={remove} />
+                  <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} />
                 ))}
               </ul>
             </>
@@ -164,11 +168,13 @@ function TripCard({
   trip,
   today,
   mine,
+  people,
   onDelete
 }: {
   trip: TripSummary
   today: string
   mine: boolean
+  people?: number
   onDelete: (t: TripSummary) => void
 }) {
   const dates = tripDates(trip.start_date, trip.end_date, today)
@@ -179,7 +185,10 @@ function TripCard({
       <Link to={`/wander/trip/${trip.id}`} className={styles.name}>{trip.name}</Link>
       <span className={styles.destination}>{trip.destination}</span>
       <span className={styles.foot}>
-        <span>{trip.pinCount === 1 ? '1 pin' : `${trip.pinCount} pins`}</span>
+        <span>
+          {trip.pinCount === 1 ? '1 pin' : `${trip.pinCount} pins`}
+          {people !== undefined && (people <= 1 ? ' · just you' : ` · ${people} people`)}
+        </span>
         <span className={styles.footRight}>
           <span className={styles.badge}>{mine ? 'You own this' : 'Shared with you'}</span>
           {mine && (
