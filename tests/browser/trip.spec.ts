@@ -180,6 +180,7 @@ test('pins toggle: hides only Google\'s place pins, and which map each look need
   const off = JSON.stringify(lookOptions(by('standard'), false).styles)
   expect(off).toContain('"featureType":"poi","elementType":"labels","stylers":[{"visibility":"off"}]')
   expect(off).not.toContain('transit') // transit pins stay (Hanh, session 4)
+  expect(off).toContain('"featureType":"poi.park","elementType":"labels.text","stylers":[{"visibility":"on"}]') // park names stay
   expect(off).not.toContain('"featureType":"road"')
   expect(lookOptions(by('standard'), false).tiltable).toBe(false)
   expect(lookOptions(by('satellite'), false)).toMatchObject({ mapTypeId: 'hybrid', tiltable: false })
