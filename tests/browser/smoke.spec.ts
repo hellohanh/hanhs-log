@@ -1,8 +1,23 @@
 import { test, expect } from '@playwright/test'
 
+// Web fonts come from Google; serve an empty stylesheet in tests so results
+// and screenshots don't depend on the network (system fonts are used).
+test.beforeEach(async ({ page }) => {
+  await page.route(/fonts\.(googleapis|gstatic)\.com/, route =>
+    route.fulfill({ status: 200, contentType: 'text/css', body: '' })
+  )
+})
+
 // Every page listed here is opened at every size in playwright.config.ts.
 // Add a line when a new screen is built.
-const pages = [{ name: 'home', path: './' }]
+const pages = [
+  { name: 'home', path: './' },
+  { name: 'wanderlog', path: './wander' },
+  { name: 'savorlog', path: './savor' },
+  { name: 'signin', path: './signin' },
+  { name: 'city-search', path: './search?city=Rome' },
+  { name: 'not-found', path: './no-such-page' }
+]
 
 for (const p of pages) {
   test(`${p.name} loads cleanly`, async ({ page }, info) => {
@@ -24,3 +39,24 @@ for (const p of pages) {
     expect(problems, problems.join('\n')).toEqual([])
   })
 }
+
+test('light/dark switch flips the theme and is remembered', async ({ page }) => {
+  await page.goto('./')
+  const html = page.locator('html')
+  const toggle = page.getByTestId('theme-toggle')
+  await toggle.click()
+  const first = await html.getAttribute('data-theme')
+  expect(first === 'dark' || first === 'light').toBe(true)
+  await page.reload()
+  await expect(html).toHaveAttribute('data-theme', first!)
+  await toggle.click()
+  await expect(html).toHaveAttribute('data-theme', first === 'dark' ? 'light' : 'dark')
+})
+
+test('header links move between sections', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('link', { name: 'Savorlog' }).first().click()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Eateries by country and main dish')
+  await page.getByRole('link', { name: 'Wanderlog' }).first().click()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Trips, maps and itineraries')
+})

@@ -1,0 +1,60 @@
+/* Hanh's Log design tokens, from the approved splash mockup (MICHELIN-style:
+   muted white, serif display over a clean sans, one deep-red accent).
+   Dark mode follows the phone's setting unless the person picks one with
+   the header switch, which sets data-theme on <html>. */
+:root {
+  --ground: #F6F4F0;
+  --surface: #FFFFFF;
+  --ink: #1B1A18;
+  --muted: #5E5A54;
+  --rule: #E2DDD5;
+  --accent: #9E2A2B;
+  --accent-ink: #FFFFFF;
+  --hero-ground: #FAF6E5;
+  --shadow: 0 12px 40px rgba(27, 26, 24, 0.14);
+
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-s: 8px;
+  --radius-m: 16px;
+  --radius-l: 20px;
+  --pill: 999px;
+  --header-h: 64px;
+  --page-max: 1200px;
+  --gutter: 32px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ground: #141312;
+    --surface: #1E1C1A;
+    --ink: #F2EFEA;
+    --muted: #ADA79E;
+    --rule: #34302C;
+    --accent: #E0716A;
+    --accent-ink: #141312;
+    --hero-ground: #1E1C1A;
+    --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --ground: #141312;
+  --surface: #1E1C1A;
+  --ink: #F2EFEA;
+  --muted: #ADA79E;
+  --rule: #34302C;
+  --accent: #E0716A;
+  --accent-ink: #141312;
+  --hero-ground: #1E1C1A;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+@media (max-width: 640px) {
+  :root { --gutter: 16px; }
+}
