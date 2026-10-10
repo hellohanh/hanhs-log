@@ -23,7 +23,7 @@ live Wanderlog database.
   - `browser-tests`: Playwright at phone 390×844, laptop 1440×900 and laptop-150%-zoom 960×600, in `tests/browser`.
 - **Splash:**
   - `src/pages/Home.tsx`, `Home.module.css` and `src/lib/flightPath.ts`.
-  - Images in `public/images/`: `hero-noplane.webp`, `hero-plane.webp` (the painted plane cut out), `plane.webp` (the flying plane) and two card images.
+  - Images in `public/images/`: `hero.webp` (Hanh's new hero, no plane painted in), `paper-plane.webp` and `jet.webp` (the flying planes; `jet.webp` is also the landed jet) and two card images.
 
 ## Locked Configuration (E-number registry)
 | E# | Decision | Detail |

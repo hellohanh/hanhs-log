@@ -58,6 +58,7 @@ test('scrolling flies the paper plane, turns it into the jet, hands over to the 
   await expect(main).toHaveAttribute('data-landed', 'true')
   await expect.poll(() => flying.getAttribute('opacity')).toBe('0.000')
   await expect(paper).toHaveAttribute('opacity', '0.000')
+  await expect(page.getByTestId('landed-jet')).toHaveAttribute('opacity', '1.000')
   await expect(searchCard).toHaveCSS('opacity', '1')
   await expect(choose).not.toHaveCSS('background-color', 'rgb(250, 246, 229)')
 

@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { HERO_H, HERO_W, JET, PAPER_PLANE, frameAt } from '../lib/flightPath'
+import { HERO_H, HERO_W, JET, LANDED_JET, PAPER_PLANE, frameAt } from '../lib/flightPath'
 import styles from './Home.module.css'
 
 const img = (name: string) => `${import.meta.env.BASE_URL}images/${name}`
@@ -111,11 +111,21 @@ export default function Home() {
             <svg
               viewBox={`0 0 ${HERO_W} ${HERO_H}`}
               role="img"
-              aria-label="Watercolor travel map: as you scroll, a paper plane takes off, turns into a jet around a bowl of phở and a bánh mì, then settles into place in the picture"
+              aria-label="Watercolor travel map: as you scroll, a paper plane takes off, turns into a jet, flies around a bowl of phở and a bánh mì, then settles in the sky by the Eiffel Tower"
               className={styles.svg}
             >
-              <image href={img('hero-noplane.webp')} x="0" y="0" width={HERO_W} height={HERO_H} />
-              <image ref={paintedRef} href={img('hero-plane.webp')} x="540" y="40" width="680" height="290" opacity="0" />
+              <image href={img('hero.webp')} x="0" y="0" width={HERO_W} height={HERO_H} />
+              <image
+                ref={paintedRef}
+                data-testid="landed-jet"
+                href={img('jet.webp')}
+                x={-LANDED_JET.width / 2}
+                y={-LANDED_JET.height / 2}
+                width={LANDED_JET.width}
+                height={LANDED_JET.height}
+                transform={`translate(${LANDED_JET.x} ${LANDED_JET.y}) rotate(${LANDED_JET.tilt})`}
+                opacity="0"
+              />
               <g ref={paperRef} data-testid="paper-plane">
                 <image href={img('paper-plane.webp')} x={-PAPER_PLANE.width / 2} y={-PAPER_PLANE.height / 2} width={PAPER_PLANE.width} height={PAPER_PLANE.height} />
               </g>

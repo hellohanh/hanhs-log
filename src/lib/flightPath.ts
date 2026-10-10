@@ -35,8 +35,12 @@ const PAPER_OUT = { from: PAPER_TO_JET + (FLYING_OUT.from - PAINTED_IN.from), le
 
 // Flying sizes in hero pixels (width) and which way each picture's nose
 // points when unrotated (degrees, 0 = right, negative = up).
-export const PAPER_PLANE = { width: 100, height: 100 * (223 / 275), nose: -46 }
-export const JET = { width: 100, height: 100 * (147 / 404), nose: -16 }
+export const PAPER_PLANE = { width: 150, height: 150 * (223 / 275), nose: -46 }
+export const JET = { width: 400, height: 400 * (147 / 404), nose: -16 }
+
+// Where the jet comes to rest in the picture (the route's last point), its
+// size and tilt (degrees, added to the picture's own angle). Hanh's editor.
+export const LANDED_JET = { x: 935, y: 233, width: 400, height: 400 * (147 / 404), tilt: 4.75 }
 
 interface Path {
   pts: [number, number][]
