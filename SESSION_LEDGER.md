@@ -1,0 +1,58 @@
+# SESSION LEDGER — Hanh's Log
+> Append-only. Never overwrite. One entry per session.
+
+---
+
+## Session 1 — 2026-10-09
+
+**Goal:**
+- Start Hanh's Log, the umbrella app for Wanderlog and the new Savorlog.
+- Work out logistics and milestones.
+- Set up a safer way of shipping than Wanderlog had.
+- Build the foundation and the splash page.
+
+**Decisions made:**
+- E1–E22 recorded in SKILL.md, including:
+  - the name and sections, the stack, the address, the MICHELIN-style look and dark mode;
+  - the city search, Savorlog levels, sharing and the 20 km "in city" rule;
+  - the PR-and-preview working agreement;
+  - the flight path, scroll-driven flight, fade timing and the 1080 × 800 desktop layout;
+  - sign-in hardening and the milestone order.
+
+**Built and merged (all through pull requests with previews and green checks):**
+- PR #1: build, deploy and pull-request preview pipeline.
+- PR #2: database safeguards.
+  - numbered migrations and a rules checker;
+  - an approval-gated migrations workflow with a backup first;
+  - nightly gpg-encrypted backups;
+  - a read-only inspect workflow.
+- PR #3: live schema snapshot workflow.
+- PR #4: tests on every pull request.
+  - two-person security tests (34 checks against the real live rules);
+  - browser tests at phone, laptop and 150% zoom.
+- PR #5: Milestone 1 foundation, plus Milestone 2 splash.
+  - foundation: design tokens, light and dark mode, header, routes, sign-in, PWA;
+  - splash: plane on Hanh's 66-dot route, hand-over to the painted plane, panels, city search results page.
+- PR #6: splash desktop layout to Hanh's spec.
+  - 1080 × 800 container, picture 40px down, panel 20px from the left with its bottom at 780px;
+  - Where to? section pinned right under the picture, with its dark background fading in on landing.
+- PR #7: sign-in switched on via GitHub Secrets.
+  - the address is tidied automatically;
+  - a mistyped setting can no longer blank the site;
+  - errors name the address tried;
+  - Hanh tested sign-in and sign-out end to end on the preview.
+
+**Design work:**
+- Splash mockup canvas, versions 1–12 (light, dark, phone).
+- Inline flight-path editor, used by Hanh to map the 66-point route.
+- Inline fade tuner, with dots that can be deleted, used to set the fade timing.
+
+**Lessons:** L1–L13 recorded in SKILL.md.
+
+**Open questions:**
+- Q1: the splash phone layout (parked).
+- Q2: the milestone 3 checklist.
+
+**Stop Protocol completed:** zip `S001 OCT 9 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** Milestone 3, Wanderlog trips and map inside Hanh's Log. First lay out its checklist (from today's Wanderlog features) for Hanh to approve before any code.
