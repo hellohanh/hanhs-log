@@ -1,0 +1,163 @@
+/* Trip list (/wander), from the approved M3 mockup. Designed for a desktop
+   monitor (2560 × 1440) first: the page uses the full width with 64px
+   sides, three trip cards per row. Phone layout comes later (it stacks
+   to one column for now so nothing scrolls sideways). */
+.page {
+  padding: 56px 64px 96px;
+}
+
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.titles { display: flex; flex-direction: column; gap: 8px; }
+.h1 { font-size: 48px; }
+
+.newBtn { gap: 8px; font-weight: 700; }
+
+.h2 {
+  margin: 48px 0 16px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.pastTitle { margin-top: 56px; color: var(--muted); }
+
+.notice { margin: 16px 0 0; min-height: 1.5em; font-size: 14px; color: var(--muted); }
+.error { margin: 12px 0 0; font-size: 15px; color: var(--accent); }
+.linkBtn {
+  border: 0; background: none; padding: 0;
+  color: var(--accent); text-decoration: underline; cursor: pointer;
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+.past { opacity: 0.72; }
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  box-shadow: 0 1px 2px rgba(27, 26, 24, 0.04);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.card:hover { border-color: var(--muted); box-shadow: var(--shadow); }
+.card:focus-within { border-color: var(--accent); }
+
+.dates {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.undated { color: var(--muted); }
+
+/* The trip name is the link; its ::after stretches over the whole card so
+   the card is clickable, while the delete button sits above it. */
+.name {
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--ink);
+  text-decoration: none;
+}
+.name::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.name:focus-visible { outline: none; }
+
+.destination { font-size: 15px; color: var(--muted); }
+
+.foot {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.footRight { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+.badge {
+  padding: 3px 10px;
+  border-radius: var(--pill);
+  background: var(--ground);
+  color: var(--ink);
+  font-size: 13px;
+}
+.delete {
+  position: relative;
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--pill);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.delete:hover { border-color: var(--rule); color: var(--accent); }
+
+/* New-trip form: one row on a monitor. */
+.form {
+  margin-top: 32px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow);
+}
+.formTitle { font-size: 20px; font-weight: 700; letter-spacing: 0; margin-bottom: 16px; }
+.formRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+.field {
+  flex: 2 1 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.dateField { flex: 1 1 170px; }
+.field input {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--ground);
+  color: var(--ink);
+  font-size: 16px;
+  min-width: 0;
+}
+.formButtons { display: flex; gap: 10px; }
+
+/* Narrower windows: fewer columns (full phone design comes later). */
+@media (max-width: 1200px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .page { padding: 32px 16px 64px; }
+  .h1 { font-size: 36px; }
+  .grid { grid-template-columns: minmax(0, 1fr); }
+}

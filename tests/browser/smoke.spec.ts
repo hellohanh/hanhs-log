@@ -13,6 +13,7 @@ test.beforeEach(async ({ page }) => {
 const pages = [
   { name: 'home', path: './' },
   { name: 'wanderlog', path: './wander' },
+  { name: 'wanderlog-trip', path: './wander/trip/test-trip' },
   { name: 'savorlog', path: './savor' },
   { name: 'signin', path: './signin' },
   { name: 'city-search', path: './search?city=Rome' },
@@ -69,5 +70,5 @@ test('header links move between sections', async ({ page }) => {
   await page.getByRole('link', { name: 'Savorlog' }).first().click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Eateries by country and main dish')
   await page.getByRole('link', { name: 'Wanderlog' }).first().click()
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Trips, maps and itineraries')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your trips')
 })
