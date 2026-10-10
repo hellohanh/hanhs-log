@@ -20,13 +20,16 @@ import {
 import ShareDialog from './ShareDialog'
 import NamePrompt from './NamePrompt'
 import TripMap, { type CityState } from './TripMap'
+import ItineraryPanel, { ItineraryOpener, PANEL_WIDTH } from './ItineraryPanel'
+import { readPanelState, savePanelState, type PanelState } from '../../lib/itinerary'
 import { ensureTripCity, type City } from '../../lib/city'
 import TripForm from './TripForm'
 import styles from './TripPage.module.css'
 
 // The trip page (/wander/trip/:id), from the approved M3 mockup: the trip
-// bar (title, dates, people, Edit trip, Share & people) over the map (step 3,
-// opening on the trip's city). Adding pins is step 4; the pin list step 5.
+// bar (title, dates, people, Edit trip, Share & people) over Places (left),
+// the map, and the itinerary panel (right; session 4 moved the itinerary
+// out of its own tab). Adding pins is step 4; the pin list step 5.
 
 export default function TripPage() {
   const { tripId = '' } = useParams()
@@ -66,6 +69,14 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const [editing, setEditing] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [city, setCity] = useState<CityState>({ state: 'loading' })
+  // Itinerary panel: closed by default; open/closed and width remembered on this device.
+  const [panel, setPanelState] = useState<PanelState>(readPanelState)
+  const setPanel = (f: (p: PanelState) => PanelState) =>
+    setPanelState(p => {
+      const next = f(p)
+      savePanelState(next)
+      return next
+    })
 
   // Where the map opens: the Primary City in its Country, saved on the trip
   // and looked up again only when either changes.
@@ -112,10 +123,6 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             <h1 className={styles.h1}>{trip.name}</h1>
             <span className={styles.meta}>{placeLabel(trip)} · {dates}</span>
           </div>
-          <div role="tablist" aria-label="Trip views" className={styles.tabs}>
-            <button type="button" role="tab" aria-selected="true" className={`${styles.tab} ${styles.tabOn}`}>Map</button>
-            <button type="button" role="tab" aria-selected="false" disabled className={styles.tab}>Itinerary · coming in M6</button>
-          </div>
         </div>
         <div className={styles.actions}>
           {people.length > 0 && (
@@ -159,7 +166,22 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           <p className={styles.placeholderText}>No places on this trip yet.</p>
           <p className={styles.placeholderText}>Old Wanderlog pins show here and on the map once you sort them. Adding pins comes in step 4.</p>
         </aside>
-        <TripMap city={city} />
+        <div className={styles.mapArea}>
+          <TripMap city={city} rightInset={panel.open ? (panel.wide ? 2 : 1) * PANEL_WIDTH : 0} />
+          {panel.open ? (
+            <ItineraryPanel
+              tripId={trip.id}
+              start={trip.start_date}
+              end={trip.end_date}
+              wide={panel.wide}
+              home={city.state === 'ready' ? { center: { lat: city.city.lat, lng: city.city.lng }, zoom: 13 } : { center: { lat: 20, lng: 0 }, zoom: 2 }}
+              onWide={() => setPanel(p => ({ ...p, wide: !p.wide }))}
+              onClose={() => setPanel(p => ({ ...p, open: false }))}
+            />
+          ) : (
+            <ItineraryOpener onOpen={() => setPanel(p => ({ ...p, open: true }))} />
+          )}
+        </div>
       </div>
 
       {sharing && (

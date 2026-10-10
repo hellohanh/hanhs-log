@@ -22,7 +22,7 @@ export type CityState = { state: 'loading' } | { state: 'ready'; city: City } | 
 const WORLD = { center: { lat: 20, lng: 0 }, zoom: 2 }
 const OPENING_ZOOM = 13
 
-export default function TripMap({ city }: { city: CityState }) {
+export default function TripMap({ city, rightInset = 0 }: { city: CityState; rightInset?: number }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const districtsRef = useRef<Districts | null>(null)
@@ -166,7 +166,7 @@ export default function TripMap({ city }: { city: CityState }) {
     <div className={styles.wrap}>
       <div ref={box} className={styles.map} role="region" aria-label="Map" />
       {notice && <p className={styles.notice} role="status">{notice}</p>}
-      {map && <CameraControl map={map} home={home} tiltable={tiltable} />}
+      {map && <CameraControl map={map} home={home} tiltable={tiltable} right={rightInset + 16} />}
       {ready && (
         <div className={styles.controls}>
           <button
