@@ -15,8 +15,26 @@ const PAN = 150
 const TILT_STEP = 10
 const TURN_STEP = 15
 
-export default function CameraControl({ map, home }: { map: google.maps.Map; home: { center: google.maps.LatLngLiteral; zoom: number } }) {
+const FLAT_TIP = 'Tilt and rotate work on Google looks'
+
+export default function CameraControl({
+  map,
+  home,
+  tiltable = true,
+  flatMode = 'grey'
+}: {
+  map: google.maps.Map
+  home: { center: google.maps.LatLngLiteral; zoom: number }
+  /** False on hand-made looks (flat map): tilt and rotate can't work there. */
+  tiltable?: boolean
+  /** On the flat map: grey the tilt/rotate buttons out, or hide them. */
+  flatMode?: 'grey' | 'hide'
+}) {
   const [open, setOpen] = useState(true)
+  const off = !tiltable
+  const hide = off && flatMode === 'hide'
+  const T = (props: { label: string; onClick: () => void; children: React.ReactNode }) =>
+    hide ? <span aria-hidden="true" /> : <Btn {...props} off={off} />
   const tilt = (d: number) => map.setTilt(Math.max(0, (map.getTilt() ?? 0) + d))
   const turn = (d: number) => map.setHeading((((map.getHeading() ?? 0) + d) % 360 + 360) % 360)
   const zoom = (d: number) => map.setZoom((map.getZoom() ?? home.zoom) + d)
@@ -31,17 +49,17 @@ export default function CameraControl({ map, home }: { map: google.maps.Map; hom
     <div className={styles.grid} role="group" aria-label="Map camera">
       {open && (
         <>
-          <Btn label="Tilt up 10°" onClick={() => tilt(TILT_STEP)}><TiltIcon /></Btn>
+          <T label="Tilt up 10°" onClick={() => tilt(TILT_STEP)}><TiltIcon /></T>
           <Btn label="Move up" onClick={() => map.panBy(0, -PAN)}><Chevron rot={0} /></Btn>
           <Btn label="Zoom in" onClick={() => zoom(1)}><Plus /></Btn>
           <Btn label="Move left" onClick={() => map.panBy(-PAN, 0)}><Chevron rot={-90} /></Btn>
           <Btn label="Reset to the trip's starting view" onClick={reset} reset><Target /></Btn>
           <Btn label="Move right" onClick={() => map.panBy(PAN, 0)}><Chevron rot={90} /></Btn>
-          <Btn label="Tilt down 10°" onClick={() => tilt(-TILT_STEP)}><FlatIcon /></Btn>
+          <T label="Tilt down 10°" onClick={() => tilt(-TILT_STEP)}><FlatIcon /></T>
           <Btn label="Move down" onClick={() => map.panBy(0, PAN)}><Chevron rot={180} /></Btn>
           <Btn label="Zoom out" onClick={() => zoom(-1)}><Minus /></Btn>
-          <Btn label="Rotate left 15°" onClick={() => turn(-TURN_STEP)}><Turn left /></Btn>
-          <Btn label="Rotate right 15°" onClick={() => turn(TURN_STEP)}><Turn /></Btn>
+          <T label="Rotate left 15°" onClick={() => turn(-TURN_STEP)}><Turn left /></T>
+          <T label="Rotate right 15°" onClick={() => turn(TURN_STEP)}><Turn /></T>
         </>
       )}
       <button
@@ -58,9 +76,16 @@ export default function CameraControl({ map, home }: { map: google.maps.Map; hom
   )
 }
 
-function Btn({ label, onClick, reset, children }: { label: string; onClick: () => void; reset?: boolean; children: React.ReactNode }) {
+function Btn({ label, onClick, reset, off, children }: { label: string; onClick: () => void; reset?: boolean; off?: boolean; children: React.ReactNode }) {
   return (
-    <button type="button" className={`${styles.b} ${reset ? styles.reset : ''}`} aria-label={label} title={label} onClick={onClick}>
+    <button
+      type="button"
+      className={`${styles.b} ${reset ? styles.reset : ''} ${off ? styles.off : ''}`}
+      aria-label={off ? `${label} (${FLAT_TIP})` : label}
+      aria-disabled={off || undefined}
+      title={off ? FLAT_TIP : label}
+      onClick={off ? undefined : onClick}
+    >
       {children}
     </button>
   )

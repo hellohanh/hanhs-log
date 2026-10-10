@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { hasMapsKey, loadGoogleMaps } from '../lib/googleMaps'
-import { MAP_LOOKS, type MapLook } from '../lib/mapStyles'
+import { MAP_LOOKS, canTilt, type MapLook } from '../lib/mapStyles'
 import CameraControl from './wander/CameraControl'
 
-// Preview only (never merged): tests the approved 3 × 4 camera control on
-// Google's vector map (needed for tilt and rotate), and which of the 11 map
-// looks still show on it. The readout says what Google is actually doing.
+// Preview only (never merged): the approved 3 × 4 camera control with the
+// plan Hanh chose (session 4): Google's own looks (standard, Google dark,
+// terrain, satellite) on the tilt map; hand-made looks on the flat map with
+// tilt and rotate greyed out or hidden. The readout says what Google is doing.
 
 const HOME = { center: { lat: 10.7769, lng: 106.7009 }, zoom: 13 }
 type IdChoice = 'demo' | 'wanderlog'
@@ -17,23 +18,37 @@ export default function TiltTest() {
   const [idChoice, setIdChoice] = useState<IdChoice>('demo')
   const [error, setError] = useState('')
   const [readout, setReadout] = useState('')
+  const [flatMode, setFlatMode] = useState<'grey' | 'hide'>('grey')
+  // Which kind of map this look needs: Google's own looks use the tilt map
+  // (with our Map ID, light or Google's dark); hand-made looks need the flat
+  // map, because Google ignores hand-made colours on a map with a Map ID.
+  const kind = canTilt(look) ? (look.dark ? 'tilt-dark' : 'tilt') : 'flat'
+  const mapRef = useRef<google.maps.Map | null>(null)
 
-  // (Re)create the map whenever the Map ID choice changes: a map's ID and
-  // rendering can't be changed after it's made.
+  // (Re)create the map when the Map ID choice or the kind of map changes: a
+  // map's ID, rendering and colour scheme can't be changed after it's made.
+  // The current centre and zoom carry over.
   useEffect(() => {
     let cancelled = false
     loadGoogleMaps().then(
       g => {
         if (cancelled || !g || !box.current) return
         const mapId = idChoice === 'demo' ? 'DEMO_MAP_ID' : import.meta.env.VITE_GOOGLE_MAP_ID || 'DEMO_MAP_ID'
+        const prev = mapRef.current
+        const view = prev ? { center: prev.getCenter()!.toJSON(), zoom: prev.getZoom() ?? HOME.zoom } : HOME
+        const tiltMap = kind !== 'flat'
         const m = new g.maps.Map(box.current, {
-          ...HOME,
-          mapId,
-          renderingType: g.maps.RenderingType.VECTOR,
-          tiltInteractionEnabled: true,
-          headingInteractionEnabled: true,
+          ...view,
+          ...(tiltMap
+            ? {
+                mapId,
+                renderingType: g.maps.RenderingType.VECTOR,
+                colorScheme: kind === 'tilt-dark' ? g.maps.ColorScheme.DARK : g.maps.ColorScheme.LIGHT,
+                tiltInteractionEnabled: true,
+                headingInteractionEnabled: true
+              }
+            : { renderingType: g.maps.RenderingType.RASTER, styles: look.styles }),
           mapTypeId: look.mapTypeId,
-          styles: look.styles,
           zoomControl: false,
           cameraControl: false,
           mapTypeControl: false,
@@ -50,6 +65,7 @@ export default function TiltTest() {
         m.addListener('zoom_changed', update)
         m.addListener('renderingtype_changed', update)
         update()
+        mapRef.current = m
         setMap(m)
       },
       e => setError((e as Error).message)
@@ -57,11 +73,12 @@ export default function TiltTest() {
     return () => {
       cancelled = true
     }
-    // The look is applied separately below; only the Map ID rebuilds the map.
-  }, [idChoice])
+    // Looks of the same kind are applied below without rebuilding.
+  }, [idChoice, kind])
 
   useEffect(() => {
-    map?.setOptions({ mapTypeId: look.mapTypeId, styles: look.styles ?? null })
+    if (!map) return
+    map.setOptions(canTilt(look) ? { mapTypeId: look.mapTypeId } : { mapTypeId: look.mapTypeId, styles: look.styles ?? null })
   }, [map, look])
 
   return (
@@ -86,13 +103,23 @@ export default function TiltTest() {
             </button>
           ))}
         </div>
-        <span role="status" style={{ fontSize: 14, fontWeight: 700 }}>{readout}</span>
+        <div role="group" aria-label="Tilt buttons on hand-made looks" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: 14, color: 'var(--muted)' }}>On hand-made looks, the tilt and rotate buttons are:</span>
+          {(['grey', 'hide'] as const).map(f => (
+            <button key={f} type="button" className={f === flatMode ? 'btn' : 'btn btn-quiet'} aria-pressed={f === flatMode} onClick={() => setFlatMode(f)}>
+              {f === 'grey' ? 'Greyed out' : 'Hidden'}
+            </button>
+          ))}
+        </div>
+        <span role="status" style={{ fontSize: 14, fontWeight: 700 }}>
+          {canTilt(look) ? 'Tilt map (Google look)' : 'Flat map (hand-made look): tilt and rotate unavailable'} · {readout}
+        </span>
       </div>
       {!hasMapsKey && <p role="status" style={{ padding: 24 }}>This build has no Google Maps key. Open the preview link.</p>}
       {error && <p role="alert" style={{ padding: 24, color: 'var(--accent)' }}>{error}</p>}
       <div style={{ position: 'relative', flex: 1, minHeight: 360 }}>
         <div ref={box} style={{ position: 'absolute', inset: 0 }} />
-        {map && <CameraControl map={map} home={HOME} />}
+        {map && <CameraControl map={map} home={HOME} tiltable={canTilt(look)} flatMode={flatMode} />}
       </div>
     </main>
   )

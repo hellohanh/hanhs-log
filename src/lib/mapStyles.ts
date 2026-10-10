@@ -178,15 +178,26 @@ export interface MapLook {
   note: string
   mapTypeId: 'roadmap' | 'satellite' | 'hybrid' | 'terrain'
   styles?: Style
+  /** Google's own dark colour scheme (needs the tilt-capable map). */
+  dark?: boolean
   /** Colours for the small preview tile in the Map look switcher. */
   swatch: Swatch
 }
+
+/**
+ * Google's own looks run on the tilt-capable (vector) map with our Map ID;
+ * hand-made looks (those with `styles`) need the flat map, where Google
+ * honours them, so tilt and rotate aren't available there (Hanh, session 4).
+ */
+export const canTilt = (l: MapLook) => !l.styles
 
 // Order as in the approved switcher (session 4). Defaults: Google standard
 // in light mode, Aubergine in dark mode; each mode remembers its own pick.
 export const MAP_LOOKS: MapLook[] = [
   { key: 'standard', name: 'Google standard', note: 'Everyday Google', mapTypeId: 'roadmap',
     swatch: { land: '#F2F3F4', water: '#A9D3F5', road: '#FFFFFF', highway: '#FCE8A8', park: '#CDE8C4' } },
+  { key: 'google-dark', name: 'Google dark', note: "Google's own dark", mapTypeId: 'roadmap', dark: true,
+    swatch: { land: '#1F2933', water: '#0E1A24', road: '#3B4652', highway: '#55606C', park: '#1E3328' } },
   { key: 'paper', name: 'Paper', note: "Hanh's Log muted", mapTypeId: 'roadmap', styles: PAPER,
     swatch: { land: '#F1EADB', water: '#BFD3D0', road: '#FFFFFF', highway: '#FBF6EC', park: '#DCE3C8' } },
   { key: 'paper-dark', name: 'Paper, dark', note: 'Paper at night', mapTypeId: 'roadmap', styles: PAPER_DARK,
