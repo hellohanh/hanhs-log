@@ -36,6 +36,9 @@
 }
 .chip[aria-expanded='true'],
 .chip[aria-pressed='true'] { border: 2px solid var(--accent); color: var(--accent); padding: 0 15px; }
+/* Pins on Google dark: can't be hidden, so shown as unavailable. */
+.chipOff,
+.chipOff[aria-pressed='true'] { color: var(--muted); border: 1px solid var(--rule); padding: 0 16px; opacity: 0.6; cursor: not-allowed; }
 
 .panel {
   position: absolute;

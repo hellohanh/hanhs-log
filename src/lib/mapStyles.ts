@@ -191,6 +191,58 @@ export interface MapLook {
  */
 export const canTilt = (l: MapLook) => !l.styles
 
+// ---- Pins / No pins (Hanh, session 4) ----
+// "No pins" hides Google's place pins: the icons and names of shops,
+// restaurants, hospitals, schools, landmarks and transit stops. Street,
+// district and city names, roads and parks all stay.
+
+const PINS_OFF: Style = [
+  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit.station', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+]
+
+/** Google dark's pins can't be hidden without a Google Cloud style. */
+export const canHidePins = (l: MapLook) => !l.dark
+
+export interface LookOptions {
+  mapTypeId: MapLook['mapTypeId']
+  /** Hand-made colours and/or the no-pins rules; null = Google's own look. */
+  styles: Style | null
+  /** True when this needs no hand-made styling, so the tilt map can show it. */
+  tiltable: boolean
+}
+
+/**
+ * What the map needs for a look with Google's place pins shown or hidden.
+ * Hiding them needs a style, which only the flat map honours, so tilt and
+ * rotate aren't available while pins are hidden (except on Google dark,
+ * where pins can't be hidden at all yet).
+ */
+export function lookOptions(l: MapLook, pins: boolean): LookOptions {
+  if (pins || !canHidePins(l)) return { mapTypeId: l.mapTypeId, styles: l.styles ?? null, tiltable: !l.styles }
+  return { mapTypeId: l.mapTypeId, styles: [...(l.styles ?? []), ...PINS_OFF], tiltable: false }
+}
+
+const PINS_KEY = 'hanhs-log-map-pins'
+
+/** Google's place pins shown (default) or hidden, remembered on this device. */
+export function readPins(): boolean {
+  try {
+    return localStorage.getItem(PINS_KEY) !== 'off'
+  } catch {
+    return true
+  }
+}
+
+export function savePins(on: boolean): void {
+  try {
+    if (on) localStorage.removeItem(PINS_KEY)
+    else localStorage.setItem(PINS_KEY, 'off')
+  } catch {
+    /* storage unavailable: lasts for this visit only */
+  }
+}
+
 // Order as in the approved switcher (session 4), plus Google dark. Defaults:
 // Google standard in light mode, Google dark in dark mode (both can tilt);
 // each mode remembers its own pick on this device.
@@ -215,9 +267,8 @@ export const MAP_LOOKS: MapLook[] = [
     swatch: { land: '#1D2C4D', water: '#0E1626', road: '#304A7D', highway: '#2C6675', park: '#023E58' } },
   { key: 'terrain', name: 'Terrain', note: 'Shaded hills', mapTypeId: 'terrain',
     swatch: { land: '#E8E4D6', water: '#9CC0E6', road: '#FFFFFF', highway: '#F6D78C', park: '#C6DDB0' } },
-  { key: 'satellite', name: 'Satellite', note: 'Photos, no labels', mapTypeId: 'satellite',
-    swatch: { land: '#4B5442', water: '#2D4450', road: '#8E8A7C', highway: '#A39D8A', park: '#3D5233' } },
-  { key: 'hybrid', name: 'Satellite + labels', note: 'Photos with names', mapTypeId: 'hybrid',
+  // One Satellite look: aerial photos with street names (Hanh, session 4).
+  { key: 'satellite', name: 'Satellite', note: 'Photos with names', mapTypeId: 'hybrid',
     swatch: { land: '#4B5442', water: '#2D4450', road: '#C9C2A6', highway: '#E3C770', park: '#3D5233' } }
 ]
 
@@ -233,6 +284,7 @@ export function readLook(mode: Mode): MapLook {
   } catch {
     /* storage unavailable: use the default */
   }
+  if (k === 'hybrid') k = 'satellite' // "Satellite + labels" merged into Satellite (session 4)
   return MAP_LOOKS.find(l => l.key === k) ?? MAP_LOOKS.find(l => l.key === DEFAULT_LOOK[mode])!
 }
 
