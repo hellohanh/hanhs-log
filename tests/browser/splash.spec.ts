@@ -47,6 +47,19 @@ test('scrolling flies the plane, hands over to the painted plane, and brings up 
   await expect.poll(() => flying.getAttribute('opacity')).toBe('0.000')
   await expect(searchCard).toHaveCSS('opacity', '1')
 
+  // Spacing: 40px above the picture, the card 20px under it, and (when the
+  // screen is tall enough to stack them) 40px under the card.
+  const gaps = await page.evaluate(() => {
+    const p = document.querySelector('section[aria-label="Introduction"]')!.firstElementChild as HTMLElement
+    const art = p.querySelector('svg[role=img]')!.getBoundingClientRect()
+    const card = p.querySelector('form')!.getBoundingClientRect()
+    const box = p.getBoundingClientRect()
+    return { layout: p.dataset.layout, top: art.top - box.top, gap: card.top - art.bottom, bottom: box.bottom - card.bottom }
+  })
+  expect(Math.round(gaps.top)).toBe(40)
+  if (gaps.layout !== 'overlap') expect(Math.round(gaps.gap)).toBe(20)
+  if (gaps.layout === 'stack') expect(Math.round(gaps.bottom)).toBeGreaterThanOrEqual(39)
+
   // Scrolling back up flies it back.
   await page.evaluate(() => window.scrollTo(0, 0))
   await expect(main).toHaveAttribute('data-landed', 'false')

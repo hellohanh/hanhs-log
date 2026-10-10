@@ -23,10 +23,23 @@
   background: var(--paper);
 }
 
+/* 40px above the picture; the search card 20px under it (see Home.tsx,
+   which sizes the column to fit one screen). */
+.pinned {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+}
+
+.column {
+  position: relative;
+  width: min(100% - 32px, 1080px);
+}
+
 .art {
   position: relative;
-  width: min(100%, 1080px, calc(var(--stage) * 1.5));
-  margin: 0 auto;
+  width: 100%;
 }
 
 .svg {
@@ -62,10 +75,9 @@
 .splash[data-motion='reduced'] .hint { display: none; }
 
 .searchCard {
-  position: absolute;
-  left: max(16px, calc(50% - 516px));
-  bottom: 24px;
-  width: min(520px, calc(100% - 32px));
+  position: relative;
+  margin-top: 20px;
+  width: min(520px, 100vw - 32px);
   padding: 28px;
   display: flex;
   flex-direction: column;
@@ -75,6 +87,14 @@
   border: 1px solid var(--rule);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow);
+}
+/* Short screens: the card sits over the bottom of the picture. */
+.pinned[data-layout='overlap'] .searchCard {
+  position: absolute;
+  left: 16px;
+  bottom: 24px;
+  margin-top: 0;
+  width: min(520px, 100% - 32px);
 }
 
 .title {
@@ -113,13 +133,10 @@
 
 /* On narrow screens the search card sits under the picture instead of over it. */
 @media (max-width: 760px) {
+  .column { width: 100%; }
   .searchCard {
-    position: relative;
-    left: auto;
-    bottom: auto;
     width: auto;
-    margin: 0 16px;
-    top: -24px;
+    margin: 20px 16px 0;
     padding: 22px;
   }
   .hint {

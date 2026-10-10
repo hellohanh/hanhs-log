@@ -15,11 +15,54 @@ const prefersReducedMotion = () =>
 export default function Home() {
   const runwayRef = useRef<HTMLElement>(null)
   const pinnedRef = useRef<HTMLDivElement>(null)
+  const columnRef = useRef<HTMLDivElement>(null)
+  const [layout, setLayout] = useState<'stack' | 'overlap' | 'phone'>('stack')
   const planeRef = useRef<SVGGElement>(null)
   const paintedRef = useRef<SVGImageElement>(null)
   const [reduced] = useState(prefersReducedMotion)
   const [landed, setLanded] = useState(reduced)
   const [started, setStarted] = useState(reduced)
+
+  // Size the picture so it has 40px above it, the search card 20px below it
+  // and 40px under the card, all inside one screen. On a screen too short
+  // for that (a laptop at high zoom, say) the card overlaps the bottom of
+  // the picture instead; on phones the picture runs full width.
+  useEffect(() => {
+    const pinned = pinnedRef.current
+    const column = columnRef.current
+    const card = column?.querySelector('form')
+    if (!pinned || !column || !card) return
+    const TOP = 40
+    const GAP = 20
+    const BOTTOM = 40
+    const fit = () => {
+      const stage = pinned.clientHeight
+      const width = pinned.clientWidth
+      if (width <= 760) {
+        setLayout('phone')
+        column.style.width = ''
+        return
+      }
+      const avail = Math.min(width - 32, 1080)
+      const room = stage - TOP - GAP - card.offsetHeight - BOTTOM
+      if (room * 1.5 >= Math.min(avail, 560)) {
+        setLayout('stack')
+        column.style.width = `${Math.floor(Math.min(avail, room * 1.5))}px`
+      } else {
+        setLayout('overlap')
+        column.style.width = `${Math.floor(Math.min(avail, (stage - TOP - BOTTOM) * 1.5))}px`
+      }
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
+    ro?.observe(pinned)
+    ro?.observe(card)
+    return () => {
+      window.removeEventListener('resize', fit)
+      ro?.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
     const draw = (p: number) => {
@@ -78,7 +121,8 @@ export default function Home() {
   return (
     <main className={styles.splash} data-landed={landed ? 'true' : 'false'} data-motion={reduced ? 'reduced' : 'scroll'}>
       <section ref={runwayRef} aria-label="Introduction" className={styles.runway}>
-        <div ref={pinnedRef} className={styles.pinned}>
+        <div ref={pinnedRef} className={styles.pinned} data-layout={layout}>
+          <div ref={columnRef} className={styles.column}>
           <div className={styles.art}>
             <svg
               viewBox={`0 0 ${HERO_W} ${HERO_H}`}
@@ -100,6 +144,7 @@ export default function Home() {
             </p>
           </div>
           <CitySearch />
+          </div>
         </div>
       </section>
 
