@@ -29,7 +29,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
   - **Pins / No pins**: hides Google's shop, restaurant and landmark pins and keeps transit pins.
   - **Districts**: the old Wanderlog's coloured HCMC overlay; the chip shows whenever a district is in view.
   - **Camera control**: our own 3 × 4 control with tilt (10°), rotate (15°) and a reset button. Tilt works on Google's own looks; it's greyed out on hand-made looks and while pins are hidden.
-- **Itinerary panel**: on the map's right edge (closed by default; 320 or 640 px, remembered): day tabs for the trip's dates plus extra days, day notes, and travel legs (flight, train, bus, own transport) on an hour timeline. Places, connectors and day routes come with pins.
+- **Itinerary panel**: on the map's right edge (closed by default; 320 or 640 px, remembered): day tabs for the trip's dates plus extra days, day notes, travel legs (flight, train, bus, own transport) and activity blocks on an hour timeline; click a time to add, drag an activity's edges or middle to change its time. Places, connectors and day routes come with pins.
 - **Invite links (`/wander/join/<code>`)**: signed-in people join straight away; others tap Join trip (no email) and are asked for a first name.
 - **City search (`/search?city=…`)**: one results page per city; trips and eateries fill in later.
 - **Sign in (`/signin`)**: email link through Hanh's Log's own Supabase project.
@@ -48,7 +48,7 @@ M3 step 4: adding and editing pins, with a pins table in the new database and th
 
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E49, Q1–Q8, L1–L33), README.md, SESSION_LEDGER.md and docs/pin-standard.md
+> Read SKILL.md (E1–E50, Q1–Q8, L1–L34), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project now and
 > started from a clean slate (live Wanderlog is never touched). Session 4 finished M3 step 3 (the
 > map). Start Session 5 with M3 step 4 (add/edit pins): settle Q3/Q4, then mock up for approval first.

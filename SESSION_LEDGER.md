@@ -159,6 +159,7 @@
 - #30: transit pins stay with No pins; Districts chip only when a district is in view.
 - #32: the camera control starts closed.
 - #33: map chips (Map look, Pins, Districts) as icons only.
+- #35: day tabs wrap; click a time to add an activity, travel or (later) place; activity blocks with handles and drag-to-move (migration 0003, E50).
 - #34: itinerary panel on the map (days, day notes, travel legs; migration 0002), replacing the Itinerary tab (E49).
 - #31: this Stop Protocol (SKILL.md E39–E48, Q8, L24–L32; README; this entry; CLAUDE.md).
 - Preview-only, closed without merging: #17 (map looks side by side), #24 (opening zoom), #27 (tilt test).
@@ -167,10 +168,10 @@
 - Trip map mockups v1 and v2.
 - New trip form mockup.
 - Inline camera-control mockups: 3 × 3, then 3 × 4.
-- Inline itinerary-panel mockup.
+- Inline itinerary-panel mockup; inline wrapped-tabs and click-to-add mockup.
 - Live preview pages for map looks, zoom and tilt.
 
-**Lessons:** L24–L33 recorded in SKILL.md.
+**Lessons:** L24–L34 recorded in SKILL.md.
 
 **Correction to Session 3's entry:** session 3's Stop Protocol docs landed in PR #14, together with session 2's.
 
