@@ -191,6 +191,52 @@ export interface MapLook {
  */
 export const canTilt = (l: MapLook) => !l.styles
 
+// ---- Labels on/off (Hanh, session 4): one toggle instead of doubled looks ----
+
+const LABELS_OFF: Style = [{ elementType: 'labels', stylers: [{ visibility: 'off' }] }]
+
+/** Google dark's labels can't be hidden without a Google Cloud style. */
+export const canHideLabels = (l: MapLook) => !l.dark
+
+export interface LookOptions {
+  mapTypeId: MapLook['mapTypeId']
+  /** Hand-made colours and/or labels-off rules; null = Google's own look. */
+  styles: Style | null
+  /** True when this needs no hand-made styling, so the tilt map can show it. */
+  tiltable: boolean
+}
+
+/**
+ * What the map needs for a look with labels on or off. Satellite swaps
+ * between Google's labelled and unlabelled photos (tilt still works).
+ * Hiding labels anywhere else needs a style, so those use the flat map.
+ */
+export function lookOptions(l: MapLook, labels: boolean): LookOptions {
+  if (l.key === 'satellite') return { mapTypeId: labels ? 'hybrid' : 'satellite', styles: null, tiltable: true }
+  if (labels || !canHideLabels(l)) return { mapTypeId: l.mapTypeId, styles: l.styles ?? null, tiltable: !l.styles }
+  return { mapTypeId: l.mapTypeId, styles: [...(l.styles ?? []), ...LABELS_OFF], tiltable: false }
+}
+
+const LABELS_KEY = 'hanhs-log-map-labels'
+
+/** Labels on (default) or off, remembered on this device. */
+export function readLabels(): boolean {
+  try {
+    return localStorage.getItem(LABELS_KEY) !== 'off'
+  } catch {
+    return true
+  }
+}
+
+export function saveLabels(on: boolean): void {
+  try {
+    if (on) localStorage.removeItem(LABELS_KEY)
+    else localStorage.setItem(LABELS_KEY, 'off')
+  } catch {
+    /* storage unavailable: lasts for this visit only */
+  }
+}
+
 // Order as in the approved switcher (session 4), plus Google dark. Defaults:
 // Google standard in light mode, Google dark in dark mode (both can tilt);
 // each mode remembers its own pick on this device.
@@ -215,9 +261,8 @@ export const MAP_LOOKS: MapLook[] = [
     swatch: { land: '#1D2C4D', water: '#0E1626', road: '#304A7D', highway: '#2C6675', park: '#023E58' } },
   { key: 'terrain', name: 'Terrain', note: 'Shaded hills', mapTypeId: 'terrain',
     swatch: { land: '#E8E4D6', water: '#9CC0E6', road: '#FFFFFF', highway: '#F6D78C', park: '#C6DDB0' } },
-  { key: 'satellite', name: 'Satellite', note: 'Photos, no labels', mapTypeId: 'satellite',
-    swatch: { land: '#4B5442', water: '#2D4450', road: '#8E8A7C', highway: '#A39D8A', park: '#3D5233' } },
-  { key: 'hybrid', name: 'Satellite + labels', note: 'Photos with names', mapTypeId: 'hybrid',
+  // One Satellite look; the Labels chip switches its names on and off.
+  { key: 'satellite', name: 'Satellite', note: 'Aerial photos', mapTypeId: 'hybrid',
     swatch: { land: '#4B5442', water: '#2D4450', road: '#C9C2A6', highway: '#E3C770', park: '#3D5233' } }
 ]
 
@@ -233,6 +278,7 @@ export function readLook(mode: Mode): MapLook {
   } catch {
     /* storage unavailable: use the default */
   }
+  if (k === 'hybrid') k = 'satellite' // "Satellite + labels" merged into Satellite (session 4)
   return MAP_LOOKS.find(l => l.key === k) ?? MAP_LOOKS.find(l => l.key === DEFAULT_LOOK[mode])!
 }
 

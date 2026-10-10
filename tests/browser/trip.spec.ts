@@ -166,3 +166,23 @@ test('the map looks up the Primary City in its Country; Districts within 20 km o
   expect(distanceKm(HCMC_CENTRE, { lat: 10.8188, lng: 106.6519 })).toBeLessThan(20)
   expect(distanceKm(HCMC_CENTRE, { lat: 15.8801, lng: 108.338 })).toBeGreaterThan(20)
 })
+
+test('labels toggle: which looks can hide labels, and which map each needs', async () => {
+  const { MAP_LOOKS, lookOptions, canHideLabels } = await import('../../src/lib/mapStyles')
+  const by = (k: string) => MAP_LOOKS.find(l => l.key === k)!
+  expect(MAP_LOOKS.map(l => l.key)).not.toContain('hybrid') // Satellite + labels merged into Satellite
+  expect(MAP_LOOKS).toHaveLength(11)
+  // Satellite: Google's labelled / unlabelled photos, tilt still works either way.
+  expect(lookOptions(by('satellite'), true)).toMatchObject({ mapTypeId: 'hybrid', styles: null, tiltable: true })
+  expect(lookOptions(by('satellite'), false)).toMatchObject({ mapTypeId: 'satellite', styles: null, tiltable: true })
+  // Google standard: tilt map with labels; labels off needs the flat map.
+  expect(lookOptions(by('standard'), true)).toMatchObject({ styles: null, tiltable: true })
+  expect(lookOptions(by('standard'), false).tiltable).toBe(false)
+  expect(JSON.stringify(lookOptions(by('standard'), false).styles)).toContain('"visibility":"off"')
+  // Hand-made Night keeps its labels unless the toggle is off.
+  expect(JSON.stringify(lookOptions(by('night'), true).styles)).not.toContain('"elementType":"labels","stylers":[{"visibility":"off"}]')
+  expect(JSON.stringify(lookOptions(by('night'), false).styles)).toContain('"elementType":"labels","stylers":[{"visibility":"off"}]')
+  // Google dark's labels can't be hidden (yet).
+  expect(canHideLabels(by('google-dark'))).toBe(false)
+  expect(lookOptions(by('google-dark'), false)).toMatchObject({ styles: null, tiltable: true })
+})

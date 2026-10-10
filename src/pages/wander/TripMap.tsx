@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
-import { MAP_LOOKS, canTilt, readLook, saveLook, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
+import { MAP_LOOKS, canHideLabels, lookOptions, readLabels, readLook, saveLabels, saveLook, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
 import { distanceKm, HCMC_CENTRE, type City } from '../../lib/city'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from './CameraControl'
@@ -8,7 +8,8 @@ import styles from './TripMap.module.css'
 
 // The trip map (M3 step 3, approved mockup v2, session 4): opens on the
 // trip's Primary City centre at zoom 13, no pins yet (old Wanderlog pins
-// appear only after Hanh sorts them). Map look switcher with 12 looks,
+// appear only after Hanh sorts them). Map look switcher with 11 looks and a
+// Labels on/off chip (remembered on this device),
 // remembered per mode on this device; HCMC Districts overlay on trips
 // within 20 km of Ho Chi Minh City. Our own camera control (3 × 4) with
 // tilt, rotate and reset: Google's own looks run on the tilt-capable map
@@ -40,7 +41,10 @@ export default function TripMap({ city }: { city: CityState }) {
   const nearHcmc = city.state === 'ready' && distanceKm(city.city, HCMC_CENTRE) <= HCMC_KM
   const home = city.state === 'ready' ? { center: { lat: city.city.lat, lng: city.city.lng }, zoom: OPENING_ZOOM } : WORLD
   const mapId = import.meta.env.VITE_GOOGLE_MAP_ID
-  const tiltable = Boolean(mapId) && canTilt(look)
+  const [labels, setLabels] = useState(readLabels)
+  const opts = useMemo(() => lookOptions(look, labels), [look, labels])
+  const labelsLocked = !canHideLabels(look)
+  const tiltable = Boolean(mapId) && opts.tiltable
   // Which kind of map this look needs. A map's ID, rendering and colour
   // scheme can't change after it's made, so a new kind means a new map.
   const kind = tiltable ? (look.dark ? 'tilt-dark' : 'tilt') : 'flat'
@@ -87,8 +91,8 @@ export default function TripMap({ city }: { city: CityState }) {
   // Apply the current look (hand-made colours only work on the flat map).
   useEffect(() => {
     if (!map) return
-    map.setOptions(kind === 'flat' ? { mapTypeId: look.mapTypeId, styles: look.styles ?? null } : { mapTypeId: look.mapTypeId })
-  }, [map, look, kind])
+    map.setOptions(kind === 'flat' ? { mapTypeId: opts.mapTypeId, styles: opts.styles } : { mapTypeId: opts.mapTypeId })
+  }, [map, kind, opts.mapTypeId, opts.styles])
 
   // Open on the Primary City's centre at zoom 13 (Hanh, session 4), once per
   // city. Google's city outlines don't work for this: HCMC's covers half of
@@ -157,6 +161,20 @@ export default function TripMap({ city }: { city: CityState }) {
             onClick={() => setOpen(o => !o)}
           >
             <MapIcon /> Map look: {look.name}
+          </button>
+          <button
+            type="button"
+            className={`${styles.chip} ${labelsLocked ? styles.chipOff : ''}`}
+            aria-pressed={labelsLocked ? true : labels}
+            aria-disabled={labelsLocked || undefined}
+            title={labelsLocked ? "Labels can't be hidden on Google dark" : labels ? 'Hide street and place names' : 'Show street and place names'}
+            onClick={() => {
+              if (labelsLocked) return
+              saveLabels(!labels)
+              setLabels(!labels)
+            }}
+          >
+            <LabelIcon /> Labels
           </button>
           {nearHcmc && (
             <button
@@ -227,6 +245,14 @@ function MapIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
       <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
       <path d="M9 4v14M15 6v14" />
+    </svg>
+  )
+}
+
+function LabelIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7V5h16v2M9 19h6M12 5v14" />
     </svg>
   )
 }
