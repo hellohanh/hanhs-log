@@ -27,6 +27,7 @@ export default function TravelForm({
   dayId,
   dayDate,
   leg,
+  preset,
   onSave,
   onDelete,
   onCancel
@@ -34,6 +35,8 @@ export default function TravelForm({
   dayId: string
   dayDate: string | null
   leg: TravelLeg | null
+  /** From a click on the timeline: departure and arrival times to start with. */
+  preset?: { from: string; to: string }
   onSave: (fields: LegFields, id?: string) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onCancel: () => void
@@ -44,11 +47,11 @@ export default function TravelForm({
   const [title, setTitle] = useState(leg?.title ?? '')
   const [from, setFrom] = useState(leg?.from_location ?? '')
   const [fromDate, setFromDate] = useState(leg?.from_date ?? dayDate ?? '')
-  const [fromTime, setFromTime] = useState(leg?.from_time?.slice(0, 5) ?? '')
+  const [fromTime, setFromTime] = useState(leg?.from_time?.slice(0, 5) ?? preset?.from ?? '')
   const [fromZone, setFromZone] = useState(leg?.from_timezone ?? '')
   const [to, setTo] = useState(leg?.to_location ?? '')
   const [toDate, setToDate] = useState(leg?.to_date ?? dayDate ?? '')
-  const [toTime, setToTime] = useState(leg?.to_time?.slice(0, 5) ?? '')
+  const [toTime, setToTime] = useState(leg?.to_time?.slice(0, 5) ?? preset?.to ?? '')
   const [toZone, setToZone] = useState(leg?.to_timezone ?? '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)

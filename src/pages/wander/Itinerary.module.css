@@ -14,6 +14,8 @@
   border-left: 1px solid var(--rule);
   box-shadow: -6px 0 18px rgba(0, 0, 0, 0.12);
   transition: width 0.2s ease;
+  /* Short windows: the whole panel scrolls so the timeline keeps room (wrapped day tabs can take several rows). */
+  overflow-y: auto;
 }
 .wide { width: 640px; }
 @media (prefers-reduced-motion: reduce) { .panel { transition: none; } }
@@ -37,7 +39,7 @@
 .ib:hover { color: var(--ink); background: var(--ground); }
 .ib[aria-pressed='true'] { border: 2px solid var(--accent); color: var(--accent); }
 
-.days { display: flex; gap: 6px; padding: 10px 16px; overflow-x: auto; border-bottom: 1px solid var(--rule); flex: none; }
+.days { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--rule); flex: none; }
 .day {
   flex: none;
   min-width: 58px;
@@ -92,7 +94,7 @@
 }
 .lf textarea { resize: vertical; }
 
-.timeline { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
+.timeline { flex: 1 0 360px; min-height: 360px; overflow-y: auto; position: relative; }
 .hours { position: relative; }
 .hour { position: absolute; left: 0; right: 0; height: 60px; border-top: 1px solid var(--rule); font-size: 11px; color: var(--muted); padding: 2px 0 0 10px; }
 
@@ -176,3 +178,78 @@
 .route { width: min(900px, 100%); height: min(640px, 100%); display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; background: var(--surface); border-radius: var(--radius-l); overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
 .routeHead { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
 .routeMap { flex: 1; min-height: 0; background: var(--ground); }
+
+/* Click an empty spot to add (session 4): hover hint, ghost block, popup. */
+.hours { cursor: copy; }
+.hour:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.ghost { position: absolute; border: 2px dashed var(--accent); border-radius: 8px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); pointer-events: none; }
+.addPop {
+  position: absolute;
+  left: 30px;
+  right: 8px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  cursor: default;
+}
+.addHead { display: flex; align-items: center; justify-content: space-between; }
+.addHead strong { font-size: 15px; }
+.addHead .ib { width: 30px; height: 30px; font-size: 18px; }
+.kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.kind {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 5px 4px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kind small { font-size: 11px; font-weight: 400; color: var(--muted); }
+.kind[aria-checked='true'] { border: 2px solid var(--accent); padding: 4px 3px; color: var(--accent); }
+.addForm { display: flex; flex-direction: column; gap: 8px; }
+.muted0 { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* Activity blocks: handles at the top and bottom, drag the middle to move. */
+.act {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border: 1px solid var(--rule);
+  border-left: 5px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  color: var(--ink);
+  font-size: 12px;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.act b { flex: none; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.actTime { flex: none; }
+/* 30 minutes or less: title and time on one line. */
+.actShort { flex-direction: row; align-items: center; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
+.actShort b { flex: 0 1 auto; min-width: 0; }
+.actShort .actTime { white-space: nowrap; }
+.actTime { color: var(--muted); font-size: 11.5px; }
+.actDragging { cursor: grabbing; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); z-index: 5; opacity: 0.95; }
+.act:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.handle { position: absolute; left: 0; right: 0; height: 8px; cursor: ns-resize; }
+.handle::after { content: ''; position: absolute; left: 50%; top: 3px; width: 24px; height: 3px; margin-left: -12px; border-radius: 2px; background: var(--accent); opacity: 0; transition: opacity 0.15s; }
+.act:hover .handle::after, .actDragging .handle::after { opacity: 0.7; }
+.handleTop { top: 0; }
+.handleBottom { bottom: 0; }
