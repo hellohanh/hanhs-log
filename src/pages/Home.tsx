@@ -21,6 +21,30 @@ export default function Home() {
   const [landed, setLanded] = useState(reduced)
   const [started, setStarted] = useState(reduced)
 
+  // Desktop layout (Hanh's spec): a 1080 × 800 container holding the
+  // 1080 × 720 picture 40px from the top, with the search panel 20px in from
+  // the left and its bottom on the 780px mark. The Where to? section follows
+  // straight after it, so a tall window shows it below the picture while the
+  // plane flies. On screens too small for the container the whole thing
+  // shrinks together. Phones are laid out separately.
+  useEffect(() => {
+    const pinned = pinnedRef.current
+    if (!pinned) return
+    const fit = () => {
+      const stickyTop = parseFloat(getComputedStyle(pinned).top) || 0
+      const scale = Math.min(1, pinned.clientWidth / 1080, (window.innerHeight - stickyTop) / 800)
+      pinned.style.setProperty('--s', scale.toFixed(4))
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
+    ro?.observe(pinned)
+    return () => {
+      window.removeEventListener('resize', fit)
+      ro?.disconnect()
+    }
+  }, [])
+
   useEffect(() => {
     const draw = (p: number) => {
       const f = frameAt(p)
@@ -79,6 +103,8 @@ export default function Home() {
     <main className={styles.splash} data-landed={landed ? 'true' : 'false'} data-motion={reduced ? 'reduced' : 'scroll'}>
       <section ref={runwayRef} aria-label="Introduction" className={styles.runway}>
         <div ref={pinnedRef} className={styles.pinned}>
+          <div className={styles.heroBand}>
+          <div className={styles.column} data-testid="hero-container">
           <div className={styles.art}>
             <svg
               viewBox={`0 0 ${HERO_W} ${HERO_H}`}
@@ -100,33 +126,36 @@ export default function Home() {
             </p>
           </div>
           <CitySearch />
-        </div>
-      </section>
-
-      <section id="choose" aria-labelledby="choose-title" className={styles.choose}>
-        <div className={styles.chooseInner}>
-          <h2 id="choose-title" className={styles.reveal}>Where to?</h2>
-          <div className={styles.cards}>
-            <Link to="/wander" className={`${styles.card} ${styles.reveal}`}>
-              <img src={img('card-wander.webp')} alt="" width="800" height="500" />
-              <div className={styles.cardBody}>
-                <span className="eyebrow">Wanderlog</span>
-                <span className={styles.cardTitle}>Plan the days.</span>
-                <span className={styles.cardText}>Maps, pins and a day-by-day timeline, shared with everyone on the trip.</span>
-                <span className={styles.cardCta}>Open Wanderlog →</span>
-              </div>
-            </Link>
-            <Link to="/savor" className={`${styles.card} ${styles.reveal}`}>
-              <img src={img('card-savor.webp')} alt="" width="800" height="500" />
-              <div className={styles.cardBody}>
-                <span className="eyebrow">Savorlog</span>
-                <span className={styles.cardTitle}>Remember the meals.</span>
-                <span className={styles.cardText}>The places worth eating at, by country and main dish, ready for the next trip.</span>
-                <span className={styles.cardCta}>Open Savorlog →</span>
-              </div>
-            </Link>
           </div>
+          </div>
+          <section id="choose" aria-labelledby="choose-title" className={styles.choose}>
+            <div className={styles.chooseInner}>
+              <h2 id="choose-title" className={styles.reveal}>Where to?</h2>
+              <div className={styles.cards}>
+                <Link to="/wander" className={`${styles.card} ${styles.reveal}`}>
+                  <img src={img('card-wander.webp')} alt="" width="800" height="500" />
+                  <div className={styles.cardBody}>
+                    <span className="eyebrow">Wanderlog</span>
+                    <span className={styles.cardTitle}>Plan the days.</span>
+                    <span className={styles.cardText}>Maps, pins and a day-by-day timeline, shared with everyone on the trip.</span>
+                    <span className={styles.cardCta}>Open Wanderlog →</span>
+                  </div>
+                </Link>
+                <Link to="/savor" className={`${styles.card} ${styles.reveal}`}>
+                  <img src={img('card-savor.webp')} alt="" width="800" height="500" />
+                  <div className={styles.cardBody}>
+                    <span className="eyebrow">Savorlog</span>
+                    <span className={styles.cardTitle}>Remember the meals.</span>
+                    <span className={styles.cardText}>The places worth eating at, by country and main dish, ready for the next trip.</span>
+                    <span className={styles.cardCta}>Open Savorlog →</span>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
+        {/* The scroll distance that flies the plane while the page stays put. */}
+        <div className={styles.flightSpace} aria-hidden="true" />
       </section>
 
       <footer className={styles.footer}>
