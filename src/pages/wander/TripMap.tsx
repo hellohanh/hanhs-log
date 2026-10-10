@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
 import { MAP_LOOKS, canHidePins, lookOptions, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
-import { distanceKm, HCMC_CENTRE, type City } from '../../lib/city'
+import { type City } from '../../lib/city'
+import { anyDistrictInView } from '../../lib/districts'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from './CameraControl'
 import styles from './TripMap.module.css'
@@ -10,8 +11,8 @@ import styles from './TripMap.module.css'
 // trip's Primary City centre at zoom 13, no pins yet (old Wanderlog pins
 // appear only after Hanh sorts them). Map look switcher with 11 looks and a
 // Pins / No pins chip for Google's place pins (remembered on this device),
-// remembered per mode on this device; HCMC Districts overlay on trips
-// within 20 km of Ho Chi Minh City. Our own camera control (3 × 4) with
+// remembered per mode on this device; HCMC Districts chip whenever any
+// HCMC district is in view. Our own camera control (3 × 4) with
 // tilt, rotate and reset: Google's own looks run on the tilt-capable map
 // (our Map ID); hand-made looks need the flat map, where tilt and rotate
 // are greyed out (Hanh, session 4).
@@ -19,7 +20,6 @@ import styles from './TripMap.module.css'
 export type CityState = { state: 'loading' } | { state: 'ready'; city: City } | { state: 'missing'; query: string } | { state: 'error'; message: string }
 
 const WORLD = { center: { lat: 20, lng: 0 }, zoom: 2 }
-const HCMC_KM = 20
 const OPENING_ZOOM = 13
 
 export default function TripMap({ city }: { city: CityState }) {
@@ -38,7 +38,9 @@ export default function TripMap({ city }: { city: CityState }) {
   const [open, setOpen] = useState(false)
   const [showDistricts, setShowDistricts] = useState(false)
 
-  const nearHcmc = city.state === 'ready' && distanceKm(city.city, HCMC_CENTRE) <= HCMC_KM
+  // The Districts chip shows only while any HCMC district is in view, on any
+  // trip; it disappears once none are (Hanh, session 4).
+  const [districtsInView, setDistrictsInView] = useState(false)
   const home = city.state === 'ready' ? { center: { lat: city.city.lat, lng: city.city.lng }, zoom: OPENING_ZOOM } : WORLD
   const mapId = import.meta.env.VITE_GOOGLE_MAP_ID
   const [pins, setPins] = useState(readPins)
@@ -104,13 +106,28 @@ export default function TripMap({ city }: { city: CityState }) {
     map.setZoom(OPENING_ZOOM)
   }, [map, city])
 
+  // Watch the view: is any HCMC district on screen?
+  useEffect(() => {
+    if (!map) return
+    const check = () => {
+      const b = map.getBounds()
+      if (!b) return
+      const ne = b.getNorthEast()
+      const sw = b.getSouthWest()
+      setDistrictsInView(anyDistrictInView({ north: ne.lat(), south: sw.lat(), east: ne.lng(), west: sw.lng() }))
+    }
+    const l = map.addListener('idle', check)
+    check()
+    return () => l.remove()
+  }, [map])
+
   // Districts overlay (rebuilt with the map when the map is replaced).
   useEffect(() => {
     if (!map) return
-    const on = showDistricts && nearHcmc
+    const on = showDistricts && districtsInView
     if (on && !districtsRef.current) districtsRef.current = new Districts(map)
     districtsRef.current?.setVisible(on)
-  }, [map, showDistricts, nearHcmc])
+  }, [map, showDistricts, districtsInView])
 
   function pick(l: MapLook | null) {
     saveLook(mode, l ? l.key : null)
@@ -177,7 +194,7 @@ export default function TripMap({ city }: { city: CityState }) {
           >
             <PinIcon off={!pins && !pinsLocked} /> {pins || pinsLocked ? 'Pins' : 'No pins'}
           </button>
-          {nearHcmc && (
+          {districtsInView && (
             <button
               type="button"
               className={styles.chip}
