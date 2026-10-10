@@ -54,9 +54,23 @@
   background: var(--surface);
   box-shadow: var(--shadow);
 }
-.panelHead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.panelHead { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .panelHead strong { font-size: 18px; }
-.panelHead span { font-size: 13px; color: var(--muted); }
+.panelHead span { font-size: 13px; color: var(--muted); margin-left: auto; }
+.close {
+  width: 36px;
+  height: 36px;
+  margin: -6px -6px -6px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--pill);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.close:hover { background: var(--ground); color: var(--ink); }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
 .tile {
   position: relative;

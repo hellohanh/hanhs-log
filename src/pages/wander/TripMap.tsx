@@ -87,7 +87,26 @@ export default function TripMap({ city }: { city: CityState }) {
   function pick(l: MapLook | null) {
     saveLook(mode, l ? l.key : null)
     setPicks(p => ({ ...p, [mode]: l ?? MAP_LOOKS.find(x => x.key === DEFAULT_LOOK[mode])! }))
+    setOpen(false) // picking a look closes the panel (Hanh, session 4)
   }
+
+  // The panel also closes with Escape or a click anywhere outside it.
+  const panelRef = useRef<HTMLDivElement>(null)
+  const lookBtnRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (!panelRef.current?.contains(t) && !lookBtnRef.current?.contains(t)) setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onDown)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onDown)
+    }
+  }, [open])
 
   const notice =
     noKey ? "The map can't load in this build (no Google Maps key)."
@@ -105,6 +124,7 @@ export default function TripMap({ city }: { city: CityState }) {
       {ready && (
         <div className={styles.controls}>
           <button
+            ref={lookBtnRef}
             type="button"
             className={styles.chip}
             aria-expanded={open}
@@ -127,10 +147,15 @@ export default function TripMap({ city }: { city: CityState }) {
         </div>
       )}
       {ready && open && (
-        <div id="map-look-panel" className={styles.panel} role="dialog" aria-label="Map look">
+        <div ref={panelRef} id="map-look-panel" className={styles.panel} role="dialog" aria-label="Map look">
           <div className={styles.panelHead}>
             <strong>Map look</strong>
             <span>{dark ? 'Dark' : 'Light'} mode default: {defaultName}</span>
+            <button type="button" className={styles.close} aria-label="Close" onClick={() => setOpen(false)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
           </div>
           <div className={styles.tiles}>
             {MAP_LOOKS.map(l => (
