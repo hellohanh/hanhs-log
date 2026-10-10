@@ -4,31 +4,33 @@
   --paper: #FAF6E5;
 }
 
-/* The pinned stretch: the page scrolls through it while the picture stays
-   put, and that scroll is what flies the plane. --runway is how much
-   scrolling the flight takes. */
+/* The pinned stretch: the hero container and the Where to? section stay
+   put under the header while the page scrolls through .flightSpace, and
+   that scroll is what flies the plane. */
 .runway {
-  --runway: 240vh;
-  --stage: calc(100svh - var(--site-header-h, var(--header-h)));
   position: relative;
-  height: calc(var(--stage) + var(--runway));
-  background: var(--paper);
 }
 
 .pinned {
   position: sticky;
   top: var(--site-header-h, var(--header-h));
-  height: var(--stage);
-  overflow: hidden;
   background: var(--paper);
 }
 
-/* Desktop: a 1080 × 800 container, scaled down as a whole (--s, set in
-   Home.tsx) when the screen is smaller. The picture sits 40px from its top;
-   the search panel 20px in from the left with its bottom at 780px. */
-.pinned {
+.flightSpace {
+  height: 240vh;
+}
+
+/* Desktop: a 1080 × 800 container on a full-width paper band, scaled down
+   as a whole (--s, set in Home.tsx) when the screen is smaller. The picture
+   sits 40px from its top; the search panel 20px in from the left with its
+   bottom at 780px. */
+.heroBand {
   display: flex;
   justify-content: center;
+  height: calc(800px * var(--s, 1));
+  overflow: hidden;
+  background: var(--paper);
 }
 
 .column {
@@ -75,8 +77,8 @@
 .hint[data-hidden='true'] { opacity: 0; }
 
 /* Reduced motion: no pinned stretch, just the finished picture. */
-.splash[data-motion='reduced'] .runway { height: auto; }
-.splash[data-motion='reduced'] .pinned { position: relative; top: auto; height: calc(800px * var(--s, 1)); }
+.splash[data-motion='reduced'] .pinned { position: relative; top: auto; }
+.splash[data-motion='reduced'] .flightSpace { display: none; }
 .splash[data-motion='reduced'] .hint { display: none; }
 
 .searchCard {
@@ -132,8 +134,7 @@
 /* On narrow screens the search card sits under the picture instead of over it. */
 @media (max-width: 760px) {
   /* Phones (to be finalised later): full-width picture, panel below it. */
-  .pinned { display: block; padding-top: 40px; }
-  .splash[data-motion='reduced'] .pinned { height: auto; }
+  .heroBand { display: block; height: auto; padding-top: 40px; }
   .column { width: 100%; height: auto; transform: none; }
   .art { position: relative; top: auto; width: 100%; }
   .searchCard {
@@ -152,7 +153,11 @@
   }
 }
 
+/* While the plane flies, the space under the picture is the same paper as
+   the picture; the section's own background fades in with the panels. */
 .choose {
+  background: var(--paper);
+  transition: background-color 600ms ease;
   padding: 88px var(--gutter) 112px;
   scroll-margin-top: var(--header-h);
 }
@@ -222,13 +227,14 @@
 }
 .cards .reveal:nth-child(1) { transition-delay: 100ms; }
 .cards .reveal:nth-child(2) { transition-delay: 220ms; }
+.splash[data-landed='true'] .choose { background: var(--ground); }
 .splash[data-landed='true'] .reveal,
 .reveal:focus-within {
   opacity: 1;
   transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .reveal { transition: none; }
+  .reveal, .choose { transition: none; }
 }
 
 .footer {
