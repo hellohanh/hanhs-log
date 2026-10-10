@@ -33,4 +33,7 @@ function makeClient(): SupabaseClient | null {
 }
 
 export const supabase: SupabaseClient | null = makeClient()
+// The project address in use (public; shown in sign-in errors to help fix
+// a mistyped setting).
+export const supabaseHost: string | null = url ? new URL(url).host : null
 export const isSupabaseConfigured = supabase !== null
