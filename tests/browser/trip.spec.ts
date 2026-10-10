@@ -8,7 +8,7 @@ test('trip page shows the trip, its dates and the people on it', async ({ page }
   await fakeSupabase(page)
   await page.goto('./wander/trip/trip-saigon')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Christmas in Saigon')
-  await expect(page.getByText('Ho Chi Minh City, Vietnam · Dec 18 – Jan 2, 2027')).toBeVisible()
+  await expect(page.getByText('Hồ Chí Minh City · Vietnam · Dec 18 – Jan 2, 2027')).toBeVisible()
   await expect(page.getByRole('button', { name: '3 people on this trip' })).toBeVisible()
   await expect(page.getByRole('tab', { name: 'Map' })).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('tab', { name: /Itinerary/ })).toBeDisabled()
@@ -20,20 +20,31 @@ test('a trip you are not on says so instead of breaking', async ({ page }) => {
   await expect(page.getByText("Can't open this trip")).toBeVisible()
 })
 
-test('edit trip saves name, destination and dates', async ({ page }) => {
+test('edit trip saves name, Country, cities and dates with the same form as New trip', async ({ page }) => {
   const db = await fakeSupabase(page)
   await page.goto('./wander/trip/trip-saigon')
+  await expect(page.getByText('Hồ Chí Minh City · Vietnam · Dec 18 – Jan 2, 2027')).toBeVisible()
   await page.getByRole('button', { name: 'Edit trip' }).click()
-  await page.getByLabel('Trip name').fill('Tết in Saigon')
-  await page.getByLabel('End (optional)').fill('2026-12-01')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('alert')).toHaveText('The end date is before the start date.')
-  await page.getByLabel('End (optional)').fill('2027-02-20')
-  await page.getByRole('button', { name: 'Save' }).click()
+  const form = page.getByRole('form', { name: 'Edit trip' })
+  await expect(form.getByLabel('Country')).toHaveValue('Vietnam')
+  await expect(form.getByLabel('Primary City')).toHaveValue('Hồ Chí Minh City')
+  await form.getByLabel('Trip name').fill('Tết in Saigon')
+  await form.getByLabel('Primary City').fill('')
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(form.getByRole('alert')).toHaveText('Add a Country and a Primary City.')
+  await form.getByLabel('Primary City').fill('Hồ Chí Minh City')
+  await form.getByLabel('Tertiary City').fill('Vũng Tàu')
+  await form.getByLabel('End').fill('2026-12-01')
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(form.getByRole('alert')).toHaveText('The end date is before the start date.')
+  await form.getByLabel('End').fill('2027-02-20')
+  await form.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tết in Saigon')
+  await expect(page.getByText('Hồ Chí Minh City, Vũng Tàu · Vietnam', { exact: false })).toBeVisible()
   const patch = db.calls.find(c => c.method === 'PATCH')
   expect(JSON.parse(patch!.body!)).toEqual({
-    name: 'Tết in Saigon', destination: 'Ho Chi Minh City, Vietnam', start_date: '2026-12-18', end_date: '2027-02-20'
+    name: 'Tết in Saigon', country: 'Vietnam', city_primary: 'Hồ Chí Minh City', city_secondary: null, city_tertiary: 'Vũng Tàu',
+    start_date: '2026-12-18', end_date: '2027-02-20'
   })
   expect(patch!.url).toContain('id=eq.trip-saigon')
 })
@@ -143,15 +154,14 @@ test('the map area opens empty: no old pins, and says why there is no map in a b
   await expect(page.getByRole('status').filter({ hasText: "The map can't load in this build" })).toBeVisible()
 })
 
-test('the map opens on the first city named in the Destination', async () => {
-  const { firstCity, distanceKm, HCMC_CENTRE } = await import('../../src/lib/cityName')
-  expect(firstCity('Ho Chi Minh City, Vietnam')).toBe('Ho Chi Minh City, Vietnam')
-  expect(firstCity('Saigon & Hội An')).toBe('Saigon')
-  expect(firstCity('Rome / Florence / Venice')).toBe('Rome')
-  expect(firstCity('Paris and Lyon')).toBe('Paris')
-  expect(firstCity('Hà Nội – Hạ Long')).toBe('Hà Nội')
-  expect(firstCity('Saint-Tropez')).toBe('Saint-Tropez')
-  expect(firstCity('Portland, Maine')).toBe('Portland, Maine')
+test('the map looks up the Primary City in its Country; Districts within 20 km of HCMC', async () => {
+  const { mapQuery, placeLabel } = await import('../../src/lib/place')
+  expect(mapQuery({ country: ' Vietnam ', city_primary: 'Hồ Chí Minh City ' })).toBe('Hồ Chí Minh City, Vietnam')
+  expect(placeLabel({ country: 'Vietnam', city_primary: 'Hồ Chí Minh City', city_secondary: null, city_tertiary: 'Vũng Tàu' }))
+    .toBe('Hồ Chí Minh City, Vũng Tàu · Vietnam')
+  const { distanceKm, HCMC_CENTRE, countryNames } = await import('../../src/lib/cityName')
+  expect(countryNames()).toContain('Vietnam')
+  expect(countryNames()).toContain('Italy')
   // The Districts button shows within 20 km of Ho Chi Minh City.
   expect(distanceKm(HCMC_CENTRE, { lat: 10.8188, lng: 106.6519 })).toBeLessThan(20)
   expect(distanceKm(HCMC_CENTRE, { lat: 15.8801, lng: 108.338 })).toBeGreaterThan(20)

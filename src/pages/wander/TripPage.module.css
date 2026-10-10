@@ -64,36 +64,10 @@
 .avatarMore { background: var(--rule); color: var(--ink); font-size: 12px; }
 
 .edit {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 16px;
-  padding: 18px 32px;
+  padding: 22px 32px 18px;
   background: var(--surface);
   border-bottom: 1px solid var(--rule);
 }
-.field {
-  flex: 2 1 260px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-  color: var(--muted);
-}
-.dateField { flex: 1 1 170px; }
-.field input {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--rule);
-  border-radius: 10px;
-  background: var(--ground);
-  color: var(--ink);
-  font-size: 16px;
-  min-width: 0;
-}
-.editButtons { display: flex; gap: 10px; }
-.editButtons :global(.btn) { min-height: 44px; }
-.error { flex-basis: 100%; margin: 0; font-size: 15px; color: var(--accent); }
 
 .body { flex: 1; min-height: 0; display: flex; }
 .side {

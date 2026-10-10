@@ -12,7 +12,10 @@ export const GUEST = '33333333-3333-3333-3333-333333333333'
 export interface FakeTrip {
   id: string
   name: string
-  destination: string
+  country: string
+  city_primary: string
+  city_secondary: string | null
+  city_tertiary: string | null
   start_date: string | null
   end_date: string | null
   owner_id: string | null
@@ -37,10 +40,10 @@ export interface FakeDb {
 }
 
 export const SAMPLE_TRIPS: FakeTrip[] = [
-  { id: 'trip-past', name: 'Đà Nẵng & Hội An', destination: 'Đà Nẵng, Vietnam', start_date: '2025-07-03', end_date: '2025-07-10', owner_id: FRIEND, created_at: '2025-05-01T00:00:00Z', invite_token: 'tok-past', pins: [{ count: 28 }] },
-  { id: 'trip-undated', name: 'Japan in spring', destination: 'Tokyo & Kyoto, Japan', start_date: null, end_date: null, owner_id: ME, created_at: '2026-09-01T00:00:00Z', invite_token: 'tok-japan', pins: [{ count: 1 }] },
-  { id: 'trip-rome', name: 'Rome long weekend', destination: 'Rome, Italy', start_date: '2027-03-12', end_date: '2027-03-16', owner_id: FRIEND, created_at: '2026-08-01T00:00:00Z', invite_token: 'tok-rome', pins: [{ count: 17 }] },
-  { id: 'trip-saigon', name: 'Christmas in Saigon', destination: 'Ho Chi Minh City, Vietnam', start_date: '2026-12-18', end_date: '2027-01-02', owner_id: ME, created_at: '2026-07-01T00:00:00Z', invite_token: 'tok-saigon', pins: [{ count: 42 }] }
+  { id: 'trip-past', name: 'Đà Nẵng & Hội An', country: 'Vietnam', city_primary: 'Đà Nẵng', city_secondary: 'Hội An', city_tertiary: null, start_date: '2025-07-03', end_date: '2025-07-10', owner_id: FRIEND, created_at: '2025-05-01T00:00:00Z', invite_token: 'tok-past', pins: [{ count: 28 }] },
+  { id: 'trip-undated', name: 'Japan in spring', country: 'Japan', city_primary: 'Tokyo', city_secondary: 'Kyoto', city_tertiary: null, start_date: null, end_date: null, owner_id: ME, created_at: '2026-09-01T00:00:00Z', invite_token: 'tok-japan', pins: [{ count: 1 }] },
+  { id: 'trip-rome', name: 'Rome long weekend', country: 'Italy', city_primary: 'Rome', city_secondary: null, city_tertiary: null, start_date: '2027-03-12', end_date: '2027-03-16', owner_id: FRIEND, created_at: '2026-08-01T00:00:00Z', invite_token: 'tok-rome', pins: [{ count: 17 }] },
+  { id: 'trip-saigon', name: 'Christmas in Saigon', country: 'Vietnam', city_primary: 'Hồ Chí Minh City', city_secondary: null, city_tertiary: null, start_date: '2026-12-18', end_date: '2027-01-02', owner_id: ME, created_at: '2026-07-01T00:00:00Z', invite_token: 'tok-saigon', pins: [{ count: 42 }] }
 ]
 
 export const SAMPLE_PEOPLE: Record<string, FakePerson[]> = {

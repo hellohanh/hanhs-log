@@ -36,10 +36,11 @@ jobs:
       - name: Check the migration rules again
         run: node scripts/check-migrations.mjs
       - name: Back up first
+        id: backup
         if: env.DRY_RUN != 'true'
         run: scripts/backup-db.sh "pre-migration-${{ github.run_id }}"
       - uses: actions/upload-artifact@v4
-        if: env.DRY_RUN != 'true'
+        if: env.DRY_RUN != 'true' && steps.backup.outputs.empty != 'true'
         with:
           name: pre-migration-backup-${{ github.run_id }}
           path: pre-migration-${{ github.run_id }}.dump.gpg

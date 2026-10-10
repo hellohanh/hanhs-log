@@ -20,6 +20,7 @@ test('shows upcoming trips soonest first, then past trips', async ({ page }) => 
   await expect(upcoming.nth(0)).toContainText('Christmas in Saigon')
   await expect(upcoming.nth(0)).toContainText('Dec 18 – Jan 2, 2027')
   await expect(upcoming.nth(0)).toContainText('0 pins · 3 people')
+  await expect(upcoming.nth(0)).toContainText('Hồ Chí Minh City · Vietnam')
   await expect(upcoming.nth(0)).toContainText('You own this')
   await expect(upcoming.nth(1)).toContainText('Rome long weekend')
   await expect(upcoming.nth(1)).toContainText('Mar 12 – Mar 16, 2027')
@@ -43,40 +44,65 @@ test('shows upcoming trips soonest first, then past trips', async ({ page }) => 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Christmas in Saigon')
 })
 
-test('creates a trip, and checks the name and destination first', async ({ page }) => {
+test('creates a trip in the New trip popup, and checks the required fields first', async ({ page }) => {
   const { calls } = await fakeSupabase(page)
   await page.goto('./wander')
   await page.getByRole('button', { name: 'New trip' }).click()
+  const dialog = page.getByRole('dialog', { name: 'New trip' })
+  await expect(dialog).toBeVisible()
 
-  await page.getByRole('button', { name: 'Create trip' }).click()
-  await expect(page.getByRole('alert')).toHaveText('Give the trip a name and a destination.')
+  await dialog.getByRole('button', { name: 'Create trip' }).click()
+  await expect(dialog.getByRole('alert')).toHaveText('Give the trip a name.')
 
-  await page.getByLabel('Trip name').fill('  Hà Nội in autumn ')
-  await page.getByLabel('Destination').fill('Hà Nội, Vietnam')
-  await page.getByLabel('Start (optional)').fill('2026-11-02')
-  await page.getByLabel('End (optional)').fill('2026-11-01')
-  await page.getByRole('button', { name: 'Create trip' }).click()
-  await expect(page.getByRole('alert')).toHaveText('The end date is before the start date.')
+  await dialog.getByLabel('Trip name').fill('  Hà Nội in autumn ')
+  await dialog.getByRole('button', { name: 'Create trip' }).click()
+  await expect(dialog.getByRole('alert')).toHaveText('Add a Country and a Primary City.')
 
-  await page.getByLabel('End (optional)').fill('2026-11-09')
-  await page.getByRole('button', { name: 'Create trip' }).click()
+  await dialog.getByLabel('Country').fill('Vietnam')
+  await dialog.getByLabel('Primary City').fill(' Hà Nội ')
+  await dialog.getByLabel('Secondary City').fill('Hạ Long')
+  await dialog.getByLabel('Start').fill('2026-11-02')
+  await dialog.getByLabel('End').fill('2026-11-01')
+  await dialog.getByRole('button', { name: 'Create trip' }).click()
+  await expect(dialog.getByRole('alert')).toHaveText('The end date is before the start date.')
+
+  await dialog.getByLabel('End').fill('2026-11-09')
+  await dialog.getByRole('button', { name: 'Create trip' }).click()
 
   await expect(page.getByText('Created "Hà Nội in autumn".')).toBeVisible()
+  await expect(dialog).toHaveCount(0)
   const insert = calls.find(c => c.method === 'POST' && c.url.includes('/rest/v1/trips'))
   const body = JSON.parse(insert!.body!)
-  // The app picks the new trip's id so it can save the trip's city right away.
+  // The app picks the new trip's id so it can save where the map opens right away.
   expect(body.id).toMatch(/^[0-9a-f-]{36}$/)
   delete body.id
   expect(body).toEqual({
     name: 'Hà Nội in autumn',
-    destination: 'Hà Nội, Vietnam',
+    country: 'Vietnam',
+    city_primary: 'Hà Nội',
+    city_secondary: 'Hạ Long',
+    city_tertiary: null,
     start_date: '2026-11-02',
     end_date: '2026-11-09',
     owner_id: ME
   })
-  // The new trip is the soonest, so it comes first.
+  // The new trip is the soonest, so it comes first, with its cities and country.
   await expect(page.getByTestId('trip-card').first()).toContainText('Hà Nội in autumn')
+  await expect(page.getByTestId('trip-card').first()).toContainText('Hà Nội, Hạ Long · Vietnam')
   await expect(page.getByTestId('trip-card').first()).toContainText('Nov 2 – Nov 9')
+})
+
+test('the New trip popup closes with Cancel or Escape, and suggests countries', async ({ page }) => {
+  await fakeSupabase(page)
+  await page.goto('./wander')
+  await page.getByRole('button', { name: 'New trip' }).click()
+  const dialog = page.getByRole('dialog', { name: 'New trip' })
+  expect(await dialog.locator('datalist#hl-countries option[value="Vietnam"]').count()).toBe(1)
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toHaveCount(0)
+  await page.getByRole('button', { name: 'New trip' }).click()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
 })
 
 test('deletes a trip only after you confirm', async ({ page }) => {

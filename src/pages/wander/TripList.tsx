@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
@@ -9,10 +9,12 @@ import {
   fetchTrips,
   splitTrips,
   todayISO,
+  placeLabel,
   tripDates,
   type TripSummary
 } from '../../lib/trips'
 import { ensureTripCity } from '../../lib/city'
+import TripForm from './TripForm'
 import styles from './TripList.module.css'
 
 type Load = { state: 'loading' } | { state: 'ready'; trips: TripSummary[] } | { state: 'error'; message: string }
@@ -113,7 +115,7 @@ function SignedInList({ userId }: { userId: string }) {
       }
     >
       {creating && (
-        <NewTripForm
+        <NewTripDialog
           userId={userId}
           onCancel={() => setCreating(false)}
           onCreated={async name => {
@@ -140,7 +142,11 @@ function SignedInList({ userId }: { userId: string }) {
         <>
           <h2 className={styles.h2}>Upcoming</h2>
           {groups.upcoming.length === 0 ? (
-            <p className="lede">No upcoming trips yet. Start one with New trip.</p>
+            <p className="lede">
+              {groups.past.length === 0
+                ? 'No trips yet. Your trips from the old Wanderlog stay there; start fresh here with New trip.'
+                : 'No upcoming trips yet. Start one with New trip.'}
+            </p>
           ) : (
             <ul className={styles.grid}>
               {groups.upcoming.map(t => (
@@ -184,7 +190,7 @@ function TripCard({
     <li className={styles.card} data-testid="trip-card">
       <span className={dated ? styles.dates : `${styles.dates} ${styles.undated}`}>{dates}</span>
       <Link to={`/wander/trip/${trip.id}`} className={styles.name}>{trip.name}</Link>
-      <span className={styles.destination}>{trip.destination}</span>
+      <span className={styles.destination}>{placeLabel(trip)}</span>
       <span className={styles.foot}>
         <span>
           {trip.pinCount === 1 ? '1 pin' : `${trip.pinCount} pins`}
@@ -205,7 +211,8 @@ function TripCard({
   )
 }
 
-function NewTripForm({
+// New trip opens as a popup over the list (approved mockup, session 4).
+function NewTripDialog({
   userId,
   onCancel,
   onCreated
@@ -214,64 +221,28 @@ function NewTripForm({
   onCancel: () => void
   onCreated: (name: string) => void
 }) {
-  const [name, setName] = useState('')
-  const [destination, setDestination] = useState('')
-  const [start, setStart] = useState('')
-  const [end, setEnd] = useState('')
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    const n = name.trim()
-    const d = destination.trim()
-    if (!n || !d) {
-      setError('Give the trip a name and a destination.')
-      return
-    }
-    if (start && end && end < start) {
-      setError('The end date is before the start date.')
-      return
-    }
-    setSaving(true)
-    setError('')
-    try {
-      const id = await createTrip({ name: n, destination: d, start_date: start || null, end_date: end || null }, userId)
-      // Look the city up now and save it, so the trip's map opens on it (best effort).
-      ensureTripCity(id, d).catch(() => undefined)
-      onCreated(n)
-    } catch (err) {
-      setError(`Couldn't create the trip: ${(err as Error).message}`)
-      setSaving(false)
-    }
-  }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCancel()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
 
   return (
-    <form className={styles.form} onSubmit={submit} aria-labelledby="new-trip-title" noValidate>
-      <h2 id="new-trip-title" className={styles.formTitle}>New trip</h2>
-      <div className={styles.formRow}>
-        <label className={styles.field}>
-          Trip name
-          <input value={name} onChange={e => setName(e.target.value)} autoFocus placeholder="Christmas in Saigon" />
-        </label>
-        <label className={styles.field}>
-          Destination
-          <input value={destination} onChange={e => setDestination(e.target.value)} placeholder="Ho Chi Minh City, Vietnam" />
-        </label>
-        <label className={`${styles.field} ${styles.dateField}`}>
-          Start (optional)
-          <input type="date" value={start} onChange={e => setStart(e.target.value)} />
-        </label>
-        <label className={`${styles.field} ${styles.dateField}`}>
-          End (optional)
-          <input type="date" value={end} min={start || undefined} onChange={e => setEnd(e.target.value)} />
-        </label>
-        <div className={styles.formButtons}>
-          <button type="submit" className="btn" disabled={saving}>{saving ? 'Creating…' : 'Create trip'}</button>
-          <button type="button" className="btn btn-quiet" onClick={onCancel} disabled={saving}>Cancel</button>
-        </div>
+    <div className={styles.scrim} onMouseDown={e => e.target === e.currentTarget && onCancel()}>
+      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="New trip">
+        <TripForm
+          title="New trip"
+          submitLabel="Create trip"
+          busyLabel="Creating…"
+          onCancel={onCancel}
+          onSubmit={async (trip, map) => {
+            const id = await createTrip(trip, userId, map)
+            // No match shown before saving: look the city up now (best effort).
+            if (!map) ensureTripCity(id, trip).catch(() => undefined)
+            onCreated(trip.name)
+          }}
+        />
       </div>
-      {error && <p className={styles.error} role="alert">{error}</p>}
-    </form>
+    </div>
   )
 }

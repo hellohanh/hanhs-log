@@ -1,11 +1,16 @@
 import { supabase } from './supabase'
+import { mapQuery, type MapFields, type TripPlace } from './trips'
 
-// The trip's city (M3 step 3): the trip map opens on the first city named in
-// the trip's Destination, fitted so the whole city shows. The city is looked
-// up once with Google Places and saved on the trip (migration 0002).
+// Where a trip's map opens (M3 step 3, reworked session 4): the trip's
+// Primary City in its Country, fitted so the whole city shows. It's looked up
+// with Google Places when the trip is saved (the form shows the match first)
+// and stored on the trip, so later opens need no lookup.
+
+export { distanceKm, HCMC_CENTRE } from './cityName'
 
 export interface City {
   query: string
+  label: string | null
   lat: number
   lng: number
   north: number | null
@@ -14,30 +19,47 @@ export interface City {
   west: number | null
 }
 
-export { firstCity, distanceKm, HCMC_CENTRE } from './cityName'
-import { firstCity } from './cityName'
+export function toMapFields(c: City): MapFields {
+  return {
+    map_query: c.query,
+    map_label: c.label,
+    map_lat: c.lat,
+    map_lng: c.lng,
+    map_north: c.north,
+    map_south: c.south,
+    map_east: c.east,
+    map_west: c.west
+  }
+}
+
+export const hasPlacesKey = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
 
 /** Look a city up with Google Places (New). Null when it can't be found. */
 export async function lookupCity(query: string): Promise<City | null> {
   const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!key || !query) return null
+  if (!key || !query.trim()) return null
   const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': key,
-      'X-Goog-FieldMask': 'places.location,places.viewport'
+      'X-Goog-FieldMask': 'places.location,places.viewport,places.formattedAddress'
     },
     body: JSON.stringify({ textQuery: query, pageSize: 1 })
   })
   if (!res.ok) throw new Error(`Google couldn't look up "${query}" (${res.status}).`)
   const body = (await res.json()) as {
-    places?: { location?: { latitude: number; longitude: number }; viewport?: { low: { latitude: number; longitude: number }; high: { latitude: number; longitude: number } } }[]
+    places?: {
+      formattedAddress?: string
+      location?: { latitude: number; longitude: number }
+      viewport?: { low: { latitude: number; longitude: number }; high: { latitude: number; longitude: number } }
+    }[]
   }
   const p = body.places?.[0]
   if (!p?.location) return null
   return {
     query,
+    label: p.formattedAddress ?? null,
     lat: p.location.latitude,
     lng: p.location.longitude,
     north: p.viewport?.high.latitude ?? null,
@@ -47,49 +69,33 @@ export async function lookupCity(query: string): Promise<City | null> {
   }
 }
 
-type Row = {
-  city_query: string | null
-  city_lat: number | null
-  city_lng: number | null
-  city_north: number | null
-  city_south: number | null
-  city_east: number | null
-  city_west: number | null
-}
+type Row = Record<'map_query' | 'map_label', string | null> &
+  Record<'map_lat' | 'map_lng' | 'map_north' | 'map_south' | 'map_east' | 'map_west', number | null>
 
-/** The city saved on a trip, or null (none saved yet, or the database update hasn't run). */
+/** The map place saved on a trip, or null if none is saved yet. */
 export async function fetchTripCity(tripId: string): Promise<City | null> {
   if (!supabase) return null
   const { data, error } = await supabase
     .from('trips')
-    .select('city_query, city_lat, city_lng, city_north, city_south, city_east, city_west')
+    .select('map_query, map_label, map_lat, map_lng, map_north, map_south, map_east, map_west')
     .eq('id', tripId)
     .limit(1)
   if (error) return null
-  const row = ((data ?? []) as Row[])[0]
-  if (!row || row.city_query == null || row.city_lat == null || row.city_lng == null) return null
-  return { query: row.city_query, lat: row.city_lat, lng: row.city_lng, north: row.city_north, south: row.city_south, east: row.city_east, west: row.city_west }
-}
-
-/** Save the city on the trip. Best effort: a failure only means it's looked up again next time. */
-export async function saveTripCity(tripId: string, c: City): Promise<void> {
-  if (!supabase) return
-  await supabase
-    .from('trips')
-    .update({ city_query: c.query, city_lat: c.lat, city_lng: c.lng, city_north: c.north, city_south: c.south, city_east: c.east, city_west: c.west })
-    .eq('id', tripId)
+  const r = ((data ?? []) as Row[])[0]
+  if (!r || r.map_query == null || r.map_lat == null || r.map_lng == null) return null
+  return { query: r.map_query, label: r.map_label, lat: r.map_lat, lng: r.map_lng, north: r.map_north, south: r.map_south, east: r.map_east, west: r.map_west }
 }
 
 /**
- * The city a trip's map opens on: the saved one if it still matches the
- * Destination's first city, otherwise a fresh lookup that is then saved.
+ * Where a trip's map opens: the saved place if it still matches the trip's
+ * Primary City and Country, otherwise a fresh lookup that is then saved.
  */
-export async function ensureTripCity(tripId: string, destination: string): Promise<City | null> {
-  if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY) return null
-  const query = firstCity(destination)
+export async function ensureTripCity(tripId: string, place: Pick<TripPlace, 'country' | 'city_primary'>): Promise<City | null> {
+  if (!hasPlacesKey) return null
+  const query = mapQuery(place)
   const saved = await fetchTripCity(tripId)
   if (saved && saved.query === query) return saved
   const found = await lookupCity(query)
-  if (found) await saveTripCity(tripId, found).catch(() => undefined)
+  if (found && supabase) await supabase.from('trips').update(toMapFields(found)).eq('id', tripId)
   return found
 }

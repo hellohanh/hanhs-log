@@ -1,0 +1,45 @@
+/* The trip form (New trip popup and Edit trip), approved mockup, session 4. */
+.form { display: flex; flex-direction: column; gap: 18px; }
+.title { font-family: inherit; font-size: 24px; font-weight: 700; letter-spacing: 0; }
+.one, .four, .two { display: grid; gap: 16px; }
+.one { grid-template-columns: 1fr; }
+.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.two { grid-template-columns: repeat(2, minmax(0, 220px)); }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); min-width: 0; }
+.field b { color: var(--ink); font-weight: 700; }
+.req { color: var(--accent); font-weight: 700; }
+.field input {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--ground);
+  color: var(--ink);
+  font-size: 16px;
+  min-width: 0;
+  width: 100%;
+}
+.primary input { border: 2px solid var(--accent); padding: 0 13px; }
+.hint { font-size: 13px; color: var(--muted); }
+.check { min-height: 32px; display: flex; align-items: center; }
+.found, .missing, .checking {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--pill);
+  font-size: 14px;
+  font-weight: 700;
+}
+.found { background: color-mix(in srgb, #2F6B3A 14%, var(--surface)); color: color-mix(in srgb, #2F6B3A 75%, var(--ink)); }
+.missing { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); }
+.checking { color: var(--muted); font-weight: 400; padding-left: 0; }
+.legend { margin: 0; font-size: 13px; color: var(--muted); }
+.error { margin: 0; font-size: 15px; color: var(--accent); }
+.buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; border-top: 1px solid var(--rule); padding-top: 18px; }
+.buttons :global(.btn) { min-height: 46px; }
+
+@media (max-width: 900px) { .four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) {
+  .four, .two { grid-template-columns: 1fr; }
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
@@ -11,13 +11,17 @@ import {
   todayISO,
   tripDates,
   updateTrip,
+  mapQuery,
+  placeLabel,
   type Person,
-  type Trip
+  type Trip,
+  type TripPlace
 } from '../../lib/trips'
 import ShareDialog from './ShareDialog'
 import NamePrompt from './NamePrompt'
 import TripMap, { type CityState } from './TripMap'
-import { ensureTripCity, firstCity } from '../../lib/city'
+import { ensureTripCity, type City } from '../../lib/city'
+import TripForm from './TripForm'
 import styles from './TripPage.module.css'
 
 // The trip page (/wander/trip/:id), from the approved M3 mockup: the trip
@@ -63,11 +67,11 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const [sharing, setSharing] = useState(false)
   const [city, setCity] = useState<CityState>({ state: 'loading' })
 
-  // The city the map opens on: saved on the trip, looked up again only when
-  // the Destination's first city changes.
-  const loadCity = useCallback((destination: string) => {
-    ensureTripCity(tripId, destination).then(
-      c => setCity(c ? { state: 'ready', city: c } : { state: 'missing', query: firstCity(destination) }),
+  // Where the map opens: the Primary City in its Country, saved on the trip
+  // and looked up again only when either changes.
+  const loadCity = useCallback((place: TripPlace) => {
+    ensureTripCity(tripId, place).then(
+      c => setCity(c ? { state: 'ready', city: c } : { state: 'missing', query: mapQuery(place) }),
       e => setCity({ state: 'error', message: (e as Error).message })
     )
   }, [tripId])
@@ -78,7 +82,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
     fetchTrip(tripId).then(
       trip => {
         setLoad(trip ? { state: 'ready', trip } : { state: 'missing' })
-        if (trip) loadCity(trip.destination)
+        if (trip) loadCity(trip)
       },
       e => setLoad({ state: 'error', message: (e as Error).message })
     )
@@ -106,7 +110,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           <Link to="/wander" className={styles.back}>← Your trips</Link>
           <div className={styles.titleRow}>
             <h1 className={styles.h1}>{trip.name}</h1>
-            <span className={styles.meta}>{trip.destination} · {dates}</span>
+            <span className={styles.meta}>{placeLabel(trip)} · {dates}</span>
           </div>
           <div role="tablist" aria-label="Trip views" className={styles.tabs}>
             <button type="button" role="tab" aria-selected="true" className={`${styles.tab} ${styles.tabOn}`}>Map</button>
@@ -140,10 +144,11 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
         <EditTrip
           trip={trip}
           onCancel={() => setEditing(false)}
-          onSaved={t => {
+          onSaved={(t, found) => {
             setLoad({ state: 'ready', trip: t })
             setEditing(false)
-            if (firstCity(t.destination) !== firstCity(trip.destination)) loadCity(t.destination)
+            if (found) setCity({ state: 'ready', city: found })
+            else if (mapQuery(t) !== mapQuery(trip)) loadCity(t)
           }}
         />
       )}
@@ -188,55 +193,23 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   )
 }
 
-function EditTrip({ trip, onCancel, onSaved }: { trip: Trip; onCancel: () => void; onSaved: (t: Trip) => void }) {
-  const [name, setName] = useState(trip.name)
-  const [destination, setDestination] = useState(trip.destination)
-  const [start, setStart] = useState(trip.start_date ?? '')
-  const [end, setEnd] = useState(trip.end_date ?? '')
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    const n = name.trim()
-    const d = destination.trim()
-    if (!n || !d) return setError('Give the trip a name and a destination.')
-    if (start && end && end < start) return setError('The end date is before the start date.')
-    setSaving(true)
-    setError('')
-    const fields = { name: n, destination: d, start_date: start || null, end_date: end || null }
-    try {
-      await updateTrip(trip.id, fields)
-      onSaved({ ...trip, ...fields })
-    } catch (err) {
-      setError(`Couldn't save: ${(err as Error).message}`)
-      setSaving(false)
-    }
-  }
-
+function EditTrip({ trip, onCancel, onSaved }: { trip: Trip; onCancel: () => void; onSaved: (t: Trip, found?: City) => void }) {
   return (
-    <form className={styles.edit} onSubmit={submit} aria-label="Edit trip" noValidate>
-      <label className={styles.field}>
-        Trip name
-        <input value={name} onChange={e => setName(e.target.value)} autoFocus />
-      </label>
-      <label className={styles.field}>
-        Destination
-        <input value={destination} onChange={e => setDestination(e.target.value)} />
-      </label>
-      <label className={`${styles.field} ${styles.dateField}`}>
-        Start (optional)
-        <input type="date" value={start} onChange={e => setStart(e.target.value)} />
-      </label>
-      <label className={`${styles.field} ${styles.dateField}`}>
-        End (optional)
-        <input type="date" value={end} min={start || undefined} onChange={e => setEnd(e.target.value)} />
-      </label>
-      <div className={styles.editButtons}>
-        <button type="submit" className="btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-        <button type="button" className="btn btn-quiet" onClick={onCancel} disabled={saving}>Cancel</button>
-      </div>
-      {error && <p className={styles.error} role="alert">{error}</p>}
-    </form>
+    <div className={styles.edit}>
+      <TripForm
+        title="Edit trip"
+        initial={trip}
+        submitLabel="Save"
+        busyLabel="Saving…"
+        onCancel={onCancel}
+        onSubmit={async (fields, map) => {
+          await updateTrip(trip.id, fields, map)
+          const found: City | undefined = map && map.map_query && map.map_lat != null && map.map_lng != null
+            ? { query: map.map_query, label: map.map_label, lat: map.map_lat, lng: map.map_lng, north: map.map_north, south: map.map_south, east: map.map_east, west: map.map_west }
+            : undefined
+          onSaved({ ...trip, ...fields }, found)
+        }}
+      />
+    </div>
   )
 }

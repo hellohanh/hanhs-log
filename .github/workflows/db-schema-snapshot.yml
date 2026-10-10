@@ -4,6 +4,9 @@
 # so the automated tests can run against an exact copy of the real rules
 # instead of guessing. The live database is only read, never changed.
 #
+# Since session 4 Hanh's Log has its own project, built entirely by our
+# migrations, so the baseline is (and should stay) empty. Don't run this
+# unless something was changed in the database outside this repo.
 # The baseline is the database as it was BEFORE Hanh's Log migrations;
 # tests apply supabase/migrations on top of it. Refresh it only when told
 # to (e.g. after a change made outside this repo), not after our own

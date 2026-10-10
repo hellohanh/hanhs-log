@@ -116,41 +116,27 @@
 .delete:hover { border-color: var(--rule); color: var(--accent); }
 
 /* New-trip form: one row on a monitor. */
-.form {
-  margin-top: 32px;
-  padding: 24px;
+/* New trip popup (approved mockup, session 4). */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 56px 16px;
+  overflow-y: auto;
+  background: rgba(27, 26, 24, 0.42);
+}
+.dialog {
+  width: min(940px, 100%);
+  padding: 28px 32px 24px;
   background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: var(--radius-m);
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-l);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
-.formTitle { font-size: 20px; font-weight: 700; letter-spacing: 0; margin-bottom: 16px; }
-.formRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 16px;
-}
-.field {
-  flex: 2 1 280px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-  color: var(--muted);
-}
-.dateField { flex: 1 1 170px; }
-.field input {
-  min-height: 48px;
-  padding: 0 14px;
-  border: 1px solid var(--rule);
-  border-radius: 10px;
-  background: var(--ground);
-  color: var(--ink);
-  font-size: 16px;
-  min-width: 0;
-}
-.formButtons { display: flex; gap: 10px; }
+@media (max-width: 520px) { .dialog { padding: 20px 16px; } }
 
 /* Narrower windows: fewer columns (full phone design comes later). */
 @media (max-width: 1200px) {
