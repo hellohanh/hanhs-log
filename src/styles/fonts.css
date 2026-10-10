@@ -1,0 +1,35 @@
+/* Segoe UI, self-hosted (files supplied by Hanh), used inside the
+   Wanderlog and Savorlog sections only (the .segoe class in base.css);
+   the splash and header keep Newsreader and Public Sans. Cut down to Latin and
+   Vietnamese letters and saved as woff2 to keep them small. Only these four
+   cuts exist: Regular 400, Bold 700, Black 900 and Black Italic 900. Any
+   other weight snaps to the nearest one (500 → 400, 600 → 700), and plain
+   italic is slanted by the browser. */
+@font-face {
+  font-family: 'Segoe UI Web';
+  src: url('../assets/fonts/segoe-ui-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Segoe UI Web';
+  src: url('../assets/fonts/segoe-ui-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Segoe UI Web';
+  src: url('../assets/fonts/segoe-ui-900.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Segoe UI Web';
+  src: url('../assets/fonts/segoe-ui-900-italic.woff2') format('woff2');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}

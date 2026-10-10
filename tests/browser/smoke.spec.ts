@@ -53,6 +53,17 @@ test('light/dark switch flips the theme and is remembered', async ({ page }) => 
   await expect(html).toHaveAttribute('data-theme', first === 'dark' ? 'light' : 'dark')
 })
 
+test('Wanderlog and Savorlog use Segoe UI; the splash and header keep the site fonts', async ({ page }) => {
+  for (const path of ['./wander', './savor']) {
+    await page.goto(path)
+    await expect(page.locator('main h1')).toHaveCSS('font-family', /^"Segoe UI Web"/)
+    await expect(page.locator('main .lede')).toHaveCSS('font-family', /^"Segoe UI Web"/)
+    await expect(page.locator('header')).not.toHaveCSS('font-family', /Segoe UI Web/)
+  }
+  await page.goto('./')
+  await expect(page.locator('h1').first()).toHaveCSS('font-family', /^Newsreader/)
+})
+
 test('header links move between sections', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('link', { name: 'Savorlog' }).first().click()
