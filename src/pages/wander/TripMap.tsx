@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
-import { MAP_LOOKS, readLook, saveLook, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
+import { MAP_LOOKS, canTilt, readLook, saveLook, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
 import { distanceKm, HCMC_CENTRE, type City } from '../../lib/city'
 import { useIsDark } from '../../lib/theme'
+import CameraControl from './CameraControl'
 import styles from './TripMap.module.css'
 
 // The trip map (M3 step 3, approved mockup v2, session 4): opens on the
 // trip's Primary City centre at zoom 13, no pins yet (old Wanderlog pins
-// appear only after Hanh sorts them). Map look switcher with 11 looks,
+// appear only after Hanh sorts them). Map look switcher with 12 looks,
 // remembered per mode on this device; HCMC Districts overlay on trips
-// within 20 km of Ho Chi Minh City.
+// within 20 km of Ho Chi Minh City. Our own camera control (3 × 4) with
+// tilt, rotate and reset: Google's own looks run on the tilt-capable map
+// (our Map ID); hand-made looks need the flat map, where tilt and rotate
+// are greyed out (Hanh, session 4).
 
 export type CityState = { state: 'loading' } | { state: 'ready'; city: City } | { state: 'missing'; query: string } | { state: 'error'; message: string }
 
@@ -21,9 +25,11 @@ export default function TripMap({ city }: { city: CityState }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const districtsRef = useRef<Districts | null>(null)
+  const appliedCity = useRef<City | null>(null)
+  const [map, setMap] = useState<google.maps.Map | null>(null)
   const [mapError, setMapError] = useState('')
   const [noKey, setNoKey] = useState(false)
-  const [ready, setReady] = useState(false)
+  const ready = map !== null
   const dark = useIsDark()
   const mode: Mode = dark ? 'dark' : 'light'
   const [picks, setPicks] = useState<Record<Mode, MapLook>>(() => ({ light: readLook('light'), dark: readLook('dark') }))
@@ -32,55 +38,75 @@ export default function TripMap({ city }: { city: CityState }) {
   const [showDistricts, setShowDistricts] = useState(false)
 
   const nearHcmc = city.state === 'ready' && distanceKm(city.city, HCMC_CENTRE) <= HCMC_KM
+  const home = city.state === 'ready' ? { center: { lat: city.city.lat, lng: city.city.lng }, zoom: OPENING_ZOOM } : WORLD
+  const mapId = import.meta.env.VITE_GOOGLE_MAP_ID
+  const tiltable = Boolean(mapId) && canTilt(look)
+  // Which kind of map this look needs. A map's ID, rendering and colour
+  // scheme can't change after it's made, so a new kind means a new map.
+  const kind = tiltable ? (look.dark ? 'tilt-dark' : 'tilt') : 'flat'
 
-  // Create the map once.
+  // Create the map, and again whenever the kind changes (keeping the view).
   useEffect(() => {
     let cancelled = false
     loadGoogleMaps().then(
       g => {
         if (cancelled || !box.current) return
         if (!g) return setNoKey(true)
-        mapRef.current = new g.maps.Map(box.current, {
-          ...WORLD,
+        const prev = mapRef.current
+        const view = prev ? { center: prev.getCenter()!.toJSON(), zoom: prev.getZoom() ?? OPENING_ZOOM } : WORLD
+        districtsRef.current?.setVisible(false)
+        districtsRef.current = null
+        const m = new g.maps.Map(box.current, {
+          ...view,
+          ...(kind === 'flat'
+            ? { renderingType: g.maps.RenderingType.RASTER }
+            : {
+                mapId,
+                renderingType: g.maps.RenderingType.VECTOR,
+                colorScheme: kind === 'tilt-dark' ? g.maps.ColorScheme.DARK : g.maps.ColorScheme.LIGHT,
+                tiltInteractionEnabled: true,
+                headingInteractionEnabled: true
+              }),
+          zoomControl: false,
+          cameraControl: false,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
           gestureHandling: 'greedy'
         })
-        setReady(true)
+        mapRef.current = m
+        setMap(m)
       },
       e => !cancelled && setMapError((e as Error).message)
     )
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [kind, mapId])
 
-  // Apply the current look.
+  // Apply the current look (hand-made colours only work on the flat map).
   useEffect(() => {
-    const m = mapRef.current
-    if (!ready || !m) return
-    m.setOptions({ mapTypeId: look.mapTypeId, styles: look.styles ?? null })
-  }, [ready, look])
+    if (!map) return
+    map.setOptions(kind === 'flat' ? { mapTypeId: look.mapTypeId, styles: look.styles ?? null } : { mapTypeId: look.mapTypeId })
+  }, [map, look, kind])
 
-  // Open on the Primary City's centre at zoom 13 (Hanh, session 4). Google's
-  // city outlines don't work for this: HCMC's covers half of southern Vietnam
-  // since the 2025 merger, while Paris's is tiny.
+  // Open on the Primary City's centre at zoom 13 (Hanh, session 4), once per
+  // city. Google's city outlines don't work for this: HCMC's covers half of
+  // southern Vietnam since the 2025 merger, while Paris's is tiny.
   useEffect(() => {
-    const m = mapRef.current
-    if (!ready || !m || city.state !== 'ready') return
-    m.setCenter({ lat: city.city.lat, lng: city.city.lng })
-    m.setZoom(OPENING_ZOOM)
-  }, [ready, city])
+    if (!map || city.state !== 'ready' || appliedCity.current === city.city) return
+    appliedCity.current = city.city
+    map.setCenter({ lat: city.city.lat, lng: city.city.lng })
+    map.setZoom(OPENING_ZOOM)
+  }, [map, city])
 
-  // Districts overlay.
+  // Districts overlay (rebuilt with the map when the map is replaced).
   useEffect(() => {
-    const m = mapRef.current
-    if (!ready || !m) return
+    if (!map) return
     const on = showDistricts && nearHcmc
-    if (on && !districtsRef.current) districtsRef.current = new Districts(m)
+    if (on && !districtsRef.current) districtsRef.current = new Districts(map)
     districtsRef.current?.setVisible(on)
-  }, [ready, showDistricts, nearHcmc])
+  }, [map, showDistricts, nearHcmc])
 
   function pick(l: MapLook | null) {
     saveLook(mode, l ? l.key : null)
@@ -119,6 +145,7 @@ export default function TripMap({ city }: { city: CityState }) {
     <div className={styles.wrap}>
       <div ref={box} className={styles.map} role="region" aria-label="Map" />
       {notice && <p className={styles.notice} role="status">{notice}</p>}
+      {map && <CameraControl map={map} home={home} tiltable={tiltable} />}
       {ready && (
         <div className={styles.controls}>
           <button
