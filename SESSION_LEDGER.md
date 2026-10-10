@@ -159,6 +159,7 @@
 - #30: transit pins stay with No pins; Districts chip only when a district is in view.
 - #32: the camera control starts closed.
 - #33: map chips (Map look, Pins, Districts) as icons only.
+- #34: itinerary panel on the map (days, day notes, travel legs; migration 0002), replacing the Itinerary tab (E49).
 - #31: this Stop Protocol (SKILL.md E39–E48, Q8, L24–L32; README; this entry; CLAUDE.md).
 - Preview-only, closed without merging: #17 (map looks side by side), #24 (opening zoom), #27 (tilt test).
 
@@ -166,9 +167,10 @@
 - Trip map mockups v1 and v2.
 - New trip form mockup.
 - Inline camera-control mockups: 3 × 3, then 3 × 4.
+- Inline itinerary-panel mockup.
 - Live preview pages for map looks, zoom and tilt.
 
-**Lessons:** L24–L32 recorded in SKILL.md.
+**Lessons:** L24–L33 recorded in SKILL.md.
 
 **Correction to Session 3's entry:** session 3's Stop Protocol docs landed in PR #14, together with session 2's.
 
@@ -176,4 +178,4 @@
 
 **Stop Protocol completed:** zip `S004 OCT 10 2026 Hanhs Log.zip` produced and presented.
 
-**Next session starts at:** M3 step 4, adding and editing pins. Settle Q3 (tried it / ratings) and Q4 (Bib Gourmand), then mock up the add-pin form and pin drawing for approval before any code.
+**Next session starts at:** M3 step 4, adding and editing pins (then the itinerary's stops, connectors and day routes, E49). Settle Q3 (tried it / ratings) and Q4 (Bib Gourmand), then mock up the add-pin form and pin drawing for approval before any code.
