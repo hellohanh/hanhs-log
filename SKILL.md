@@ -14,13 +14,17 @@ live Wanderlog database.
 
 ## Architecture
 - **Front end:** React 18 + Vite 5 + TypeScript (strict), react-router-dom v6, CSS Modules plus design tokens (`src/styles/tokens.css`), and vite-plugin-pwa ("add to home screen").
+- **Fonts (E23):** Newsreader + Public Sans (Google Fonts) for the splash and header; Segoe UI self-hosted (`src/styles/fonts.css`, woff2 in `src/assets/fonts/`) inside Wanderlog and Savorlog pages via the `.segoe` class.
 - **Hosting:** GitHub Pages at https://hellohanh.github.io/hanhs-log/. Deployed from the `gh-pages` branch by `deploy.yml` on every merge to `main`. Each pull request gets a preview at `/hanhs-log/pr-preview/pr-N/` (`preview.yml`). `BASE_PATH` sets the Vite base.
-- **Back end:** Supabase, the same project as Wanderlog (`ricgwlityhtfxplcqoai`). The app reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from GitHub Secrets at build time. Sign-in is by email link (`signInWithOtp`).
+- **Back end:** Supabase, the same project as Wanderlog (`ricgwlityhtfxplcqoai`). The app reads `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_GOOGLE_MAPS_API_KEY` and `VITE_GOOGLE_MAP_ID` from GitHub Secrets at build time; each build's run summary lists which are set (names only). Sign-in is by email link (`signInWithOtp`); guests joining by invite link sign in anonymously (`signInAnonymously`).
+- **Wanderlog (M3):** `src/pages/Wanderlog.tsx` routes `/wander` (TripList), `/wander/trip/:id` (TripPage, ShareDialog, NamePrompt) and `/wander/join/:token` (JoinTrip). Data calls in `src/lib/trips.ts`.
+- **Migration 0001 (`0001_trip_people.sql`, applied):** `profiles` (first names), `trip_members.joined_at`, `trip_people()`, `trip_people_counts()`, `remove_trip_member()`, `reset_trip_invite()`, and a trigger that stops members changing a trip's owner or invite link.
+- **Pin standard:** `docs/pin-standard.md` (every category, colour and icon); custom icons in `src/assets/pin-icons/` (43 SVGs).
 - **Database changes:** only as numbered files in `supabase/migrations/`, checked by `scripts/check-migrations.mjs`. They are applied by the "Database migrations" workflow, which needs Hanh's approval (the `production-db` environment) and takes a backup first. Nightly encrypted backups (`db-backup.yml`). Read-only `db-inspect.yml`. `db-schema-snapshot.yml` refreshes `supabase/baseline/live_public_schema.sql` for tests.
 - **Tests on every pull request** (`ci.yml`):
   - `checks` (build and migration rules);
   - `security-tests`: two-person database tests on local Postgres 17 with a Supabase shim, in `tests/db`;
-  - `browser-tests`: Playwright at phone 390×844, laptop 1440×900 and laptop-150%-zoom 960×600, in `tests/browser`.
+  - `browser-tests`: Playwright at phone 390×844, laptop 1440×900, laptop-150%-zoom 960×600 and monitor 2560×1440, in `tests/browser`. Signed-in screens are tested against a stand-in Supabase (`tests/browser/fake-supabase.ts`, test build points at `https://test-project.supabase.co`).
 - **Splash:**
   - `src/pages/Home.tsx`, `Home.module.css` and `src/lib/flightPath.ts`.
   - Images in `public/images/`: `hero.webp` (Hanh's new hero, no plane painted in), `paper-plane.webp` and `jet.webp` (the flying planes; `jet.webp` is also the landed jet) and two card images.
@@ -40,22 +44,43 @@ live Wanderlog database.
 | E10 | Eatery info | Want-to-try / been, rating, price, photos; each person has their own rating and status |
 | E11 | Savorlog sharing | Family can add via a separate Savorlog invite; co-travelers see all eateries in the trip's cities |
 | E12 | "In city" | City name plus 20 km radius |
-| E13 | Launch data | Existing Wanderlog dining pins are copied into Savorlog at launch |
+| E13 | Launch data | ~~Existing Wanderlog dining pins are copied into Savorlog at launch~~ Replaced by E33 |
 | E14 | Working agreement | Every change goes on a branch and through a pull request with a preview link, never straight to main; `npm run build` passes before every push; all checks green before asking Hanh to merge; visual changes need an approved mockup first; secrets live only in GitHub Secrets |
-| E15 | Flight path | 66 points Hanh mapped (`ROUTE` in `flightPath.ts`, 1536×1024 image pixels), Catmull-Rom smoothed and distance-indexed, heading from ±14px look-ahead; flying plane scale 0.42 |
+| E15 | Flight path | ~~66 points, flying plane scale 0.42~~ Replaced by E35. 86 points Hanh mapped in the flight-path editor (`ROUTE` in `flightPath.ts`, 1536×1024 image pixels, ends at the landed jet 935, 233), Catmull-Rom smoothed and distance-indexed, heading from ±14px look-ahead |
 | E16 | Flight is scroll-driven | Hero pinned under the header, flown by scrolling through a 240vh `.flightSpace` (scroll up flies back), eased 0.18 per frame; "Scroll to fly" hint until scrolling starts; reduced-motion shows the finished picture with nothing pinned |
-| E17 | Fade timing (as a share of the scroll) | Flight ends 80%; painted plane fades in 76→84%; flying plane fades out 78→89%; landed at 94% → the search panel, the Where to? heading, both cards and the dark section background fade in together (600ms) |
-| E18 | Desktop hero layout | A 1080 × 800 container on a full-width paper band (#FAF6E5); picture 1080 × 720 at 40px from the top; search panel 20px from the left with its bottom at 780px; the whole container scales down together (`--s`) when the window is narrower than 1080 or shorter than 800 + header |
+| E17 | Fade timing (as a share of the scroll) | Flight ends 80%; landed jet fades in 76→84%; flying jet fades out 78→89%; landed at 94% → the search panel, the Where to? heading, both cards and the dark section background fade in together (600ms) |
+| E18 | Desktop hero layout | A 1080 × 800 container on a full-width paper band (~~#FAF6E5~~ #F6EFE2, E38); picture 1080 × 720 at 40px from the top; search panel 20px from the left with its bottom at 780px; the whole container scales down together (`--s`) when the window is narrower than 1080 or shorter than 800 + header |
 | E19 | Pinned area | The pinned block is the hero container plus the Where to? section (not a full-window stage), so tall windows show the section right under the picture; that section's background is paper until landing, then the page colour |
 | E20 | Phones | Splash phone layout parked until desktop is final: currently full-width picture, 40px above it, panel 20px below |
 | E21 | Sign-in settings | The address is tidied before use (trimmed, https:// added, path removed); if the client can't be created, only sign-in turns off (never a blank page); errors name the address tried |
-| E22 | Milestones | M1 Foundation ✅ · M2 Splash ✅ (desktop) · M3 Wanderlog trips + map · M4 Savorlog · M5 Savorlog on trips · M7 Switch over. M6 (the Wanderlog itinerary) is a planned milestone between M5 and M7 |
+| E22 | Milestones | M1 Foundation ✅ · M2 Splash ✅ (desktop) · M3 Wanderlog trips + map (in progress) · M4 Savorlog · M5 Savorlog on trips · M7 Switch over. M6 (the Wanderlog itinerary) is a planned milestone between M5 and M7 |
+| E23 | Fonts | Segoe UI (Hanh's files, self-hosted, subset to Latin + Vietnamese, woff2) for Wanderlog and Savorlog page content only; splash and header keep Newsreader + Public Sans. Hosting the Windows fonts is Hanh's choice; Selawik is the fallback swap if ever needed |
+| E24 | Desktop first | Design for a 2560 × 1440 monitor first; phone layouts later. Layouts widen to fill the monitor (trip cards three per row) |
+| E25 | M3 plan | 0a Maps keys in Secrets ✅ · 0b live DB check ✅ · 0c mockups ✅ · 1 trip list ✅ · 2 trip page + sharing + people ✅ · 3 map · 4 add/edit pins · 5 pinned list. Copy trip, back up all and restore move after M6. HCMC districts overlay only on trips that include Ho Chi Minh City (20 km) |
+| E26 | People on a trip | First names typed by each person (asked once; "Later" allowed); nobody sees emails. Owner-only Remove and Reset link. Nobody can change a trip's owner from the app; only the owner can change the invite link |
+| E27 | Trip page | As the approved mockup: back link, name, destination · dates, Map tab (Itinerary greyed "coming in M6"), people avatars, Edit trip, Share & people; map area below |
+| E28 | Pin shape | All pins are the teardrop (33 px). MICHELIN places: 36 px, deep red #9E2A2B, our own six-petal outline flower (1 px line), 1–3 stars in a chip above. Add-pin form gets MICHELIN / 1 / 2 / 3-star click boxes and the year. Full spec: docs/pin-standard.md |
+| E29 | Pin icons | Google Material Symbols (names verified) plus Hanh's own drawings traced to SVG (43, `src/assets/pin-icons/`) |
+| E30 | Pinned list | Tree of category › sub-category › sub-sub-category in both map views; every level collapsed by default, arrow expands |
+| E31 | Non-food categories | Accommodation (6, blues) · Airport (alone) · Attraction (Berry: 5 groups, 15 types) · Shopping (8, greens) · Transport (7, teals). Colours and icons in docs/pin-standard.md |
+| E32 | Nom-Nom | Top-level food category, coral #D85A30, icon `restaurant`. Levels: cuisine (the food's country) › main dish. Café, Bakery, Bar, Fusion beside the cuisines (can also carry a cuisine tag). Pin colour by region (9 warm colours). Dish icons per family, animals where the protein is the point. Vietnamese 28 dishes; SE Asian top 5 ×7 |
+| E33 | Old food pins | Wanderlog's dining/cafe/bakery pins are not copied automatically; they get sorted into Nom-Nom city by city with Hanh (replaces E13) |
+| E34 | Street food / fine dining | Badges on eatery pins (like MICHELIN), not dishes |
+| E35 | Paper plane (session 3) | The flight takes off as the red paper plane (`paper-plane.webp`, 150 wide, nose −46°) and turns into the jet (`jet.webp`, 400 wide, nose −16°) at 0.68 with the landing's fade values: jet in 0.68→0.76, paper out 0.70→0.81. Sizes in hero pixels |
+| E36 | New hero (session 3) | `hero.webp` is Hanh's new picture (Amalfi, phở, Eiffel Tower, bánh mì, Vietnam map, Japan postcard) with no plane painted in; old `hero-noplane`, `hero-plane` and `plane` images removed |
+| E37 | Landed jet (session 3) | The jet lands as itself (`jet.webp`) at 935, 233, 400 wide, tilted 4.75° (`LANDED_JET`), fading in per E17 |
+| E38 | Hero edge (session 3) | Page paper is #F6EFE2, sampled from the new hero's edge; the picture's outer 40px fades into it (SVG mask, blur 20) so there's no visible edge |
 
 ## Open Questions (Q-number registry)
 | Q# | Question | Status |
 |----|----------|--------|
 | Q1 | Splash phone layout: should the panel overlap the picture or sit below it? | Parked (E20); finalise after desktop |
-| Q2 | Milestone 3 checklist and order | Next session: lay it out for approval before code |
+| Q2 | Milestone 3 checklist and order | Resolved → E25 |
+| Q3 | "Tried it" and each person's rating on eatery pins (E10): how does it show on the pin and in the form? | Open |
+| Q4 | Bib Gourmand: its own add-pin click box and pin chip? | Open |
+| Q5 | Dishes for East Asian, South Asian, European, Americas cuisines, and Café / Bakery / Bar / Fusion | Open (top 5 each, like SE Asian) |
+| Q6 | Names of five American icons: chicken bucket, curly fries, mac & cheese, chili bowl, side bowl | Open |
+| Q7 | No lobster icon in Hanh's sets | Open |
 
 ## Non-Negotiables
 1. Never push to `main`. Branch, pull request, preview link, green checks, then Hanh merges.
@@ -88,3 +113,14 @@ live Wanderlog database.
 | L11 | The CI security tests install Postgres 17 from the PGDG apt repo; a Docker Hub pull failed. Locally Postgres 16 needs `transaction_timeout` and MAINTAIN stripped from the PG17 dump. |
 | L12 | A test DB per test file (from a template) keeps results that a rolled-back transaction would lose. Use session-level `set role` and `set_config`, not `set local`. |
 | L13 | Pin-image cut-outs: GrabCut finds the white fuselage that colour masks miss. Fill erased areas with a flat paper tone from the image's top band plus grain, not sampled neighbours (they smudge leaves and stamps). |
+| L14 | L9 again: `pkill -f "vite preview"` or `pgrep -f "vite.*4173"` matches its own shell and kills it (exit 144). Find the process ID first and kill it in a separate command. |
+| L15 | A shallow clone only tracks main. Before `git branch -u`, add the branch to `remote.origin.fetch` and fetch, or the session's push check reports "no remote branch" even though the push worked. |
+| L16 | Check every Google icon name against the official codepoints file (google/material-design-icons, MaterialSymbolsOutlined codepoints) before offering it; some obvious names don't exist (food_truck, a plain fish, bridge). |
+| L17 | Inline pickers: the chosen option needs an unmistakable mark (thick outline, ✓, "chosen"), clicking it again must not un-choose it, and a live summary helps. A faint highlight produced "none" answers. |
+| L18 | Tracing Hanh's PNG icons: split by connected shapes and drop the frame; where a drawing touches its frame, fill the frame, shrink it about 16 px and keep only ink inside. Trace with potrace at 96–240 px and round coordinates to keep each SVG small. |
+| L19 | GitHub Secrets, job logs and Actions run summaries can't be read from a Claude session; ask Hanh to read the run summary (e.g. "Build settings"). Workflow dispatch and run status do work. |
+| L20 | Hanh may merge a pull request while work continues. Check `merged` on the PR before pushing more commits to its branch; if it's merged, start a fresh branch from main and open a new PR (the edge fix became #16). |
+| L21 | Changes can appear in the working folder that this session didn't make (another session). Read the diff and check it against Hanh's values before building on it (the landed-jet tilt arrived as 3.5° instead of 4.75°). |
+| L22 | When the picture behind an inline editor changes, re-open the editor on the new picture with Hanh's last points loaded and any new controls added (landed jet size and tilt), rather than starting over. |
+| L23 | `gh pr create` fails here (GraphQL is blocked); open pull requests with `gh api repos/{owner}/{repo}/pulls -f base=… -f head=… -F body=@file`. |
+
