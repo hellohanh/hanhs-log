@@ -121,3 +121,62 @@
 **Stop Protocol completed:** zip `S003 OCT 10 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** M3 step 3, the real map on the trip page with the new pin standard, desktop monitor first.
+
+---
+
+## Session 4 — 2026-10-10
+
+**Goal:**
+- Get caught up from the S003 zip, then M3 step 3: the real map on the trip page.
+
+**Decisions made:** E39–E48 recorded in SKILL.md (E22, E25, E27, E33 and E35 updated; Q8 added). Highlights:
+- **Own database, clean slate** (E39, E40):
+  - Hanh's Log moved to its own Supabase project, leaving live Wanderlog's site and database untouched so the two can be compared.
+  - Wanderlog's database was given back exactly as before Hanh's Log.
+  - Trips are rebuilt from scratch; old pins come from Hanh's export in step 4b.
+- **Trip form** (E41): a New trip popup (also used for Edit trip) with Country and Primary / Secondary / Tertiary City, plus a "✓ Map opens on" check.
+- **Opening view** (E42): the map opens on the Primary City's centre at zoom 13.
+- **Map controls** (E43–E46):
+  - 11 map looks; Google dark is the dark-mode default.
+  - Our own 3 × 4 camera control with tilt, rotate and reset.
+  - Pins / No pins chip (transit pins stay).
+  - The old Wanderlog's coloured HCMC districts, with a chip that shows only while a district is in view.
+- **Also** (E47, E48): trip cards count sorted pins only; paper plane v2.
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #18, #19: the trip map and city lookup on the shared database (superseded by #20/#22).
+- #20: Wanderlog's database given back as it was (migration 0003, now archived).
+- #21: Map look panel closes on pick, ×, Escape and click outside.
+- #22: Hanh's Log's own database, plus:
+  - the new trip form and popup;
+  - backups that skip an empty database;
+  - a read-only connection check on previews.
+- #23: updated paper airplane (`paper-plane-v2.webp`).
+- #25: opening view at zoom 13.
+- #26: old Wanderlog district overlay and colours.
+- #28: camera control with tilt, rotate and reset; Google dark.
+- #29: Pins / No pins chip; one Satellite look.
+- #30: transit pins stay with No pins; Districts chip only when a district is in view.
+- #32: the camera control starts closed.
+- #33: map chips (Map look, Pins, Districts) as icons only.
+- #35: day tabs wrap; click a time to add an activity, travel or (later) place; activity blocks with handles and drag-to-move (migration 0003, E50).
+- #34: itinerary panel on the map (days, day notes, travel legs; migration 0002), replacing the Itinerary tab (E49).
+- #31: this Stop Protocol (SKILL.md E39–E48, Q8, L24–L32; README; this entry; CLAUDE.md).
+- Preview-only, closed without merging: #17 (map looks side by side), #24 (opening zoom), #27 (tilt test).
+
+**Design work:**
+- Trip map mockups v1 and v2.
+- New trip form mockup.
+- Inline camera-control mockups: 3 × 3, then 3 × 4.
+- Inline itinerary-panel mockup; inline wrapped-tabs and click-to-add mockup.
+- Live preview pages for map looks, zoom and tilt.
+
+**Lessons:** L24–L34 recorded in SKILL.md.
+
+**Correction to Session 3's entry:** session 3's Stop Protocol docs landed in PR #14, together with session 2's.
+
+**Open questions:** Q1 (phone layout, parked), Q3–Q7, Q8 (Google dark pins/labels need a Google Cloud style, parked).
+
+**Stop Protocol completed:** zip `S004 OCT 10 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** M3 step 4, adding and editing pins (then the itinerary's stops, connectors and day routes, E49). Settle Q3 (tried it / ratings) and Q4 (Bib Gourmand), then mock up the add-pin form and pin drawing for approval before any code.
