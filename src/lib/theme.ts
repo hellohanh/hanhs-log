@@ -19,6 +19,29 @@ function systemPrefersDark(): boolean {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
 }
 
+function pageIsDark(): boolean {
+  if (typeof document === 'undefined') return false
+  const t = document.documentElement.dataset.theme
+  return t === 'dark' || (t !== 'light' && systemPrefersDark())
+}
+
+/** Read-only: is the page dark right now? Follows the header switch and the device setting. */
+export function useIsDark(): boolean {
+  const [dark, setDark] = useState(pageIsDark)
+  useEffect(() => {
+    const update = () => setDark(pageIsDark())
+    const mo = new MutationObserver(update)
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
+    mq?.addEventListener('change', update)
+    return () => {
+      mo.disconnect()
+      mq?.removeEventListener('change', update)
+    }
+  }, [])
+  return dark
+}
+
 export function useTheme() {
   const [choice, setChoice] = useState<ThemeChoice>(readChoice)
   const [systemDark, setSystemDark] = useState(systemPrefersDark)

@@ -36,9 +36,11 @@ export async function fetchTrips(): Promise<TripSummary[]> {
   return ((data ?? []) as Row[]).map(({ pins, ...t }) => ({ ...t, pinCount: pins?.[0]?.count ?? 0 }))
 }
 
-export async function createTrip(trip: NewTrip, ownerId: string): Promise<void> {
-  const { error } = await client().from('trips').insert({ ...trip, owner_id: ownerId })
+export async function createTrip(trip: NewTrip, ownerId: string): Promise<string> {
+  const id = crypto.randomUUID()
+  const { error } = await client().from('trips').insert({ id, ...trip, owner_id: ownerId })
   if (error) throw new Error(error.message)
+  return id
 }
 
 export async function deleteTrip(id: string): Promise<void> {

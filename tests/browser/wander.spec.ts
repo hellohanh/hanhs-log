@@ -63,7 +63,11 @@ test('creates a trip, and checks the name and destination first', async ({ page 
 
   await expect(page.getByText('Created "Hà Nội in autumn".')).toBeVisible()
   const insert = calls.find(c => c.method === 'POST' && c.url.includes('/rest/v1/trips'))
-  expect(JSON.parse(insert!.body!)).toEqual({
+  const body = JSON.parse(insert!.body!)
+  // The app picks the new trip's id so it can save the trip's city right away.
+  expect(body.id).toMatch(/^[0-9a-f-]{36}$/)
+  delete body.id
+  expect(body).toEqual({
     name: 'Hà Nội in autumn',
     destination: 'Hà Nội, Vietnam',
     start_date: '2026-11-02',

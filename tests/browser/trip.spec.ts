@@ -134,3 +134,25 @@ test('invite link: an old or wrong link explains what to do', async ({ page }) =
   await page.goto('./wander/join/tok-nope')
   await expect(page.getByRole('alert')).toContainText("This invite link doesn't work")
 })
+
+test('the map area opens empty: no old pins, and says why there is no map in a build without a key', async ({ page }) => {
+  await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await expect(page.getByText('No places on this trip yet.')).toBeVisible()
+  await expect(page.getByText('Old Wanderlog pins show here and on the map once you sort them.', { exact: false })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: "The map can't load in this build" })).toBeVisible()
+})
+
+test('the map opens on the first city named in the Destination', async () => {
+  const { firstCity, distanceKm, HCMC_CENTRE } = await import('../../src/lib/cityName')
+  expect(firstCity('Ho Chi Minh City, Vietnam')).toBe('Ho Chi Minh City, Vietnam')
+  expect(firstCity('Saigon & Hội An')).toBe('Saigon')
+  expect(firstCity('Rome / Florence / Venice')).toBe('Rome')
+  expect(firstCity('Paris and Lyon')).toBe('Paris')
+  expect(firstCity('Hà Nội – Hạ Long')).toBe('Hà Nội')
+  expect(firstCity('Saint-Tropez')).toBe('Saint-Tropez')
+  expect(firstCity('Portland, Maine')).toBe('Portland, Maine')
+  // The Districts button shows within 20 km of Ho Chi Minh City.
+  expect(distanceKm(HCMC_CENTRE, { lat: 10.8188, lng: 106.6519 })).toBeLessThan(20)
+  expect(distanceKm(HCMC_CENTRE, { lat: 15.8801, lng: 108.338 })).toBeGreaterThan(20)
+})
