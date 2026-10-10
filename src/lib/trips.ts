@@ -21,7 +21,7 @@ export interface NewTrip {
   end_date: string | null
 }
 
-type Row = Omit<TripSummary, 'pinCount'> & { pins: { count: number }[] | null }
+type Row = Omit<TripSummary, 'pinCount'> & { pins?: unknown }
 
 function client() {
   if (!supabase) throw new Error("Sign-in isn't set up in this build.")
@@ -31,9 +31,12 @@ function client() {
 export async function fetchTrips(): Promise<TripSummary[]> {
   const { data, error } = await client()
     .from('trips')
-    .select('id, name, destination, start_date, end_date, owner_id, created_at, pins(count)')
+    .select('id, name, destination, start_date, end_date, owner_id, created_at')
   if (error) throw new Error(error.message)
-  return ((data ?? []) as Row[]).map(({ pins, ...t }) => ({ ...t, pinCount: pins?.[0]?.count ?? 0 }))
+  // Cards count sorted pins only (Hanh, session 4). Old Wanderlog pins aren't
+  // counted or shown until they're sorted; the sort step comes after step 4,
+  // so for now every trip shows 0.
+  return ((data ?? []) as Row[]).map(({ pins: _pins, ...t }) => ({ ...t, pinCount: 0 }))
 }
 
 export async function createTrip(trip: NewTrip, ownerId: string): Promise<string> {
