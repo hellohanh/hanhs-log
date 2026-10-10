@@ -79,8 +79,8 @@ export default function TripMap({ city }: { city: CityState }) {
     if (!ready || !m) return
     const on = showDistricts && nearHcmc
     if (on && !districtsRef.current) districtsRef.current = new Districts(m)
-    districtsRef.current?.setVisible(on, dark)
-  }, [ready, showDistricts, nearHcmc, dark])
+    districtsRef.current?.setVisible(on)
+  }, [ready, showDistricts, nearHcmc])
 
   function pick(l: MapLook | null) {
     saveLook(mode, l ? l.key : null)
@@ -213,53 +213,47 @@ function LayersIcon() {
   )
 }
 
-// ---- HCMC districts: dashed outlines and name pills (from Wanderlog's file) ----
+// ---- HCMC districts: the old Wanderlog overlay (Hanh, session 4) ----
+// Each of the 22 districts is filled in its own colour at 20% with a solid
+// outline in a darker shade of it, and named in a dark-red pill. Colours
+// step round the colour wheel by the golden angle (~137.5°) in the file's
+// order, so neighbouring districts never get similar shades; the same order
+// and formula as the old Wanderlog give the same colour for each district.
 
-type Ring = [number, number][]
-interface DistrictFeature {
-  properties: { name: string; center: [number, number] }
-  geometry: { type: 'Polygon'; coordinates: Ring[] } | { type: 'MultiPolygon'; coordinates: Ring[][] }
+function districtColours(i: number) {
+  const hue = Math.round((i * 137.508) % 360)
+  return { fill: `hsl(${hue}, 65%, 55%)`, stroke: `hsl(${hue}, 65%, 40%)` }
 }
 
 class Districts {
-  private lines: google.maps.Polyline[] = []
+  private layer: google.maps.Data
   private labels: google.maps.OverlayView[] = []
   private loaded = false
   private wanted = false
-  private dark = false
 
   constructor(private map: google.maps.Map) {
-    fetch(`${import.meta.env.BASE_URL}hcm-districts.geojson`)
-      .then(r => r.json())
-      .then((data: { features: DistrictFeature[] }) => {
-        for (const f of data.features) {
-          const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates
-          for (const poly of polys) {
-            const path = poly[0].map(([lng, lat]) => ({ lat, lng }))
-            this.lines.push(new google.maps.Polyline({ path, clickable: false, strokeOpacity: 0, zIndex: 1 }))
-          }
-          this.labels.push(makeLabel(f.properties.name, { lat: f.properties.center[1], lng: f.properties.center[0] }))
-        }
-        this.loaded = true
-        this.apply()
+    this.layer = new google.maps.Data()
+    this.layer.loadGeoJson(`${import.meta.env.BASE_URL}hcm-districts.geojson`, {}, features => {
+      features.forEach((f, i) => {
+        const c = districtColours(i)
+        this.layer.overrideStyle(f, { fillColor: c.fill, fillOpacity: 0.2, strokeColor: c.stroke, strokeWeight: 1.5, clickable: false })
+        const name = f.getProperty('name') as string | undefined
+        const center = f.getProperty('center') as [number, number] | undefined
+        if (name && center) this.labels.push(makeLabel(name.toUpperCase(), { lat: center[1], lng: center[0] }))
       })
-      .catch(() => undefined)
+      this.loaded = true
+      this.apply()
+    })
   }
 
-  setVisible(on: boolean, dark: boolean) {
+  setVisible(on: boolean) {
     this.wanted = on
-    this.dark = dark
     this.apply()
   }
 
   private apply() {
+    this.layer.setMap(this.wanted ? this.map : null)
     if (!this.loaded) return
-    const colour = this.dark ? '#E0716A' : '#9E2A2B'
-    const dash = { path: 'M 0,-1 0,1', strokeOpacity: 0.85, strokeColor: colour, strokeWeight: 2, scale: 3 }
-    for (const l of this.lines) {
-      l.setOptions({ icons: [{ icon: dash, offset: '0', repeat: '12px' }] })
-      l.setMap(this.wanted ? this.map : null)
-    }
     for (const lab of this.labels) lab.setMap(this.wanted ? this.map : null)
   }
 }
