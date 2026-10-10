@@ -1,12 +1,17 @@
 import { supabase } from './supabase'
 
-// Trips live in the same `trips` table as Wanderlog. The database's rules
-// decide which ones a person sees: the trips they own plus the ones they
-// joined by invite link.
-export interface TripSummary {
+// Trips live in Hanh's Log's own database (session 4; live Wanderlog is
+// separate and untouched). The database's rules decide which ones a person
+// sees: the trips they own plus the ones they joined by invite link.
+
+import type { TripPlace } from './place'
+export { mapQuery, placeLabel, type TripPlace } from './place'
+
+const PLACE_COLUMNS = 'country, city_primary, city_secondary, city_tertiary'
+
+export interface TripSummary extends TripPlace {
   id: string
   name: string
-  destination: string
   start_date: string | null
   end_date: string | null
   owner_id: string | null
@@ -14,9 +19,8 @@ export interface TripSummary {
   pinCount: number
 }
 
-export interface NewTrip {
+export interface NewTrip extends TripPlace {
   name: string
-  destination: string
   start_date: string | null
   end_date: string | null
 }
@@ -31,17 +35,20 @@ function client() {
 export async function fetchTrips(): Promise<TripSummary[]> {
   const { data, error } = await client()
     .from('trips')
-    .select('id, name, destination, start_date, end_date, owner_id, created_at')
+    .select(`id, name, ${PLACE_COLUMNS}, start_date, end_date, owner_id, created_at`)
   if (error) throw new Error(error.message)
-  // Cards count sorted pins only (Hanh, session 4). Old Wanderlog pins aren't
-  // counted or shown until they're sorted; the sort step comes after step 4,
+  // Cards count sorted pins only (Hanh, session 4). Pins arrive in step 4,
   // so for now every trip shows 0.
   return ((data ?? []) as Row[]).map(({ pins: _pins, ...t }) => ({ ...t, pinCount: 0 }))
 }
 
-export async function createTrip(trip: NewTrip, ownerId: string): Promise<string> {
+/** Map fields saved with a trip: where its map opens (see lib/city.ts). */
+export type MapFields = Record<'map_query' | 'map_label', string | null> &
+  Record<'map_lat' | 'map_lng' | 'map_north' | 'map_south' | 'map_east' | 'map_west', number | null>
+
+export async function createTrip(trip: NewTrip, ownerId: string, map?: MapFields): Promise<string> {
   const id = crypto.randomUUID()
-  const { error } = await client().from('trips').insert({ id, ...trip, owner_id: ownerId })
+  const { error } = await client().from('trips').insert({ id, ...trip, ...(map ?? {}), owner_id: ownerId })
   if (error) throw new Error(error.message)
   return id
 }
@@ -109,10 +116,9 @@ export function tripDates(start: string | null, end: string | null, today: strin
 
 // ---- One trip, its people, sharing (milestone 3, step 2) ----
 
-export interface Trip {
+export interface Trip extends TripPlace {
   id: string
   name: string
-  destination: string
   start_date: string | null
   end_date: string | null
   owner_id: string | null
@@ -130,15 +136,15 @@ export interface Person {
 export async function fetchTrip(id: string): Promise<Trip | null> {
   const { data, error } = await client()
     .from('trips')
-    .select('id, name, destination, start_date, end_date, owner_id, invite_token')
+    .select(`id, name, ${PLACE_COLUMNS}, start_date, end_date, owner_id, invite_token`)
     .eq('id', id)
     .limit(1)
   if (error) throw new Error(error.message)
   return ((data ?? []) as Trip[])[0] ?? null
 }
 
-export async function updateTrip(id: string, fields: NewTrip): Promise<void> {
-  const { error } = await client().from('trips').update(fields).eq('id', id)
+export async function updateTrip(id: string, fields: NewTrip, map?: MapFields): Promise<void> {
+  const { error } = await client().from('trips').update({ ...fields, ...(map ?? {}) }).eq('id', id)
   if (error) throw new Error(error.message)
 }
 

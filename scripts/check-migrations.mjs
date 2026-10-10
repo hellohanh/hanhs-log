@@ -5,7 +5,7 @@
 //   node scripts/check-migrations.mjs [--changed=<file list>]
 // --changed lists files the PR modified or deleted (not added); any of those
 // that are migrations fail, because a merged migration may already be live.
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const DIR = 'supabase/migrations'
@@ -30,6 +30,10 @@ const changedArg = process.argv.find(a => a.startsWith('--changed='))
 if (changedArg) {
   const changed = changedArg.slice('--changed='.length).split(/\s+/).filter(Boolean)
   for (const c of changed) {
+    // Session 4: the Wanderlog-era migrations were moved, unchanged, into
+    // supabase/archive/wanderlog-db/ when Hanh's Log got its own database.
+    const archived = c.startsWith(DIR + '/') && existsSync(join('supabase/archive/wanderlog-db', c.slice(DIR.length + 1)))
+    if (archived) continue
     if (c.startsWith(DIR + '/')) problems.push(`${c}: this migration was already merged and may be live — add a NEW migration instead of editing or deleting it`)
   }
 }

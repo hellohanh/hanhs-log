@@ -92,7 +92,7 @@ export default function TripMap({ city }: { city: CityState }) {
   const notice =
     noKey ? "The map can't load in this build (no Google Maps key)."
     : mapError ? mapError
-    : city.state === 'missing' ? `Couldn't find "${city.query}" on the map. Check the Destination in Edit trip.`
+    : city.state === 'missing' ? `Couldn't find "${city.query}" on the map. Check the Primary City and Country in Edit trip.`
     : city.state === 'error' ? `Couldn't look up the city: ${city.message}`
     : ''
 

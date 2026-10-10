@@ -18,9 +18,11 @@ app silently (L3), and a layout bug at 150% zoom took five tries (E87–E92).
 
 1. `tests/db/00_supabase_shim.sql`: the small part of Supabase the rules
    depend on (who is signed in), so plain Postgres can stand in for it.
-2. `supabase/baseline/live_public_schema.sql`: an exact copy of the live
-   database's structure and security rules (no rows). Made by the
-   **Snapshot live schema** workflow.
+2. `supabase/baseline/live_public_schema.sql`: empty since session 4.
+   Hanh's Log's own project starts with nothing and the migrations build
+   everything. (Before, it was a copy of Wanderlog's structure, made by the
+   **Snapshot live schema** workflow; that copy is in
+   `supabase/archive/wanderlog-db/`.)
 3. `supabase/migrations/`: our changes, applied on top.
 
 Each `tests/db/*.test.sql` file then acts as different people and records

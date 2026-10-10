@@ -1,7 +1,12 @@
 # Database rules
 
-Hanh's Log shares the **same Supabase project as Wanderlog**, so every change
-here touches live trips. These rules exist because of real Wanderlog
+Hanh's Log has its **own Supabase project** (since session 4). Live
+Wanderlog's database is separate and is never touched from here; Hanh's Log's
+old migrations that once ran on it are kept in `supabase/archive/wanderlog-db/`.
+The first migration has a safety stop that refuses to run if
+`SUPABASE_DB_URL` points at Wanderlog's database.
+
+These rules exist because of real Wanderlog
 incidents: data wiped twice by re-running a full schema (L10, L21), tables the
 app couldn't read because a GRANT was missing (L3, L20), sharing that silently
 failed for months because a policy was missing (L34), and migrations nobody
