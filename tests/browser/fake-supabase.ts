@@ -31,8 +31,13 @@ export interface FakePerson {
   joined_at: string | null
 }
 
+export interface FakeDay { id: string; trip_id: string; date: string | null; note: string | null; created_at: string }
+export interface FakeLeg { id: string; day_id: string; [k: string]: unknown }
+
 export interface FakeDb {
   trips: FakeTrip[]
+  days: FakeDay[]
+  legs: FakeLeg[]
   /** People per trip id. Trips missing here answer "not allowed". */
   people: Record<string, FakePerson[]>
   myName: string | null
@@ -103,6 +108,8 @@ export async function fakeSupabase(
     trips: structuredClone(opts.trips ?? SAMPLE_TRIPS),
     people: structuredClone(opts.people ?? SAMPLE_PEOPLE),
     myName: opts.myName === undefined ? 'Hanh' : opts.myName,
+    days: [],
+    legs: [],
     calls: []
   }
   let currentUser = me
@@ -137,6 +144,45 @@ export async function fakeSupabase(
       }
       if (req.method() === 'DELETE') {
         db.trips = db.trips.filter(t => t.id !== idEq)
+        return route.fulfill({ status: 204, body: '' })
+      }
+    }
+
+    // Itinerary panel: days (with notes) and travel legs.
+    if (path === '/rest/v1/itinerary_days') {
+      const trip = url.searchParams.get('trip_id')?.replace('eq.', '')
+      if (req.method() === 'GET') return route.fulfill({ json: db.days.filter(d => d.trip_id === trip) })
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) {
+          db.days.push({ id: `day-${db.days.length + 1}`, note: null, created_at: `2026-10-10T12:00:${String(db.days.length).padStart(2, '0')}Z`, ...r })
+        }
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'PATCH') {
+        db.days = db.days.map(d => (d.id === idEq ? { ...d, ...args } : d))
+        return route.fulfill({ status: 204, body: '' })
+      }
+      if (req.method() === 'DELETE') {
+        db.days = db.days.filter(d => d.id !== idEq)
+        db.legs = db.legs.filter(l => l.day_id !== idEq)
+        return route.fulfill({ status: 204, body: '' })
+      }
+    }
+    if (path === '/rest/v1/travel_legs') {
+      if (req.method() === 'GET') {
+        const ids = (url.searchParams.get('day_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
+        return route.fulfill({ json: db.legs.filter(l => ids.includes(l.day_id)) })
+      }
+      if (req.method() === 'POST') {
+        db.legs.push({ id: `leg-${db.legs.length + 1}`, ...args })
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'PATCH') {
+        db.legs = db.legs.map(l => (l.id === idEq ? { ...l, ...args } : l))
+        return route.fulfill({ status: 204, body: '' })
+      }
+      if (req.method() === 'DELETE') {
+        db.legs = db.legs.filter(l => l.id !== idEq)
         return route.fulfill({ status: 204, body: '' })
       }
     }

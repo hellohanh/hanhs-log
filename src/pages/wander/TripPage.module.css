@@ -18,23 +18,14 @@
   background: var(--surface);
   border-bottom: 1px solid var(--rule);
 }
-.titles { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.titles { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-bottom: 14px; }
+.mapArea { position: relative; flex: 1; min-width: 0; display: flex; }
 .back { font-size: 14px; color: var(--muted); text-decoration: none; padding: 4px 0; align-self: flex-start; }
 .back:hover { color: var(--ink); }
 .titleRow { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 16px; }
 .h1 { font-size: 34px; }
 .meta { font-size: 15px; color: var(--muted); }
 
-.tabs { display: flex; gap: 24px; margin-top: 10px; }
-.tab {
-  padding: 10px 0 12px;
-  border: 0;
-  border-bottom: 3px solid transparent;
-  background: none;
-  font-size: 15px;
-  color: var(--muted);
-}
-.tabOn { border-bottom-color: var(--accent); color: var(--ink); font-weight: 700; cursor: default; }
 
 .actions { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; flex-wrap: wrap; }
 .actions :global(.btn) { min-height: 44px; font-weight: 700; }

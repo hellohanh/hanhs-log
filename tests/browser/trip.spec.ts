@@ -10,8 +10,9 @@ test('trip page shows the trip, its dates and the people on it', async ({ page }
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Christmas in Saigon')
   await expect(page.getByText('Hồ Chí Minh City · Vietnam · Dec 18 – Jan 2, 2027')).toBeVisible()
   await expect(page.getByRole('button', { name: '3 people on this trip' })).toBeVisible()
-  await expect(page.getByRole('tab', { name: 'Map' })).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('tab', { name: /Itinerary/ })).toBeDisabled()
+  // The itinerary is a panel on the map now; no Map / Itinerary tabs.
+  await expect(page.getByRole('tab', { name: 'Map' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Open the itinerary' })).toBeVisible()
 })
 
 test('a trip you are not on says so instead of breaking', async ({ page }) => {
@@ -199,4 +200,70 @@ test('Districts chip: shows only while an HCMC district is in view', async () =>
   // Panned out to sea off Vũng Tàu, and over Hà Nội: no district in view.
   expect(anyDistrictInView({ south: 10.2, north: 10.3, west: 107.3, east: 107.4 })).toBe(false)
   expect(anyDistrictInView({ south: 20.98, north: 21.06, west: 105.78, east: 105.9 })).toBe(false)
+})
+
+test('itinerary panel: closed by default, opens with a tab per trip date, widens, and remembers', async ({ page }) => {
+  const db = await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await expect(page.getByRole('complementary', { name: 'Itinerary' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  await expect(panel).toBeVisible()
+  // Christmas in Saigon runs Dec 18 – Jan 2: one tab per date (16), first selected.
+  await expect(panel.getByRole('tab')).toHaveCount(16)
+  await expect(panel.getByRole('tab').first()).toHaveAttribute('aria-selected', 'true')
+  await expect(panel.getByRole('tab').first()).toContainText('Dec 18')
+  expect(db.days).toHaveLength(16)
+  expect((await panel.boundingBox())!.width).toBeLessThanOrEqual(321)
+  await panel.getByRole('button', { name: 'Widen to 200%' }).click()
+  await expect(panel.getByRole('button', { name: 'Back to normal width' })).toHaveAttribute('aria-pressed', 'true')
+  // Reload: still open and wide on this device (the panel may be capped to a narrow screen).
+  await page.reload()
+  await expect(page.getByRole('complementary', { name: 'Itinerary' }).getByRole('button', { name: 'Back to normal width' })).toBeVisible()
+  await page.getByRole('button', { name: 'Close the itinerary' }).click()
+  await expect(page.getByRole('button', { name: 'Open the itinerary' })).toBeVisible()
+})
+
+test('itinerary panel: extra days, day notes and a flight with its duration across time zones', async ({ page }) => {
+  const db = await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  await panel.getByRole('button', { name: '+ Day' }).click()
+  await expect(panel.getByRole('tab')).toHaveCount(17)
+  await expect(panel.getByRole('tab').last()).toContainText('Day 17')
+
+  // Day note.
+  await panel.getByRole('button', { name: 'Day note' }).click()
+  await panel.getByRole('textbox', { name: 'Day note' }).fill('Land at SGN, Grab to the hotel')
+  await panel.getByRole('button', { name: /Add travel/ }).focus()
+  await expect.poll(() => db.days[0].note).toBe('Land at SGN, Grab to the hotel')
+
+  // A flight Tokyo → Saigon: picking the airports fills their time zones.
+  await panel.getByRole('button', { name: /Add travel/ }).click()
+  const form = panel.getByRole('form', { name: 'Add travel' })
+  await form.getByLabel('Airline').fill('Vietnam Airlines')
+  await form.getByLabel('Flight number').fill('VN 300')
+  await form.getByRole('group', { name: 'From' }).getByLabel('Airport').fill('Tokyo / NRT')
+  await form.getByRole('group', { name: 'From' }).getByLabel('Time', { exact: true }).fill('09:30')
+  await form.getByRole('group', { name: 'To' }).getByLabel('Airport').fill('Ho Chi Minh City / SGN')
+  await form.getByRole('group', { name: 'To' }).getByLabel('Time', { exact: true }).fill('13:45')
+  await expect(form.getByRole('group', { name: 'From' }).getByLabel('Time zone')).toHaveValue('Asia/Tokyo')
+  await expect(form.getByText('Takes 6h 15m')).toBeVisible()
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(panel.getByRole('button', { name: /Vietnam Airlines VN 300/ })).toBeVisible()
+  expect(db.legs[0]).toMatchObject({ mode: 'flight', from_timezone: 'Asia/Tokyo', to_timezone: 'Asia/Ho_Chi_Minh', from_date: '2026-12-18' })
+})
+
+test('itinerary helpers: day order and labels', async () => {
+  const { sortDays, dayTab, eachDate } = await import('../../src/lib/itineraryDays')
+  expect(eachDate('2026-12-30', '2027-01-02')).toEqual(['2026-12-30', '2026-12-31', '2027-01-01', '2027-01-02'])
+  const days = sortDays([
+    { id: 'x', trip_id: 't', date: null, note: null, created_at: '2026-10-10T12:00:05Z' },
+    { id: 'b', trip_id: 't', date: '2026-12-19', note: null, created_at: '2026-10-10T12:00:01Z' },
+    { id: 'a', trip_id: 't', date: '2026-12-18', note: null, created_at: '2026-10-10T12:00:02Z' }
+  ])
+  expect(days.map(d => d.id)).toEqual(['a', 'b', 'x'])
+  expect(dayTab(days[0], 0)).toEqual({ top: 'Fri', main: 'Dec 18' })
+  expect(dayTab(days[2], 2)).toEqual({ top: 'Extra', main: 'Day 3' })
 })

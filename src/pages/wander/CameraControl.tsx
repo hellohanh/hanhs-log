@@ -22,7 +22,8 @@ export default function CameraControl({
   map,
   home,
   tiltable = true,
-  flatMode = 'grey'
+  flatMode = 'grey',
+  right = 16
 }: {
   map: google.maps.Map
   home: { center: google.maps.LatLngLiteral; zoom: number }
@@ -30,6 +31,8 @@ export default function CameraControl({
   tiltable?: boolean
   /** On the flat map: grey the tilt/rotate buttons out, or hide them. */
   flatMode?: 'grey' | 'hide'
+  /** Distance from the map's right edge (moves left when the itinerary panel is open). */
+  right?: number
 }) {
   // Starts closed: only the open/close button shows (Hanh, session 4).
   const [open, setOpen] = useState(false)
@@ -48,7 +51,7 @@ export default function CameraControl({
   }
 
   return (
-    <div className={styles.grid} role="group" aria-label="Map camera">
+    <div className={styles.grid} role="group" aria-label="Map camera" style={{ right }}>
       {open && (
         <>
           <T label="Tilt up 10°" onClick={() => tilt(TILT_STEP)}><TiltIcon /></T>
