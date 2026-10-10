@@ -25,6 +25,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Check the settings are present (names only, never values)
+        env:
+          A: ${{ secrets.VITE_SUPABASE_URL }}
+          B: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          C: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          D: ${{ secrets.VITE_GOOGLE_MAP_ID }}
+        run: |
+          {
+            echo '### Build settings'
+            for pair in "VITE_SUPABASE_URL:$A" "VITE_SUPABASE_ANON_KEY:$B" "VITE_GOOGLE_MAPS_API_KEY:$C" "VITE_GOOGLE_MAP_ID:$D"; do
+              name="${pair%%:*}"; value="${pair#*:}"
+              if [ -n "$value" ]; then echo "- $name: set ✅"; else echo "- $name: **missing** ❌"; fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
       - run: npm run build
         env:
           BASE_PATH: /hanhs-log/
@@ -33,6 +47,11 @@ jobs:
           # access rules decide what each signed-in person can see.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Google Maps key and Map ID (Wanderlog's), from GitHub Secrets. The
+          # key is locked to hellohanh.github.io in Google Cloud, so it is safe
+          # in a web page.
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          VITE_GOOGLE_MAP_ID: ${{ secrets.VITE_GOOGLE_MAP_ID }}
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist
