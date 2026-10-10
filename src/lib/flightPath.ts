@@ -1,19 +1,23 @@
 // The splash plane's flight, as Hanh mapped and timed it in the approved
-// mockup. Points are pixels on the hero illustration (1536 × 1024).
+// mockup. Points are pixels on the hero illustration (1536 × 1024). It takes
+// off as a paper plane and turns into the jet late in the flight (Hanh's
+// flight-path editor, session 2), using the same fade values as the landing.
 
 export const HERO_W = 1536
 export const HERO_H = 1024
 
 export const ROUTE: [number, number][] = [
-  [607, 821], [661, 856], [709, 888], [770, 915], [828, 937], [892, 955], [954, 960], [1022, 947],
-  [1096, 920], [1160, 893], [1220, 850], [1260, 805], [1287, 744], [1305, 684], [1330, 625], [1364, 582],
-  [1417, 544], [1454, 503], [1472, 431], [1461, 391], [1422, 363], [1365, 353], [1305, 373], [1228, 381],
-  [1186, 375], [1136, 333], [1124, 271], [1160, 231], [1220, 247], [1231, 299], [1211, 344], [1163, 400],
-  [1103, 430], [1041, 451], [977, 470], [914, 475], [862, 475], [803, 470], [698, 453], [626, 445],
-  [532, 418], [463, 383], [408, 336], [343, 286], [278, 246], [212, 236], [156, 266], [131, 309],
-  [131, 364], [169, 376], [228, 393], [263, 378], [308, 352], [361, 326], [402, 301], [445, 281],
-  [490, 237], [524, 187], [520, 132], [474, 107], [410, 132], [398, 187], [415, 249], [497, 297],
-  [577, 302], [897, 200]
+  [192, 685], [289, 792], [360, 852], [426, 898], [493, 921], [575, 933], [660, 853], [711, 788],
+  [737, 682], [698, 608], [627, 622], [558, 666], [560, 704], [590, 723], [628, 697], [617, 659],
+  [529, 597], [457, 619], [420, 683], [453, 738], [493, 795], [545, 841], [599, 880], [656, 916],
+  [726, 918], [806, 897], [883, 866], [944, 835], [998, 812], [1072, 772], [1156, 725], [1203, 671],
+  [1140, 613], [1079, 656], [1096, 719], [1242, 748], [1385, 708], [1441, 629], [1462, 549], [1481, 457],
+  [1477, 404], [1389, 342], [1305, 373], [1228, 381], [1186, 375], [1136, 333], [1124, 271], [1160, 231],
+  [1220, 247], [1231, 299], [1211, 344], [1163, 400], [1103, 430], [1041, 451], [977, 470], [914, 475],
+  [862, 475], [803, 470], [698, 453], [626, 445], [532, 418], [463, 383], [408, 336], [343, 286],
+  [278, 246], [212, 236], [156, 266], [131, 309], [131, 364], [158, 403], [217, 420], [279, 426],
+  [347, 403], [377, 359], [420, 305], [463, 281], [535, 230], [556, 177], [536, 134], [473, 111],
+  [410, 132], [398, 187], [415, 249], [497, 297], [577, 302], [935, 233]
 ]
 
 // Timeline, as fractions of the scroll through the hero (0 = top of the
@@ -22,7 +26,21 @@ const FLIGHT_END = 0.8 // the plane reaches the end of the route
 const PAINTED_IN = { from: 0.76, length: 0.08 } // the plane in the picture fades in
 const FLYING_OUT = { from: 0.78, length: 0.11 } // the flying plane fades out
 export const LANDED_AT = 0.94 // the Wanderlog / Savorlog panels come up
-export const FLYING_SCALE = 0.42
+// The paper plane turns into the jet, with the same fades as the landing:
+// the incoming plane fades in over 0.08, the outgoing one fades out over
+// 0.11 starting 0.02 later.
+const PAPER_TO_JET = 0.68
+const JET_IN = { from: PAPER_TO_JET, length: PAINTED_IN.length }
+const PAPER_OUT = { from: PAPER_TO_JET + (FLYING_OUT.from - PAINTED_IN.from), length: FLYING_OUT.length }
+
+// Flying sizes in hero pixels (width) and which way each picture's nose
+// points when unrotated (degrees, 0 = right, negative = up).
+export const PAPER_PLANE = { width: 150, height: 150 * (223 / 275), nose: -46 }
+export const JET = { width: 400, height: 400 * (147 / 404), nose: -16 }
+
+// Where the jet comes to rest in the picture (the route's last point), its
+// size and tilt (degrees, added to the picture's own angle). Hanh's editor.
+export const LANDED_JET = { x: 935, y: 233, width: 400, height: 400 * (147 / 404), tilt: 4.75 }
 
 interface Path {
   pts: [number, number][]
@@ -79,8 +97,9 @@ const easeInOut = (f: number) => (f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2,
 export interface Frame {
   x: number
   y: number
-  angle: number // degrees; the plane image points along +x
-  flyingOpacity: number
+  angle: number // degrees; direction of travel (0 = right)
+  paperOpacity: number
+  jetOpacity: number
   paintedOpacity: number
   landed: boolean
 }
@@ -96,7 +115,8 @@ export function frameAt(p: number): Frame {
     x,
     y,
     angle: (Math.atan2(ahead[1] - back[1], ahead[0] - back[0]) * 180) / Math.PI,
-    flyingOpacity: 1 - clamp01((p - FLYING_OUT.from) / FLYING_OUT.length),
+    paperOpacity: 1 - clamp01((p - PAPER_OUT.from) / PAPER_OUT.length),
+    jetOpacity: clamp01((p - JET_IN.from) / JET_IN.length) * (1 - clamp01((p - FLYING_OUT.from) / FLYING_OUT.length)),
     paintedOpacity: clamp01((p - PAINTED_IN.from) / PAINTED_IN.length),
     landed: p >= LANDED_AT
   }
