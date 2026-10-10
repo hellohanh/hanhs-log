@@ -1,6 +1,6 @@
-import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { DURATION_MS, FLYING_SCALE, HERO_H, HERO_W, frameAt } from '../lib/flightPath'
+import { FLYING_SCALE, HERO_H, HERO_W, frameAt } from '../lib/flightPath'
 import styles from './Home.module.css'
 
 const img = (name: string) => `${import.meta.env.BASE_URL}images/${name}`
@@ -8,99 +8,102 @@ const img = (name: string) => `${import.meta.env.BASE_URL}images/${name}`
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-// The splash (approved mockup): the plane flies the dotted route over the
-// illustration, hands over to the plane painted in the picture, and then the
-// two sections come up for picking. Shown on every visit.
+// The splash (approved mockup). The picture stays pinned while you scroll and
+// scrolling flies the plane along the dotted route (scrolling up flies it
+// back). At the end it hands over to the plane painted in the picture, and
+// the search card and the two section panels fade in. Shown on every visit.
 export default function Home() {
+  const runwayRef = useRef<HTMLElement>(null)
+  const pinnedRef = useRef<HTMLDivElement>(null)
   const planeRef = useRef<SVGGElement>(null)
   const paintedRef = useRef<SVGImageElement>(null)
-  const chooseRef = useRef<HTMLElement>(null)
-  const rafRef = useRef(0)
-  const [landed, setLanded] = useState(false)
+  const [reduced] = useState(prefersReducedMotion)
+  const [landed, setLanded] = useState(reduced)
+  const [started, setStarted] = useState(reduced)
 
-  const draw = useCallback((p: number) => {
-    const f = frameAt(p)
-    planeRef.current?.setAttribute(
-      'transform',
-      `translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${f.angle.toFixed(1)}) scale(${FLYING_SCALE})`
-    )
-    planeRef.current?.setAttribute('opacity', f.flyingOpacity.toFixed(3))
-    paintedRef.current?.setAttribute('opacity', f.paintedOpacity.toFixed(3))
-    return f.landed
-  }, [])
+  useEffect(() => {
+    const draw = (p: number) => {
+      const f = frameAt(p)
+      planeRef.current?.setAttribute(
+        'transform',
+        `translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${f.angle.toFixed(1)}) scale(${FLYING_SCALE})`
+      )
+      planeRef.current?.setAttribute('opacity', f.flyingOpacity.toFixed(3))
+      paintedRef.current?.setAttribute('opacity', f.paintedOpacity.toFixed(3))
+      setLanded(f.landed)
+      setStarted(p > 0.01)
+    }
 
-  const fly = useCallback(() => {
-    cancelAnimationFrame(rafRef.current)
-    if (prefersReducedMotion()) {
+    if (reduced) {
       draw(1)
-      setLanded(true)
       return
     }
-    setLanded(false)
-    let start = 0
-    let shown = false
-    const tick = (now: number) => {
-      if (!start) start = now
-      const p = Math.min(1, (now - start) / DURATION_MS)
-      if (draw(p) && !shown) {
-        shown = true
-        setLanded(true)
-      }
-      if (p < 1) {
-        rafRef.current = requestAnimationFrame(tick)
-      } else if (window.scrollY < 40) {
-        // Glide down to the choices, unless the person already scrolled.
-        chooseRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
+
+    // How far through the pinned stretch the page has scrolled, 0 to 1.
+    // The picture is pinned just under the header; the flight runs from the
+    // moment it pins until the stretch has scrolled past.
+    const target = () => {
+      const el = runwayRef.current
+      const pinned = pinnedRef.current
+      if (!el || !pinned) return 0
+      const stickyTop = parseFloat(getComputedStyle(pinned).top) || 0
+      const runway = el.offsetHeight - pinned.offsetHeight
+      return runway > 0 ? Math.max(0, Math.min(1, (stickyTop - el.getBoundingClientRect().top) / runway)) : 1
     }
-    rafRef.current = requestAnimationFrame(tick)
-  }, [draw])
 
-  useEffect(() => {
-    draw(0)
-    fly()
-    return () => cancelAnimationFrame(rafRef.current)
-  }, [draw, fly])
+    // Ease toward the scroll position so wheel steps glide instead of jump.
+    let shown = target()
+    let raf = 0
+    const step = () => {
+      const goal = target()
+      shown += (goal - shown) * 0.18
+      if (Math.abs(goal - shown) < 0.0005) shown = goal
+      draw(shown)
+      raf = shown === goal ? 0 : requestAnimationFrame(step)
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(step)
+    }
 
-  // Someone who scrolls down before the plane lands still sees the choices.
-  useEffect(() => {
-    const el = chooseRef.current
-    if (!el || typeof IntersectionObserver === 'undefined') return
-    const io = new IntersectionObserver(entries => {
-      if (entries.some(e => e.isIntersecting)) setLanded(true)
-    }, { threshold: 0.25 })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
+    draw(shown)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [reduced])
 
   return (
-    <main className={styles.splash} data-landed={landed ? 'true' : 'false'}>
-      <section aria-label="Introduction" className={styles.hero}>
-        <div className={styles.art}>
-          <svg
-            viewBox={`0 0 ${HERO_W} ${HERO_H}`}
-            role="img"
-            aria-label="Watercolor travel map: a plane flies the dotted route around a bowl of phở and a bánh mì, then settles into place in the picture"
-            className={styles.svg}
-          >
-            <image href={img('hero-noplane.webp')} x="0" y="0" width={HERO_W} height={HERO_H} />
-            <image ref={paintedRef} href={img('hero-plane.webp')} x="540" y="40" width="680" height="290" opacity="0" />
-            <g ref={planeRef} data-testid="flying-plane">
-              <image href={img('plane.webp')} x="-180" y="-68" width="360" height="135" />
-            </g>
-          </svg>
-          <button type="button" className={styles.replay} onClick={fly} data-ready={landed}>
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 1 0 3-6.7" />
-              <path d="M3 4v5h5" />
+    <main className={styles.splash} data-landed={landed ? 'true' : 'false'} data-motion={reduced ? 'reduced' : 'scroll'}>
+      <section ref={runwayRef} aria-label="Introduction" className={styles.runway}>
+        <div ref={pinnedRef} className={styles.pinned}>
+          <div className={styles.art}>
+            <svg
+              viewBox={`0 0 ${HERO_W} ${HERO_H}`}
+              role="img"
+              aria-label="Watercolor travel map: as you scroll, a plane flies the dotted route around a bowl of phở and a bánh mì, then settles into place in the picture"
+              className={styles.svg}
+            >
+              <image href={img('hero-noplane.webp')} x="0" y="0" width={HERO_W} height={HERO_H} />
+              <image ref={paintedRef} href={img('hero-plane.webp')} x="540" y="40" width="680" height="290" opacity="0" />
+              <g ref={planeRef} data-testid="flying-plane">
+                <image href={img('plane.webp')} x="-180" y="-68" width="360" height="135" />
+              </g>
             </svg>
-            Fly again
-          </button>
+            <p className={styles.hint} data-hidden={started} aria-hidden="true">
+              Scroll to fly
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12l7 7 7-7" />
+              </svg>
+            </p>
+          </div>
+          <CitySearch />
         </div>
-        <CitySearch />
       </section>
 
-      <section ref={chooseRef} id="choose" aria-labelledby="choose-title" className={styles.choose}>
+      <section id="choose" aria-labelledby="choose-title" className={styles.choose}>
         <div className={styles.chooseInner}>
           <h2 id="choose-title" className={styles.reveal}>Where to?</h2>
           <div className={styles.cards}>
@@ -150,7 +153,7 @@ function CitySearch() {
   }
 
   return (
-    <form className={styles.searchCard} onSubmit={submit} role="search">
+    <form className={`${styles.searchCard} ${styles.reveal}`} onSubmit={submit} role="search">
       <p className="eyebrow">Hanh's Log</p>
       <h1 className={styles.title}>Every trip and every table, in one place.</h1>
       <label htmlFor="city" className={styles.label}>Where are you going?</label>

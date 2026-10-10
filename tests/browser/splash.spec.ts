@@ -9,28 +9,54 @@ test.beforeEach(async ({ page }) => {
   )
 })
 
-test('the plane flies, hands over to the painted plane, and the panels come up', async ({ page }) => {
+// Scroll so the pinned picture is `fraction` of the way through its stretch.
+async function scrollThrough(page: import('@playwright/test').Page, fraction: number) {
+  await page.evaluate(f => {
+    const el = document.querySelector('section[aria-label="Introduction"]') as HTMLElement
+    const pinned = el.firstElementChild as HTMLElement
+    const stickyTop = parseFloat(getComputedStyle(pinned).top) || 0
+    const top = el.getBoundingClientRect().top + window.scrollY - stickyTop
+    window.scrollTo(0, top + (el.offsetHeight - pinned.offsetHeight) * f)
+  }, fraction)
+}
+
+test('scrolling flies the plane, hands over to the painted plane, and brings up the panels', async ({ page }) => {
   await page.goto('./')
   const main = page.locator('main')
   const flying = page.getByTestId('flying-plane')
+  const searchCard = page.getByRole('search')
 
-  // Mid-flight: the panels are still hidden and the plane is moving.
+  // At the top: plane waiting at the start, search card and panels hidden.
   await expect(main).toHaveAttribute('data-landed', 'false')
-  const first = await flying.getAttribute('transform')
-  await page.waitForTimeout(800)
-  expect(await flying.getAttribute('transform')).not.toEqual(first)
+  await expect(page.getByText('Scroll to fly')).toBeVisible()
+  await expect(searchCard).toHaveCSS('opacity', '0')
+  const start = await flying.getAttribute('transform')
 
-  // About 7 seconds in: landed, flying plane gone, page glides to the panels.
-  await expect(main).toHaveAttribute('data-landed', 'true', { timeout: 10_000 })
-  await expect.poll(() => flying.getAttribute('opacity'), { timeout: 3_000 }).toBe('0.000')
-  await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 4_000 }).toBeGreaterThan(100)
-  await expect(page.getByRole('heading', { name: 'Where to?' })).toBeInViewport()
+  // Without scrolling the plane stays put.
+  await page.waitForTimeout(600)
+  expect(await flying.getAttribute('transform')).toEqual(start)
 
-  // Fly again starts the flight over.
+  // Scrolling part way moves it along the route.
+  await scrollThrough(page, 0.4)
+  await expect.poll(() => flying.getAttribute('transform')).not.toEqual(start)
+  await expect(main).toHaveAttribute('data-landed', 'false')
+
+  // Scrolling to the end: flying plane gone, painted plane in, card and panels up.
+  await scrollThrough(page, 1)
+  await expect(main).toHaveAttribute('data-landed', 'true')
+  await expect.poll(() => flying.getAttribute('opacity')).toBe('0.000')
+  await expect(searchCard).toHaveCSS('opacity', '1')
+
+  // Scrolling back up flies it back.
   await page.evaluate(() => window.scrollTo(0, 0))
-  await page.getByRole('button', { name: 'Fly again' }).click()
   await expect(main).toHaveAttribute('data-landed', 'false')
+  await expect.poll(() => flying.getAttribute('transform')).toEqual(start)
   await expect(flying).toHaveAttribute('opacity', '1.000')
+
+  // Past the picture, the page carries on to the two panels.
+  await scrollThrough(page, 1)
+  await page.getByRole('heading', { name: 'Where to?' }).scrollIntoViewIfNeeded()
+  await expect(page.getByRole('heading', { name: 'Where to?' })).toBeInViewport()
 })
 
 test.describe('with reduced motion', () => {

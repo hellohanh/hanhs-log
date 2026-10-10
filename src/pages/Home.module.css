@@ -4,14 +4,28 @@
   --paper: #FAF6E5;
 }
 
-.hero {
+/* The pinned stretch: the page scrolls through it while the picture stays
+   put, and that scroll is what flies the plane. --runway is how much
+   scrolling the flight takes. */
+.runway {
+  --runway: 240vh;
+  --stage: calc(100svh - var(--site-header-h, var(--header-h)));
   position: relative;
+  height: calc(var(--stage) + var(--runway));
+  background: var(--paper);
+}
+
+.pinned {
+  position: sticky;
+  top: var(--site-header-h, var(--header-h));
+  height: var(--stage);
+  overflow: hidden;
   background: var(--paper);
 }
 
 .art {
   position: relative;
-  width: min(100%, 1080px);
+  width: min(100%, 1080px, calc(var(--stage) * 1.5));
   margin: 0 auto;
 }
 
@@ -22,12 +36,13 @@
   aspect-ratio: 3 / 2;
 }
 
-.replay {
+.hint {
   position: absolute;
   top: 16px;
   right: 16px;
-  min-height: 44px;
-  padding: 0 18px;
+  margin: 0;
+  min-height: 40px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -37,11 +52,14 @@
   color: #1B1A18;
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
-  opacity: 0.6;
   transition: opacity 300ms ease;
 }
-.replay[data-ready='true'] { opacity: 1; }
+.hint[data-hidden='true'] { opacity: 0; }
+
+/* Reduced motion: no pinned stretch, just the finished picture. */
+.splash[data-motion='reduced'] .runway { height: auto; }
+.splash[data-motion='reduced'] .pinned { position: relative; top: auto; height: auto; }
+.splash[data-motion='reduced'] .hint { display: none; }
 
 .searchCard {
   position: absolute;
@@ -104,11 +122,11 @@
     top: -24px;
     padding: 22px;
   }
-  .replay {
+  .hint {
     top: 10px;
     right: 10px;
-    min-height: 40px;
-    padding: 0 14px;
+    min-height: 36px;
+    padding: 0 12px;
   }
 }
 
@@ -182,7 +200,8 @@
 }
 .cards .reveal:nth-child(1) { transition-delay: 100ms; }
 .cards .reveal:nth-child(2) { transition-delay: 220ms; }
-.splash[data-landed='true'] .reveal {
+.splash[data-landed='true'] .reveal,
+.reveal:focus-within {
   opacity: 1;
   transform: none;
 }

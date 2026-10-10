@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
@@ -25,9 +26,23 @@ const navClass = ({ isActive }: { isActive: boolean }) => (isActive ? `${styles.
 export default function SiteHeader() {
   const { session, signOut } = useAuth()
   const { isDark, toggle } = useTheme()
+  const ref = useRef<HTMLElement>(null)
+
+  // The header wraps to two rows on phones; publish its real height so
+  // pinned content (the splash picture) sits just below it.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const publish = () => document.documentElement.style.setProperty('--site-header-h', `${el.offsetHeight}px`)
+    publish()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(publish)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   return (
-    <header className={styles.header}>
+    <header ref={ref} className={styles.header}>
       <Link to="/" className={styles.wordmark}>
         Hanh's Log
       </Link>

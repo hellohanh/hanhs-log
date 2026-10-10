@@ -16,8 +16,8 @@ export const ROUTE: [number, number][] = [
   [577, 302], [897, 200]
 ]
 
-// Timeline, as fractions of the whole run.
-export const DURATION_MS = 7000
+// Timeline, as fractions of the scroll through the hero (0 = top of the
+// page, 1 = the end of the pinned picture).
 const FLIGHT_END = 0.8 // the plane reaches the end of the route
 const PAINTED_IN = { from: 0.76, length: 0.08 } // the plane in the picture fades in
 const FLYING_OUT = { from: 0.78, length: 0.11 } // the flying plane fades out
