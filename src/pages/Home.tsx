@@ -136,7 +136,7 @@ export default function Home() {
                 opacity="0"
               />
               <g ref={paperRef} data-testid="paper-plane">
-                <image href={img('paper-plane.webp')} x={-PAPER_PLANE.width / 2} y={-PAPER_PLANE.height / 2} width={PAPER_PLANE.width} height={PAPER_PLANE.height} />
+                <image href={img('paper-plane-v2.webp')} x={-PAPER_PLANE.width / 2} y={-PAPER_PLANE.height / 2} width={PAPER_PLANE.width} height={PAPER_PLANE.height} />
               </g>
               <g ref={jetRef} data-testid="flying-plane">
                 <image href={img('jet.webp')} x={-JET.width / 2} y={-JET.height / 2} width={JET.width} height={JET.height} />
