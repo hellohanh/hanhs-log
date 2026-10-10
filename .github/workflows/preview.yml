@@ -29,6 +29,11 @@ jobs:
         if: github.event.action != 'closed'
         env:
           BASE_PATH: /hanhs-log/pr-preview/pr-${{ github.event.number }}/
+          # Supabase project address and public (anon) key, from GitHub
+          # Settings → Secrets. Both are safe in a web page: the database's
+          # access rules decide what each signed-in person can see.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - uses: rossjrw/pr-preview-action@v1
         with:
           source-dir: ./dist/
