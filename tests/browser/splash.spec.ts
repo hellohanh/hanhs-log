@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-// The splash page: plane flight, hand-over to the painted plane, the two
+// The splash page: paper plane flight, turning into the jet, hand-over to the painted plane, the two
 // section panels, and the city search.
 
 test.beforeEach(async ({ page }) => {
@@ -20,33 +20,44 @@ async function scrollThrough(page: import('@playwright/test').Page, fraction: nu
   }, fraction)
 }
 
-test('scrolling flies the plane, hands over to the painted plane, and brings up the panels', async ({ page }) => {
+test('scrolling flies the paper plane, turns it into the jet, hands over to the painted plane, and brings up the panels', async ({ page }) => {
   await page.goto('./')
   const main = page.locator('main')
+  const paper = page.getByTestId('paper-plane')
   const flying = page.getByTestId('flying-plane')
   const searchCard = page.getByRole('search')
 
-  // At the top: plane waiting at the start, search card and panels hidden.
+  // At the top: paper plane waiting at the start, jet not shown yet, search
+  // card and panels hidden.
   await expect(main).toHaveAttribute('data-landed', 'false')
+  await expect(paper).toHaveAttribute('opacity', '1.000')
+  await expect(flying).toHaveAttribute('opacity', '0.000')
   await expect(page.getByText('Scroll to fly')).toBeVisible()
   await expect(searchCard).toHaveCSS('opacity', '0')
   const choose = page.locator('#choose')
   await expect(choose).toHaveCSS('background-color', 'rgb(250, 246, 229)')
-  const start = await flying.getAttribute('transform')
+  const start = await paper.getAttribute('transform')
 
   // Without scrolling the plane stays put.
   await page.waitForTimeout(600)
-  expect(await flying.getAttribute('transform')).toEqual(start)
+  expect(await paper.getAttribute('transform')).toEqual(start)
 
   // Scrolling part way moves it along the route.
   await scrollThrough(page, 0.4)
-  await expect.poll(() => flying.getAttribute('transform')).not.toEqual(start)
+  await expect.poll(() => paper.getAttribute('transform')).not.toEqual(start)
   await expect(main).toHaveAttribute('data-landed', 'false')
+  await expect(paper).toHaveAttribute('opacity', '1.000')
+
+  // Just after 0.76 the jet has fully faded in and the paper plane is going.
+  await scrollThrough(page, 0.765)
+  await expect.poll(() => flying.getAttribute('opacity')).toBe('1.000')
+  await expect.poll(async () => Number(await paper.getAttribute('opacity'))).toBeLessThan(0.6)
 
   // Scrolling to the end: flying plane gone, painted plane in, card and panels up.
   await scrollThrough(page, 1)
   await expect(main).toHaveAttribute('data-landed', 'true')
   await expect.poll(() => flying.getAttribute('opacity')).toBe('0.000')
+  await expect(paper).toHaveAttribute('opacity', '0.000')
   await expect(searchCard).toHaveCSS('opacity', '1')
   await expect(choose).not.toHaveCSS('background-color', 'rgb(250, 246, 229)')
 
@@ -72,8 +83,9 @@ test('scrolling flies the plane, hands over to the painted plane, and brings up 
   // Scrolling back up flies it back.
   await page.evaluate(() => window.scrollTo(0, 0))
   await expect(main).toHaveAttribute('data-landed', 'false')
-  await expect.poll(() => flying.getAttribute('transform')).toEqual(start)
-  await expect(flying).toHaveAttribute('opacity', '1.000')
+  await expect.poll(() => paper.getAttribute('transform')).toEqual(start)
+  await expect(paper).toHaveAttribute('opacity', '1.000')
+  await expect(flying).toHaveAttribute('opacity', '0.000')
 
   // Past the picture, the page carries on to the two panels.
   await scrollThrough(page, 1)
@@ -87,6 +99,7 @@ test.describe('with reduced motion', () => {
     await page.goto('./')
     await expect(page.locator('main')).toHaveAttribute('data-landed', 'true')
     await expect(page.getByTestId('flying-plane')).toHaveAttribute('opacity', '0.000')
+    await expect(page.getByTestId('paper-plane')).toHaveAttribute('opacity', '0.000')
     await page.getByRole('link', { name: /Remember the meals/ }).click()
     await expect(page).toHaveURL(/\/savor$/)
     await page.goBack()

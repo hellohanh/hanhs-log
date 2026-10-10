@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FLYING_SCALE, HERO_H, HERO_W, frameAt } from '../lib/flightPath'
+import { HERO_H, HERO_W, JET, PAPER_PLANE, frameAt } from '../lib/flightPath'
 import styles from './Home.module.css'
 
 const img = (name: string) => `${import.meta.env.BASE_URL}images/${name}`
@@ -9,13 +9,14 @@ const prefersReducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 // The splash (approved mockup). The picture stays pinned while you scroll and
-// scrolling flies the plane along the dotted route (scrolling up flies it
-// back). At the end it hands over to the plane painted in the picture, and
+// scrolling flies a paper plane along the route, which turns into the jet
+// late in the flight (scrolling up flies it back). At the end it hands over to the plane painted in the picture, and
 // the search card and the two section panels fade in. Shown on every visit.
 export default function Home() {
   const runwayRef = useRef<HTMLElement>(null)
   const pinnedRef = useRef<HTMLDivElement>(null)
-  const planeRef = useRef<SVGGElement>(null)
+  const paperRef = useRef<SVGGElement>(null)
+  const jetRef = useRef<SVGGElement>(null)
   const paintedRef = useRef<SVGImageElement>(null)
   const [reduced] = useState(prefersReducedMotion)
   const [landed, setLanded] = useState(reduced)
@@ -48,11 +49,12 @@ export default function Home() {
   useEffect(() => {
     const draw = (p: number) => {
       const f = frameAt(p)
-      planeRef.current?.setAttribute(
-        'transform',
-        `translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${f.angle.toFixed(1)}) scale(${FLYING_SCALE})`
-      )
-      planeRef.current?.setAttribute('opacity', f.flyingOpacity.toFixed(3))
+      const place = (g: SVGGElement | null, nose: number, opacity: number) => {
+        g?.setAttribute('transform', `translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${(f.angle - nose).toFixed(1)})`)
+        g?.setAttribute('opacity', opacity.toFixed(3))
+      }
+      place(paperRef.current, PAPER_PLANE.nose, f.paperOpacity)
+      place(jetRef.current, JET.nose, f.jetOpacity)
       paintedRef.current?.setAttribute('opacity', f.paintedOpacity.toFixed(3))
       setLanded(f.landed)
       setStarted(p > 0.01)
@@ -109,13 +111,16 @@ export default function Home() {
             <svg
               viewBox={`0 0 ${HERO_W} ${HERO_H}`}
               role="img"
-              aria-label="Watercolor travel map: as you scroll, a plane flies the dotted route around a bowl of phở and a bánh mì, then settles into place in the picture"
+              aria-label="Watercolor travel map: as you scroll, a paper plane takes off, turns into a jet around a bowl of phở and a bánh mì, then settles into place in the picture"
               className={styles.svg}
             >
               <image href={img('hero-noplane.webp')} x="0" y="0" width={HERO_W} height={HERO_H} />
               <image ref={paintedRef} href={img('hero-plane.webp')} x="540" y="40" width="680" height="290" opacity="0" />
-              <g ref={planeRef} data-testid="flying-plane">
-                <image href={img('plane.webp')} x="-180" y="-68" width="360" height="135" />
+              <g ref={paperRef} data-testid="paper-plane">
+                <image href={img('paper-plane.webp')} x={-PAPER_PLANE.width / 2} y={-PAPER_PLANE.height / 2} width={PAPER_PLANE.width} height={PAPER_PLANE.height} />
+              </g>
+              <g ref={jetRef} data-testid="flying-plane">
+                <image href={img('jet.webp')} x={-JET.width / 2} y={-JET.height / 2} width={JET.width} height={JET.height} />
               </g>
             </svg>
             <p className={styles.hint} data-hidden={started} aria-hidden="true">
