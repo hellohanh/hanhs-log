@@ -157,6 +157,7 @@
 - #28: camera control with tilt, rotate and reset; Google dark.
 - #29: Pins / No pins chip; one Satellite look.
 - #30: transit pins stay with No pins; Districts chip only when a district is in view.
+- #32: the camera control starts closed.
 - #31: this Stop Protocol (SKILL.md E39–E48, Q8, L24–L32; README; this entry; CLAUDE.md).
 - Preview-only, closed without merging: #17 (map looks side by side), #24 (opening zoom), #27 (tilt test).
 
