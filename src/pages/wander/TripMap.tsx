@@ -175,9 +175,11 @@ export default function TripMap({ city }: { city: CityState }) {
             className={styles.chip}
             aria-expanded={open}
             aria-controls="map-look-panel"
+            aria-label={`Map look: ${look.name}`}
+            title={`Map look: ${look.name}`}
             onClick={() => setOpen(o => !o)}
           >
-            <MapIcon /> Map look: {look.name}
+            <MapIcon />
           </button>
           <button
             type="button"
@@ -185,14 +187,14 @@ export default function TripMap({ city }: { city: CityState }) {
             aria-pressed={pinsLocked ? true : pins}
             aria-disabled={pinsLocked || undefined}
             aria-label={pinsLocked ? "Pins: Google's place pins can't be hidden on Google dark" : pins ? "Pins: showing Google's place pins. Click to hide them" : "No pins: Google's place pins hidden. Click to show them"}
-            title={pinsLocked ? "Pins can't be hidden on Google dark" : pins ? "Hide Google's place pins (shops, restaurants, landmarks)" : "Show Google's place pins"}
+            title={pinsLocked ? "Pins can't be hidden on Google dark" : pins ? "Pins: hide Google's place pins (shops, restaurants, landmarks)" : "No pins: show Google's place pins"}
             onClick={() => {
               if (pinsLocked) return
               savePins(!pins)
               setPins(!pins)
             }}
           >
-            <PinIcon off={!pins && !pinsLocked} /> {pins || pinsLocked ? 'Pins' : 'No pins'}
+            <PinIcon off={!pins && !pinsLocked} />
           </button>
           {districtsInView && (
             <button
@@ -200,9 +202,10 @@ export default function TripMap({ city }: { city: CityState }) {
               className={styles.chip}
               aria-pressed={showDistricts}
               onClick={() => setShowDistricts(s => !s)}
-              title="Ho Chi Minh City district boundaries"
+              aria-label="Districts: Ho Chi Minh City district boundaries"
+              title="Districts: Ho Chi Minh City district boundaries"
             >
-              <LayersIcon /> Districts
+              <LayersIcon />
             </button>
           )}
         </div>
