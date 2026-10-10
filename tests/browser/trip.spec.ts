@@ -267,3 +267,114 @@ test('itinerary helpers: day order and labels', async () => {
   expect(dayTab(days[0], 0)).toEqual({ top: 'Fri', main: 'Dec 18' })
   expect(dayTab(days[2], 2)).toEqual({ top: 'Extra', main: 'Day 3' })
 })
+
+/** Scroll the itinerary timeline so `minute` of the day sits near the top, then click there. */
+async function clickTimeline(panel: import('@playwright/test').Locator, minute: number) {
+  const tl = panel.getByTestId('day-timeline')
+  await tl.evaluate((el, y) => { (el.parentElement as HTMLElement).scrollTop = Math.max(0, y - 40) }, minute)
+  await tl.click({ position: { x: 200, y: minute } })
+}
+
+test('itinerary: day tabs wrap onto rows instead of scrolling sideways', async ({ page }) => {
+  await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const tabs = page.getByRole('complementary', { name: 'Itinerary' }).getByRole('tablist', { name: 'Days' })
+  await expect(tabs.getByRole('tab')).toHaveCount(16)
+  const sideways = await tabs.evaluate(el => el.scrollWidth - el.clientWidth)
+  expect(sideways, 'day tabs scroll sideways').toBeLessThanOrEqual(0)
+  const first = (await tabs.getByRole('tab').first().boundingBox())!
+  const last = (await tabs.getByRole('tab').last().boundingBox())!
+  expect(last.y, 'tabs wrap onto more than one row').toBeGreaterThan(first.y)
+})
+
+test('itinerary: click a time to add an activity (15-minute mark, 30 minutes), edit and delete it', async ({ page }) => {
+  const db = await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  // 15:20 is 15h20m = 920 px down; it snaps to 15:15.
+  await clickTimeline(panel, 15 * 60 + 20)
+  const pop = panel.getByRole('dialog', { name: 'Add at 15:15' })
+  await expect(pop).toBeVisible()
+  await expect(pop.getByLabel('Start')).toHaveValue('15:15')
+  await expect(pop.getByLabel('End')).toHaveValue('15:45')
+  await expect(pop.getByRole('radio', { name: /Place/ })).toBeVisible()
+  await pop.getByRole('button', { name: 'Add' }).click()
+  await expect(pop.getByRole('alert')).toHaveText('Say what the activity is.')
+  await pop.getByRole('textbox', { name: 'What' }).fill('Massage at Miu Miu Spa')
+  await pop.getByRole('button', { name: 'Add' }).click()
+  const block = panel.getByRole('button', { name: /Massage at Miu Miu Spa, 15:15 to 15:45/ })
+  await expect(block).toBeVisible()
+  expect(db.acts[0]).toMatchObject({ title: 'Massage at Miu Miu Spa', start_time: '15:15', end_time: '15:45' })
+
+  // Click (no drag) opens it to edit; rename, then delete.
+  await block.click()
+  const edit = panel.getByRole('dialog', { name: 'Edit activity' })
+  await edit.getByRole('textbox', { name: 'What' }).fill('Massage and tea')
+  await edit.getByRole('button', { name: 'Save' }).click()
+  await expect(panel.getByRole('button', { name: /Massage and tea, 15:15 to 15:45/ })).toBeVisible()
+  await panel.getByRole('button', { name: /Massage and tea/ }).click()
+  await panel.getByRole('dialog', { name: 'Edit activity' }).getByRole('button', { name: 'Delete' }).click()
+  await panel.getByRole('dialog', { name: 'Edit activity' }).getByRole('button', { name: 'Delete' }).click()
+  await expect(panel.getByRole('button', { name: /Massage and tea/ })).toHaveCount(0)
+  expect(db.acts).toHaveLength(0)
+})
+
+test('itinerary: drag an activity\'s bottom handle, top handle, and middle (5-minute steps)', async ({ page }, info) => {
+  test.skip(info.project.name === 'phone', 'mouse dragging is checked on the larger screens')
+  const db = await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  await clickTimeline(panel, 10 * 60 + 5)
+  await panel.getByRole('dialog', { name: 'Add at 10:00' }).getByRole('textbox', { name: 'What' }).fill('Coffee')
+  await panel.getByRole('dialog', { name: 'Add at 10:00' }).getByRole('button', { name: 'Add' }).click()
+  const block = panel.getByRole('button', { name: /Coffee, 10:00 to 10:30/ })
+  await expect(block).toBeVisible()
+  const drag = async (y0: number, dy: number, x: number) => {
+    await page.mouse.move(x, y0)
+    await page.mouse.down()
+    await page.mouse.move(x, y0 + dy / 2)
+    await page.mouse.move(x, y0 + dy)
+    await page.mouse.up()
+  }
+  let b = (await block.boundingBox())!
+  // Bottom handle down 20 px = 20 min: ends 10:50.
+  await drag(b.y + b.height - 3, 20, b.x + b.width / 2)
+  await expect(panel.getByRole('button', { name: /Coffee, 10:00 to 10:50/ })).toBeVisible()
+  b = (await panel.getByRole('button', { name: /Coffee/ }).boundingBox())!
+  // Top handle down 10 px = 10 min: starts 10:10.
+  await drag(b.y + 3, 10, b.x + b.width / 2)
+  await expect(panel.getByRole('button', { name: /Coffee, 10:10 to 10:50/ })).toBeVisible()
+  b = (await panel.getByRole('button', { name: /Coffee/ }).boundingBox())!
+  // Middle down 60 px = 1 hour, same length.
+  await drag(b.y + b.height / 2, 60, b.x + b.width / 2)
+  await expect(panel.getByRole('button', { name: /Coffee, 11:10 to 11:50/ })).toBeVisible()
+  await expect.poll(() => db.acts[0]).toMatchObject({ start_time: '11:10', end_time: '11:50' })
+  await expect(panel.getByRole('dialog')).toHaveCount(0)
+})
+
+test('itinerary: Travel from the popup opens the travel form with the clicked times', async ({ page }) => {
+  await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  await clickTimeline(panel, 8 * 60 + 40)
+  const pop = panel.getByRole('dialog', { name: 'Add at 08:30' })
+  await pop.getByRole('radio', { name: /Travel/ }).click()
+  await pop.getByRole('button', { name: 'Next' }).click()
+  const form = panel.getByRole('form', { name: 'Add travel' })
+  await expect(form.getByRole('group', { name: 'From' }).getByLabel('Time', { exact: true })).toHaveValue('08:30')
+  await expect(form.getByRole('group', { name: 'To' }).getByLabel('Time', { exact: true })).toHaveValue('09:00')
+})
+
+test('itinerary: drag maths', async () => {
+  const { dragTimes, minuteAt, hhmm } = await import('../../src/lib/itineraryDays')
+  expect(minuteAt(920, 60, 15)).toBe(915)
+  expect(hhmm(915)).toBe('15:15')
+  expect(dragTimes(600, 630, 22, 'bottom')).toEqual({ start: 600, end: 650 }) // 22 min rounds to 20
+  expect(dragTimes(600, 630, 40, 'top')).toEqual({ start: 625, end: 630 }) // never shorter than 5 min
+  expect(dragTimes(600, 630, -700, 'move')).toEqual({ start: 0, end: 30 }) // not before midnight
+  expect(dragTimes(1400, 1430, 60, 'move')).toEqual({ start: 1409, end: 1439 }) // not past 23:59
+})

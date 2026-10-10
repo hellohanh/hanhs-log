@@ -4,9 +4,9 @@ import { supabase } from './supabase'
 // for the trip's dates plus extra undated days), each day's note, and
 // travel legs. Scheduled stops come with pins (step 4).
 
-export type { LegMode, ItineraryDay, TravelLeg } from './itineraryDays'
+export type { LegMode, ItineraryDay, TravelLeg, Activity } from './itineraryDays'
 export { sortDays, eachDate, dayTab } from './itineraryDays'
-import { eachDate, sortDays, type ItineraryDay, type TravelLeg } from './itineraryDays'
+import { eachDate, sortDays, type Activity, type ItineraryDay, type TravelLeg } from './itineraryDays'
 
 export type LegFields = Omit<TravelLeg, 'id'>
 
@@ -68,6 +68,32 @@ export async function saveLeg(fields: LegFields, id?: string): Promise<void> {
 
 export async function deleteLeg(id: string): Promise<void> {
   const { error } = await client().from('travel_legs').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+// ---- Activity blocks (migration 0003) ----
+
+export type ActivityFields = Omit<Activity, 'id'>
+
+export async function fetchActivities(dayIds: string[]): Promise<Activity[]> {
+  if (dayIds.length === 0) return []
+  const { data, error } = await client()
+    .from('itinerary_activities')
+    .select('id, day_id, title, start_time, end_time, note')
+    .in('day_id', dayIds)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as Activity[]
+}
+
+export async function saveActivity(fields: Partial<ActivityFields>, id?: string): Promise<void> {
+  const { error } = id
+    ? await client().from('itinerary_activities').update(fields).eq('id', id)
+    : await client().from('itinerary_activities').insert(fields)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteActivity(id: string): Promise<void> {
+  const { error } = await client().from('itinerary_activities').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
 

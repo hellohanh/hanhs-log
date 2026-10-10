@@ -38,6 +38,7 @@ export interface FakeDb {
   trips: FakeTrip[]
   days: FakeDay[]
   legs: FakeLeg[]
+  acts: FakeLeg[]
   /** People per trip id. Trips missing here answer "not allowed". */
   people: Record<string, FakePerson[]>
   myName: string | null
@@ -110,6 +111,7 @@ export async function fakeSupabase(
     myName: opts.myName === undefined ? 'Hanh' : opts.myName,
     days: [],
     legs: [],
+    acts: [],
     calls: []
   }
   let currentUser = me
@@ -165,6 +167,24 @@ export async function fakeSupabase(
       if (req.method() === 'DELETE') {
         db.days = db.days.filter(d => d.id !== idEq)
         db.legs = db.legs.filter(l => l.day_id !== idEq)
+        return route.fulfill({ status: 204, body: '' })
+      }
+    }
+    if (path === '/rest/v1/itinerary_activities') {
+      if (req.method() === 'GET') {
+        const ids = (url.searchParams.get('day_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
+        return route.fulfill({ json: db.acts.filter(a => ids.includes(a.day_id)) })
+      }
+      if (req.method() === 'POST') {
+        db.acts.push({ id: `act-${db.acts.length + 1}`, note: null, ...args })
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'PATCH') {
+        db.acts = db.acts.map(a => (a.id === idEq ? { ...a, ...args } : a))
+        return route.fulfill({ status: 204, body: '' })
+      }
+      if (req.method() === 'DELETE') {
+        db.acts = db.acts.filter(a => a.id !== idEq)
         return route.fulfill({ status: 204, body: '' })
       }
     }

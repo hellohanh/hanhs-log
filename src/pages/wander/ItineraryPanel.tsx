@@ -9,6 +9,10 @@ import {
   fillTripDates,
   saveDayNote,
   saveLeg,
+  deleteActivity,
+  fetchActivities,
+  saveActivity,
+  type Activity,
   type ItineraryDay,
   type LegFields,
   type TravelLeg
@@ -27,6 +31,8 @@ import {
 } from '../../lib/itineraryLayout'
 import { loadGoogleMaps } from '../../lib/googleMaps'
 import TravelForm from './TravelForm'
+import { ActivityBlock, ActivityFields, AddPopup, usePopupStyle } from './ActivityBlock'
+import { ADD_SNAP_MIN, NEW_BLOCK_MIN, minuteAt, toMin } from '../../lib/itineraryDays'
 import styles from './Itinerary.module.css'
 
 // The itinerary panel (approved inline mockup, session 4): a right-hand
@@ -60,7 +66,11 @@ export default function ItineraryPanel({
   const [legs, setLegs] = useState<TravelLeg[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [form, setForm] = useState<{ leg: TravelLeg | null } | null>(null)
+  const [form, setForm] = useState<{ leg: TravelLeg | null; preset?: { from: string; to: string } } | null>(null)
+  const [acts, setActs] = useState<Activity[]>([])
+  // Click on an empty spot: "Add at …" popup at that 15-minute mark (session 4).
+  const [adding, setAdding] = useState<{ start: number; end: number } | null>(null)
+  const [editing, setEditing] = useState<Activity | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
   const [showAll, setShowAll] = useState(true)
   const [routeOpen, setRouteOpen] = useState(false)
@@ -73,6 +83,7 @@ export default function ItineraryPanel({
       if (await fillTripDates(tripId, start, end, list)) list = await fetchDays(tripId)
       setDays(list)
       setLegs(await fetchLegs(list.map(d => d.id)))
+      setActs(await fetchActivities(list.map(d => d.id)))
       setSelected(s => (s && list.some(d => d.id === s) ? s : list[0]?.id ?? null))
     } catch (e) {
       setError((e as Error).message)
@@ -101,14 +112,36 @@ export default function ItineraryPanel({
     return { own, continuing }
   }, [legs, day])
 
+  const dayActs = useMemo(() => (day ? acts.filter(a => a.day_id === day.id) : []), [acts, day])
+
   const layout = useMemo(
     () =>
       computeColumnLayout([
         ...own.map(l => ({ id: l.id, ...legBlockGeometry(l) })),
-        ...continuing.map(l => ({ id: `c-${l.id}`, ...continuationBlockGeometry(l) }))
+        ...continuing.map(l => ({ id: `c-${l.id}`, ...continuationBlockGeometry(l) })),
+        ...dayActs.map(a => ({
+          id: `a-${a.id}`,
+          top: (toMin(a.start_time) / 60) * HOUR_PX,
+          height: ((toMin(a.end_time) - toMin(a.start_time)) / 60) * HOUR_PX
+        }))
       ]),
-    [own, continuing]
+    [own, continuing, dayActs]
   )
+
+  async function reloadActs() {
+    if (days) setActs(await fetchActivities(days.map(d => d.id)))
+  }
+
+  async function changeActivity(a: Activity, startT: string, endT: string) {
+    // Show the new time straight away; put it back if saving fails.
+    setActs(list => list.map(x => (x.id === a.id ? { ...x, start_time: startT, end_time: endT } : x)))
+    try {
+      await saveActivity({ start_time: startT, end_time: endT }, a.id)
+    } catch (e) {
+      setError((e as Error).message)
+      await reloadActs()
+    }
+  }
 
   // Dated days follow the trip's dates (change them in Edit trip); extra
   // days, and dated days outside the trip's dates, can be deleted.
@@ -152,6 +185,8 @@ export default function ItineraryPanel({
                   onClick={() => {
                     setSelected(d.id)
                     setForm(null)
+                    setAdding(null)
+                    setEditing(null)
                     setConfirmDay(false)
                   }}
                 >
@@ -193,7 +228,7 @@ export default function ItineraryPanel({
 
               {confirmDay && (
                 <div className={styles.confirm} role="alert">
-                  <span>Delete this day and its travel?</span>
+                  <span>Delete this day, its travel and activities?</span>
                   <button type="button" className="btn" onClick={removeDay}>Delete</button>
                   <button type="button" className="btn btn-quiet" onClick={() => setConfirmDay(false)}>Keep</button>
                 </div>
@@ -216,6 +251,7 @@ export default function ItineraryPanel({
                     dayId={day.id}
                     dayDate={day.date}
                     leg={form.leg}
+                    preset={form.preset}
                     onCancel={() => setForm(null)}
                     onSave={async (fields: LegFields, id?: string) => {
                       await saveLeg(fields, id)
@@ -230,8 +266,18 @@ export default function ItineraryPanel({
                   />
                 </div>
               ) : (
-                <div className={styles.timeline} ref={timeline}>
-                  <div className={styles.hours} style={{ height: 24 * HOUR_PX }}>
+                <div className={styles.timeline} ref={timeline} data-scroll="timeline">
+                  <div
+                    className={styles.hours}
+                    style={{ height: 24 * HOUR_PX }}
+                    data-testid="day-timeline"
+                    onClick={e => {
+                      if (adding || editing) return setAdding(null)
+                      const y = e.clientY - e.currentTarget.getBoundingClientRect().top
+                      const start = minuteAt(y, HOUR_PX, ADD_SNAP_MIN)
+                      setAdding({ start, end: Math.min(24 * 60 - 1, start + NEW_BLOCK_MIN) })
+                    }}
+                  >
                     {Array.from({ length: 24 }, (_, h) => (
                       <div key={h} className={styles.hour} style={{ top: h * HOUR_PX }}>{`${h}:00`}</div>
                     ))}
@@ -249,6 +295,67 @@ export default function ItineraryPanel({
                           pos={blockPositionStyle(layout.get(`c-${l.id}`), GUTTER)} onClick={() => setForm({ leg: l })} />
                       )
                     })}
+                    {dayActs.map(a => (
+                      <ActivityBlock
+                        key={a.id}
+                        activity={a}
+                        pos={blockPositionStyle(layout.get(`a-${a.id}`), GUTTER)}
+                        onChange={(st, en) => changeActivity(a, st, en)}
+                        onOpen={() => {
+                          setAdding(null)
+                          setEditing(a)
+                        }}
+                      />
+                    ))}
+                    {adding && (
+                      <>
+                        <div
+                          className={styles.ghost}
+                          style={{ top: (adding.start / 60) * HOUR_PX, height: ((adding.end - adding.start) / 60) * HOUR_PX, left: GUTTER, right: 8 }}
+                          aria-hidden="true"
+                        />
+                        <AddPopup
+                          startPx={(adding.start / 60) * HOUR_PX}
+                          endPx={(adding.end / 60) * HOUR_PX}
+                          start={adding.start}
+                          end={adding.end}
+                          onCancel={() => setAdding(null)}
+                          onTravel={(st, en) => {
+                            setAdding(null)
+                            setForm({ leg: null, preset: { from: st, to: en } })
+                          }}
+                          onAddActivity={async (title, st, en) => {
+                            await saveActivity({ day_id: day.id, title, start_time: st, end_time: en })
+                            setAdding(null)
+                            await reloadActs()
+                          }}
+                        />
+                      </>
+                    )}
+                    {editing && (
+                      <EditPop startPx={(toMin(editing.start_time) / 60) * HOUR_PX} endPx={(toMin(editing.end_time) / 60) * HOUR_PX}>
+                        <div className={styles.addHead}>
+                          <strong>Edit activity</strong>
+                          <button type="button" className={styles.ib} aria-label="Close" onClick={() => setEditing(null)}>×</button>
+                        </div>
+                        <ActivityFields
+                          key={editing.id}
+                          initial={{ title: editing.title, start: editing.start_time.slice(0, 5), end: editing.end_time.slice(0, 5) }}
+                          submitLabel="Save"
+                          onCancel={() => setEditing(null)}
+                          onSubmit={async (title, st, en) => {
+                            await saveActivity({ title, start_time: st, end_time: en }, editing.id)
+                            setEditing(null)
+                            await reloadActs()
+                          }}
+                          onDelete={async () => {
+                            await deleteActivity(editing.id)
+                            setEditing(null)
+                            await reloadActs()
+                          }}
+                        />
+                      </EditPop>
+                    )}
                   </div>
                 </div>
               )}
@@ -259,6 +366,16 @@ export default function ItineraryPanel({
 
       {routeOpen && <RouteMap home={home} title={day ? `${dayTab(day, dayIndex).top} ${dayTab(day, dayIndex).main}` : 'Day'} onClose={() => setRouteOpen(false)} />}
     </aside>
+  )
+}
+
+function EditPop({ startPx, endPx, children }: { startPx: number; endPx: number; children: React.ReactNode }) {
+  const box = useRef<HTMLDivElement>(null)
+  const pos = usePopupStyle(box, startPx, endPx)
+  return (
+    <div ref={box} className={styles.addPop} style={pos} role="dialog" aria-label="Edit activity" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+      {children}
+    </div>
   )
 }
 
@@ -307,7 +424,7 @@ function LegCard({
   const plus = legDayOffset(leg)
   const name = [leg.carrier, leg.reference].filter(Boolean).join(' ') || leg.title || cfg.label
   return (
-    <button type="button" className={styles.leg} style={{ top, height: Math.max(height, 56), borderLeftColor: cfg.color, ...pos }} onClick={onClick}>
+    <button type="button" className={styles.leg} style={{ top, height: Math.max(height, 56), borderLeftColor: cfg.color, ...pos }} onClick={e => { e.stopPropagation(); onClick() }}>
       <span className={styles.legTop}>
         <Badge leg={leg} />
         <b>{name}</b>
