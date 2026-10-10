@@ -23,23 +23,28 @@
   background: var(--paper);
 }
 
-/* 40px above the picture; the search card 20px under it (see Home.tsx,
-   which sizes the column to fit one screen). */
+/* Desktop: a 1080 × 800 container, scaled down as a whole (--s, set in
+   Home.tsx) when the screen is smaller. The picture sits 40px from its top;
+   the search panel 20px in from the left with its bottom at 780px. */
 .pinned {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 40px;
+  justify-content: center;
 }
 
 .column {
   position: relative;
-  width: min(100% - 32px, 1080px);
+  flex: none;
+  width: 1080px;
+  height: 800px;
+  transform: scale(var(--s, 1));
+  transform-origin: top center;
 }
 
 .art {
-  position: relative;
-  width: 100%;
+  position: absolute;
+  top: 40px;
+  left: 0;
+  width: 1080px;
 }
 
 .svg {
@@ -71,13 +76,14 @@
 
 /* Reduced motion: no pinned stretch, just the finished picture. */
 .splash[data-motion='reduced'] .runway { height: auto; }
-.splash[data-motion='reduced'] .pinned { position: relative; top: auto; height: auto; }
+.splash[data-motion='reduced'] .pinned { position: relative; top: auto; height: calc(800px * var(--s, 1)); }
 .splash[data-motion='reduced'] .hint { display: none; }
 
 .searchCard {
-  position: relative;
-  margin-top: 20px;
-  width: min(520px, 100vw - 32px);
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  width: 520px;
   padding: 28px;
   display: flex;
   flex-direction: column;
@@ -87,14 +93,6 @@
   border: 1px solid var(--rule);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow);
-}
-/* Short screens: the card sits over the bottom of the picture. */
-.pinned[data-layout='overlap'] .searchCard {
-  position: absolute;
-  left: 16px;
-  bottom: 24px;
-  margin-top: 0;
-  width: min(520px, 100% - 32px);
 }
 
 .title {
@@ -133,8 +131,15 @@
 
 /* On narrow screens the search card sits under the picture instead of over it. */
 @media (max-width: 760px) {
-  .column { width: 100%; }
+  /* Phones (to be finalised later): full-width picture, panel below it. */
+  .pinned { display: block; padding-top: 40px; }
+  .splash[data-motion='reduced'] .pinned { height: auto; }
+  .column { width: 100%; height: auto; transform: none; }
+  .art { position: relative; top: auto; width: 100%; }
   .searchCard {
+    position: relative;
+    left: auto;
+    bottom: auto;
     width: auto;
     margin: 20px 16px 0;
     padding: 22px;

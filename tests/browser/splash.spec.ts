@@ -47,18 +47,24 @@ test('scrolling flies the plane, hands over to the painted plane, and brings up 
   await expect.poll(() => flying.getAttribute('opacity')).toBe('0.000')
   await expect(searchCard).toHaveCSS('opacity', '1')
 
-  // Spacing: 40px above the picture, the card 20px under it, and (when the
-  // screen is tall enough to stack them) 40px under the card.
-  const gaps = await page.evaluate(() => {
-    const p = document.querySelector('section[aria-label="Introduction"]')!.firstElementChild as HTMLElement
-    const art = p.querySelector('svg[role=img]')!.getBoundingClientRect()
-    const card = p.querySelector('form')!.getBoundingClientRect()
-    const box = p.getBoundingClientRect()
-    return { layout: p.dataset.layout, top: art.top - box.top, gap: card.top - art.bottom, bottom: box.bottom - card.bottom }
-  })
-  expect(Math.round(gaps.top)).toBe(40)
-  if (gaps.layout !== 'overlap') expect(Math.round(gaps.gap)).toBe(20)
-  if (gaps.layout === 'stack') expect(Math.round(gaps.bottom)).toBeGreaterThanOrEqual(39)
+  // Desktop layout: 1080 × 800 container (scaled as a whole on smaller
+  // screens), picture 40px from the top, panel 20px from the left with its
+  // bottom on the 780px mark. Phones are laid out separately for now.
+  if ((page.viewportSize()?.width ?? 0) > 760) {
+    const m = await page.evaluate(() => {
+      const box = document.querySelector('section[aria-label="Introduction"]')!.querySelector('div > div') as HTMLElement
+      const b = box.getBoundingClientRect()
+      const art = box.querySelector('svg[role=img]')!.getBoundingClientRect()
+      const card = box.querySelector('form')!.getBoundingClientRect()
+      const s = b.height / 800
+      return { ratio: b.width / b.height, top: (art.top - b.top) / s, artH: art.height / s, cardBottom: (card.bottom - b.top) / s, cardLeft: (card.left - b.left) / s }
+    })
+    expect(m.ratio).toBeCloseTo(1080 / 800, 2)
+    expect(Math.round(m.top)).toBe(40)
+    expect(Math.round(m.artH)).toBe(720)
+    expect(Math.round(m.cardBottom)).toBe(780)
+    expect(Math.round(m.cardLeft)).toBe(20)
+  }
 
   // Scrolling back up flies it back.
   await page.evaluate(() => window.scrollTo(0, 0))

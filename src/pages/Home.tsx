@@ -15,49 +15,27 @@ const prefersReducedMotion = () =>
 export default function Home() {
   const runwayRef = useRef<HTMLElement>(null)
   const pinnedRef = useRef<HTMLDivElement>(null)
-  const columnRef = useRef<HTMLDivElement>(null)
-  const [layout, setLayout] = useState<'stack' | 'overlap' | 'phone'>('stack')
   const planeRef = useRef<SVGGElement>(null)
   const paintedRef = useRef<SVGImageElement>(null)
   const [reduced] = useState(prefersReducedMotion)
   const [landed, setLanded] = useState(reduced)
   const [started, setStarted] = useState(reduced)
 
-  // Size the picture so it has 40px above it, the search card 20px below it
-  // and 40px under the card, all inside one screen. On a screen too short
-  // for that (a laptop at high zoom, say) the card overlaps the bottom of
-  // the picture instead; on phones the picture runs full width.
+  // Desktop layout (Hanh's spec): a 1080 × 800 container holding the
+  // 1080 × 720 picture 40px from the top, with the search panel 20px in from
+  // the left and its bottom on the 780px mark. On screens too small for it
+  // the whole container shrinks together. Phones are laid out separately.
   useEffect(() => {
     const pinned = pinnedRef.current
-    const column = columnRef.current
-    const card = column?.querySelector('form')
-    if (!pinned || !column || !card) return
-    const TOP = 40
-    const GAP = 20
-    const BOTTOM = 40
+    if (!pinned) return
     const fit = () => {
-      const stage = pinned.clientHeight
-      const width = pinned.clientWidth
-      if (width <= 760) {
-        setLayout('phone')
-        column.style.width = ''
-        return
-      }
-      const avail = Math.min(width - 32, 1080)
-      const room = stage - TOP - GAP - card.offsetHeight - BOTTOM
-      if (room * 1.5 >= Math.min(avail, 560)) {
-        setLayout('stack')
-        column.style.width = `${Math.floor(Math.min(avail, room * 1.5))}px`
-      } else {
-        setLayout('overlap')
-        column.style.width = `${Math.floor(Math.min(avail, (stage - TOP - BOTTOM) * 1.5))}px`
-      }
+      const scale = Math.min(1, pinned.clientWidth / 1080, pinned.clientHeight / 800)
+      pinned.style.setProperty('--s', scale.toFixed(4))
     }
     fit()
     window.addEventListener('resize', fit)
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
     ro?.observe(pinned)
-    ro?.observe(card)
     return () => {
       window.removeEventListener('resize', fit)
       ro?.disconnect()
@@ -121,8 +99,8 @@ export default function Home() {
   return (
     <main className={styles.splash} data-landed={landed ? 'true' : 'false'} data-motion={reduced ? 'reduced' : 'scroll'}>
       <section ref={runwayRef} aria-label="Introduction" className={styles.runway}>
-        <div ref={pinnedRef} className={styles.pinned} data-layout={layout}>
-          <div ref={columnRef} className={styles.column}>
+        <div ref={pinnedRef} className={styles.pinned}>
+          <div className={styles.column}>
           <div className={styles.art}>
             <svg
               viewBox={`0 0 ${HERO_W} ${HERO_H}`}
