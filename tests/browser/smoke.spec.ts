@@ -18,6 +18,7 @@ const pages = [
   { name: 'savorlog', path: './savor' },
   { name: 'signin', path: './signin' },
   { name: 'city-search', path: './search?city=Rome' },
+  { name: 'map-styles', path: './map-styles' },
   { name: 'not-found', path: './no-such-page' }
 ]
 

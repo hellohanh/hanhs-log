@@ -6,6 +6,7 @@ import Savorlog from './pages/Savorlog'
 import SignIn from './pages/SignIn'
 import Search from './pages/Search'
 import NotFound from './pages/NotFound'
+import MapStyles from './pages/MapStyles'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/savor/*" element={<Savorlog />} />
         <Route path="/search" element={<Search />} />
         <Route path="/signin" element={<SignIn />} />
+        <Route path="/map-styles" element={<MapStyles />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
