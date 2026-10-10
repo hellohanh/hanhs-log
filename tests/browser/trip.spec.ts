@@ -378,3 +378,30 @@ test('itinerary: drag maths', async () => {
   expect(dragTimes(600, 630, -700, 'move')).toEqual({ start: 0, end: 30 }) // not before midnight
   expect(dragTimes(1400, 1430, 60, 'move')).toEqual({ start: 1409, end: 1439 }) // not past 23:59
 })
+
+test('itinerary: blocks that share time sit side by side; touching blocks share a column', async ({ page }) => {
+  await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  const add = async (t: string, start: string, end: string) => {
+    await clickTimeline(panel, 16 * 60 + 5)
+    const d = panel.getByRole('dialog')
+    await d.getByRole('textbox', { name: 'What' }).fill(t)
+    await d.getByLabel('Start').fill(start)
+    await d.getByLabel('End').fill(end)
+    await d.getByRole('button', { name: 'Add' }).click()
+    await expect(panel.getByRole('button', { name: new RegExp(`^${t},`) })).toBeVisible()
+  }
+  await add('Phở', '10:00', '10:30')
+  await add('Bánh mì', '10:00', '10:30')
+  await add('Market', '10:30', '11:00')
+  await add('Lunch', '12:00', '12:30')
+  const box = async (t: string) => (await panel.getByRole('button', { name: new RegExp(`^${t},`) }).boundingBox())!
+  const [pho, banh, market, lunch] = [await box('Phở'), await box('Bánh mì'), await box('Market'), await box('Lunch')]
+  expect(banh.x, 'same-time blocks sit side by side').toBeGreaterThan(pho.x + pho.width - 1)
+  expect(Math.abs(market.x - pho.x), 'a block starting as another ends shares its column').toBeLessThan(2)
+  expect(lunch.width, 'a block on its own takes the full width').toBeGreaterThan(pho.width * 1.8)
+  // The title stays readable in a narrow column.
+  await expect(panel.getByRole('button', { name: /^Bánh mì,/ }).locator('b')).toBeVisible()
+})

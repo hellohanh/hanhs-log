@@ -244,7 +244,12 @@
 /* 30 minutes or less: title and time on one line. */
 .actShort { flex-direction: row; align-items: center; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
 .actShort b { flex: 0 1 auto; min-width: 0; }
-.actShort .actTime { white-space: nowrap; }
+/* In a narrow column (blocks side by side) the time gives way to the title. */
+.actShort .actTime { white-space: nowrap; flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.act { container-type: inline-size; }
+@container (max-width: 150px) {
+  .actShort .actTime { display: none; }
+}
 .actTime { color: var(--muted); font-size: 11.5px; }
 .actDragging { cursor: grabbing; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); z-index: 5; opacity: 0.95; }
 .act:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
