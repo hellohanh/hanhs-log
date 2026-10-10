@@ -92,3 +92,32 @@
 
 **Next session starts at:** M3 step 3, the real map on the trip page with the new pin standard, desktop monitor first.
 
+
+---
+
+## Session 3 — 2026-10-10
+
+**Goal:**
+- Rework the splash: start as a paper airplane that fades into the jet, with the same fade values, on a new flight path.
+
+**Decisions made:** E35–E38 recorded in SKILL.md (E15 updated; E17 and E18 reworded). Highlights:
+- Paper plane takes off and turns into the jet at 0.68 with the landing's fades (E35); 86-point path from Hanh's editor (E15).
+- Hanh's new hero with no plane painted in (E36); the jet lands as itself at 935, 233, 400 wide, tilted 4.75° (E37).
+- Page paper #F6EFE2 matched to the new hero, with a soft faded edge (E38).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- PR #15: paper plane, new path, new hero, landed jet; splash tests updated.
+- PR #16: page paper matched to the new hero and the picture's edge softened.
+- PR #14: Stop Protocol docs for sessions 2 and 3 (this entry).
+
+**Design work:**
+- Inline flight-path editor (draggable points, Play/scrub, paper-to-jet slider, sizes), then the same editor on the new hero with landed-jet size and tilt.
+- Before/after comparison of the hero edge (Hanh chose option B).
+
+**Lessons:** L20–L23 recorded in SKILL.md.
+
+**Open questions:** unchanged: Q1, Q3–Q7.
+
+**Stop Protocol completed:** zip `S003 OCT 10 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** M3 step 3, the real map on the trip page with the new pin standard, desktop monitor first.

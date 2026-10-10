@@ -46,10 +46,10 @@ live Wanderlog database.
 | E12 | "In city" | City name plus 20 km radius |
 | E13 | Launch data | ~~Existing Wanderlog dining pins are copied into Savorlog at launch~~ Replaced by E33 |
 | E14 | Working agreement | Every change goes on a branch and through a pull request with a preview link, never straight to main; `npm run build` passes before every push; all checks green before asking Hanh to merge; visual changes need an approved mockup first; secrets live only in GitHub Secrets |
-| E15 | Flight path | 66 points Hanh mapped (`ROUTE` in `flightPath.ts`, 1536×1024 image pixels), Catmull-Rom smoothed and distance-indexed, heading from ±14px look-ahead; flying plane scale 0.42 |
+| E15 | Flight path | ~~66 points, flying plane scale 0.42~~ Replaced by E35. 86 points Hanh mapped in the flight-path editor (`ROUTE` in `flightPath.ts`, 1536×1024 image pixels, ends at the landed jet 935, 233), Catmull-Rom smoothed and distance-indexed, heading from ±14px look-ahead |
 | E16 | Flight is scroll-driven | Hero pinned under the header, flown by scrolling through a 240vh `.flightSpace` (scroll up flies back), eased 0.18 per frame; "Scroll to fly" hint until scrolling starts; reduced-motion shows the finished picture with nothing pinned |
-| E17 | Fade timing (as a share of the scroll) | Flight ends 80%; painted plane fades in 76→84%; flying plane fades out 78→89%; landed at 94% → the search panel, the Where to? heading, both cards and the dark section background fade in together (600ms) |
-| E18 | Desktop hero layout | A 1080 × 800 container on a full-width paper band (#FAF6E5); picture 1080 × 720 at 40px from the top; search panel 20px from the left with its bottom at 780px; the whole container scales down together (`--s`) when the window is narrower than 1080 or shorter than 800 + header |
+| E17 | Fade timing (as a share of the scroll) | Flight ends 80%; landed jet fades in 76→84%; flying jet fades out 78→89%; landed at 94% → the search panel, the Where to? heading, both cards and the dark section background fade in together (600ms) |
+| E18 | Desktop hero layout | A 1080 × 800 container on a full-width paper band (~~#FAF6E5~~ #F6EFE2, E38); picture 1080 × 720 at 40px from the top; search panel 20px from the left with its bottom at 780px; the whole container scales down together (`--s`) when the window is narrower than 1080 or shorter than 800 + header |
 | E19 | Pinned area | The pinned block is the hero container plus the Where to? section (not a full-window stage), so tall windows show the section right under the picture; that section's background is paper until landing, then the page colour |
 | E20 | Phones | Splash phone layout parked until desktop is final: currently full-width picture, 40px above it, panel 20px below |
 | E21 | Sign-in settings | The address is tidied before use (trimmed, https:// added, path removed); if the client can't be created, only sign-in turns off (never a blank page); errors name the address tried |
@@ -66,6 +66,10 @@ live Wanderlog database.
 | E32 | Nom-Nom | Top-level food category, coral #D85A30, icon `restaurant`. Levels: cuisine (the food's country) › main dish. Café, Bakery, Bar, Fusion beside the cuisines (can also carry a cuisine tag). Pin colour by region (9 warm colours). Dish icons per family, animals where the protein is the point. Vietnamese 28 dishes; SE Asian top 5 ×7 |
 | E33 | Old food pins | Wanderlog's dining/cafe/bakery pins are not copied automatically; they get sorted into Nom-Nom city by city with Hanh (replaces E13) |
 | E34 | Street food / fine dining | Badges on eatery pins (like MICHELIN), not dishes |
+| E35 | Paper plane (session 3) | The flight takes off as the red paper plane (`paper-plane.webp`, 150 wide, nose −46°) and turns into the jet (`jet.webp`, 400 wide, nose −16°) at 0.68 with the landing's fade values: jet in 0.68→0.76, paper out 0.70→0.81. Sizes in hero pixels |
+| E36 | New hero (session 3) | `hero.webp` is Hanh's new picture (Amalfi, phở, Eiffel Tower, bánh mì, Vietnam map, Japan postcard) with no plane painted in; old `hero-noplane`, `hero-plane` and `plane` images removed |
+| E37 | Landed jet (session 3) | The jet lands as itself (`jet.webp`) at 935, 233, 400 wide, tilted 4.75° (`LANDED_JET`), fading in per E17 |
+| E38 | Hero edge (session 3) | Page paper is #F6EFE2, sampled from the new hero's edge; the picture's outer 40px fades into it (SVG mask, blur 20) so there's no visible edge |
 
 ## Open Questions (Q-number registry)
 | Q# | Question | Status |
@@ -115,4 +119,8 @@ live Wanderlog database.
 | L17 | Inline pickers: the chosen option needs an unmistakable mark (thick outline, ✓, "chosen"), clicking it again must not un-choose it, and a live summary helps. A faint highlight produced "none" answers. |
 | L18 | Tracing Hanh's PNG icons: split by connected shapes and drop the frame; where a drawing touches its frame, fill the frame, shrink it about 16 px and keep only ink inside. Trace with potrace at 96–240 px and round coordinates to keep each SVG small. |
 | L19 | GitHub Secrets, job logs and Actions run summaries can't be read from a Claude session; ask Hanh to read the run summary (e.g. "Build settings"). Workflow dispatch and run status do work. |
+| L20 | Hanh may merge a pull request while work continues. Check `merged` on the PR before pushing more commits to its branch; if it's merged, start a fresh branch from main and open a new PR (the edge fix became #16). |
+| L21 | Changes can appear in the working folder that this session didn't make (another session). Read the diff and check it against Hanh's values before building on it (the landed-jet tilt arrived as 3.5° instead of 4.75°). |
+| L22 | When the picture behind an inline editor changes, re-open the editor on the new picture with Hanh's last points loaded and any new controls added (landed jet size and tilt), rather than starting over. |
+| L23 | `gh pr create` fails here (GraphQL is blocked); open pull requests with `gh api repos/{owner}/{repo}/pulls -f base=… -f head=… -F body=@file`. |
 

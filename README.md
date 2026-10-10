@@ -8,7 +8,7 @@ login and one database. Live at https://hellohanh.github.io/hanhs-log/
 | Milestone | Status |
 |---|---|
 | M1 Foundation: design tokens, light and dark mode, header, routes, email sign-in, add to home screen | ✅ live |
-| M2 Splash: scroll-driven plane flight, hand-over to the painted plane, search and section panels, city search page | ✅ live (desktop); phone layout parked |
+| M2 Splash: scroll-driven paper plane that turns into the jet and lands, search and section panels, city search page | ✅ live (desktop); phone layout parked |
 | M3 Wanderlog trips and map inside Hanh's Log | 🚧 trip list, trip page and sharing live; map next |
 | M4 Savorlog (Nom-Nom: cuisine → dish) | planned; pin standard designed |
 | M5 Savorlog pins on trips, by city (20 km) | planned |
@@ -17,9 +17,9 @@ login and one database. Live at https://hellohanh.github.io/hanhs-log/
 
 ## What's built
 - **Splash (`/`)**:
-  - Hanh's watercolor hero in a 1080 × 800 container.
-  - Scrolling flies the plane along the dotted route Hanh mapped.
-  - At the end the flying plane hands over to the plane painted in the picture, and the search panel, Where to? section, and Wanderlog and Savorlog cards fade in.
+  - Hanh's watercolor hero (Amalfi, phở, Eiffel Tower, bánh mì) in a 1080 × 800 container; its edge fades into the page's paper colour.
+  - Scrolling flies a red paper plane along the route Hanh mapped; late in the flight it turns into the jet.
+  - At the end the jet settles in the sky by the Eiffel Tower, and the search panel, Where to? section, and Wanderlog and Savorlog cards fade in.
   - With reduced motion, the page shows the finished picture straight away.
 - **Wanderlog trip list (`/wander`)**: upcoming trips (soonest first) and past trips (faded), with dates, pin and people counts, owned/shared labels; New trip; owner-only delete. Built for a 2560 × 1440 monitor first.
 - **Trip page (`/wander/trip/<id>`)**: name, destination and dates, people, Edit trip, and Share & people (invite link, owner-only Reset link and Remove, first names). The map arrives in M3 step 3.
