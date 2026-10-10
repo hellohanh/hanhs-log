@@ -191,47 +191,53 @@ export interface MapLook {
  */
 export const canTilt = (l: MapLook) => !l.styles
 
-// ---- Labels on/off (Hanh, session 4): one toggle instead of doubled looks ----
+// ---- Pins / No pins (Hanh, session 4) ----
+// "No pins" hides Google's place pins: the icons and names of shops,
+// restaurants, hospitals, schools, landmarks and transit stops. Street,
+// district and city names, roads and parks all stay.
 
-const LABELS_OFF: Style = [{ elementType: 'labels', stylers: [{ visibility: 'off' }] }]
+const PINS_OFF: Style = [
+  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit.station', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+]
 
-/** Google dark's labels can't be hidden without a Google Cloud style. */
-export const canHideLabels = (l: MapLook) => !l.dark
+/** Google dark's pins can't be hidden without a Google Cloud style. */
+export const canHidePins = (l: MapLook) => !l.dark
 
 export interface LookOptions {
   mapTypeId: MapLook['mapTypeId']
-  /** Hand-made colours and/or labels-off rules; null = Google's own look. */
+  /** Hand-made colours and/or the no-pins rules; null = Google's own look. */
   styles: Style | null
   /** True when this needs no hand-made styling, so the tilt map can show it. */
   tiltable: boolean
 }
 
 /**
- * What the map needs for a look with labels on or off. Satellite swaps
- * between Google's labelled and unlabelled photos (tilt still works).
- * Hiding labels anywhere else needs a style, so those use the flat map.
+ * What the map needs for a look with Google's place pins shown or hidden.
+ * Hiding them needs a style, which only the flat map honours, so tilt and
+ * rotate aren't available while pins are hidden (except on Google dark,
+ * where pins can't be hidden at all yet).
  */
-export function lookOptions(l: MapLook, labels: boolean): LookOptions {
-  if (l.key === 'satellite') return { mapTypeId: labels ? 'hybrid' : 'satellite', styles: null, tiltable: true }
-  if (labels || !canHideLabels(l)) return { mapTypeId: l.mapTypeId, styles: l.styles ?? null, tiltable: !l.styles }
-  return { mapTypeId: l.mapTypeId, styles: [...(l.styles ?? []), ...LABELS_OFF], tiltable: false }
+export function lookOptions(l: MapLook, pins: boolean): LookOptions {
+  if (pins || !canHidePins(l)) return { mapTypeId: l.mapTypeId, styles: l.styles ?? null, tiltable: !l.styles }
+  return { mapTypeId: l.mapTypeId, styles: [...(l.styles ?? []), ...PINS_OFF], tiltable: false }
 }
 
-const LABELS_KEY = 'hanhs-log-map-labels'
+const PINS_KEY = 'hanhs-log-map-pins'
 
-/** Labels on (default) or off, remembered on this device. */
-export function readLabels(): boolean {
+/** Google's place pins shown (default) or hidden, remembered on this device. */
+export function readPins(): boolean {
   try {
-    return localStorage.getItem(LABELS_KEY) !== 'off'
+    return localStorage.getItem(PINS_KEY) !== 'off'
   } catch {
     return true
   }
 }
 
-export function saveLabels(on: boolean): void {
+export function savePins(on: boolean): void {
   try {
-    if (on) localStorage.removeItem(LABELS_KEY)
-    else localStorage.setItem(LABELS_KEY, 'off')
+    if (on) localStorage.removeItem(PINS_KEY)
+    else localStorage.setItem(PINS_KEY, 'off')
   } catch {
     /* storage unavailable: lasts for this visit only */
   }
@@ -261,8 +267,8 @@ export const MAP_LOOKS: MapLook[] = [
     swatch: { land: '#1D2C4D', water: '#0E1626', road: '#304A7D', highway: '#2C6675', park: '#023E58' } },
   { key: 'terrain', name: 'Terrain', note: 'Shaded hills', mapTypeId: 'terrain',
     swatch: { land: '#E8E4D6', water: '#9CC0E6', road: '#FFFFFF', highway: '#F6D78C', park: '#C6DDB0' } },
-  // One Satellite look; the Labels chip switches its names on and off.
-  { key: 'satellite', name: 'Satellite', note: 'Aerial photos', mapTypeId: 'hybrid',
+  // One Satellite look: aerial photos with street names (Hanh, session 4).
+  { key: 'satellite', name: 'Satellite', note: 'Photos with names', mapTypeId: 'hybrid',
     swatch: { land: '#4B5442', water: '#2D4450', road: '#C9C2A6', highway: '#E3C770', park: '#3D5233' } }
 ]
 

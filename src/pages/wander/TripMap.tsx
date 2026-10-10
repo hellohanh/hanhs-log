@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
-import { MAP_LOOKS, canHideLabels, lookOptions, readLabels, readLook, saveLabels, saveLook, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
+import { MAP_LOOKS, canHidePins, lookOptions, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
 import { distanceKm, HCMC_CENTRE, type City } from '../../lib/city'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from './CameraControl'
@@ -9,7 +9,7 @@ import styles from './TripMap.module.css'
 // The trip map (M3 step 3, approved mockup v2, session 4): opens on the
 // trip's Primary City centre at zoom 13, no pins yet (old Wanderlog pins
 // appear only after Hanh sorts them). Map look switcher with 11 looks and a
-// Labels on/off chip (remembered on this device),
+// Pins / No pins chip for Google's place pins (remembered on this device),
 // remembered per mode on this device; HCMC Districts overlay on trips
 // within 20 km of Ho Chi Minh City. Our own camera control (3 × 4) with
 // tilt, rotate and reset: Google's own looks run on the tilt-capable map
@@ -41,9 +41,9 @@ export default function TripMap({ city }: { city: CityState }) {
   const nearHcmc = city.state === 'ready' && distanceKm(city.city, HCMC_CENTRE) <= HCMC_KM
   const home = city.state === 'ready' ? { center: { lat: city.city.lat, lng: city.city.lng }, zoom: OPENING_ZOOM } : WORLD
   const mapId = import.meta.env.VITE_GOOGLE_MAP_ID
-  const [labels, setLabels] = useState(readLabels)
-  const opts = useMemo(() => lookOptions(look, labels), [look, labels])
-  const labelsLocked = !canHideLabels(look)
+  const [pins, setPins] = useState(readPins)
+  const opts = useMemo(() => lookOptions(look, pins), [look, pins])
+  const pinsLocked = !canHidePins(look)
   const tiltable = Boolean(mapId) && opts.tiltable
   // Which kind of map this look needs. A map's ID, rendering and colour
   // scheme can't change after it's made, so a new kind means a new map.
@@ -164,17 +164,18 @@ export default function TripMap({ city }: { city: CityState }) {
           </button>
           <button
             type="button"
-            className={`${styles.chip} ${labelsLocked ? styles.chipOff : ''}`}
-            aria-pressed={labelsLocked ? true : labels}
-            aria-disabled={labelsLocked || undefined}
-            title={labelsLocked ? "Labels can't be hidden on Google dark" : labels ? 'Hide street and place names' : 'Show street and place names'}
+            className={`${styles.chip} ${pinsLocked ? styles.chipOff : ''}`}
+            aria-pressed={pinsLocked ? true : pins}
+            aria-disabled={pinsLocked || undefined}
+            aria-label={pinsLocked ? "Pins: Google's place pins can't be hidden on Google dark" : pins ? "Pins: showing Google's place pins. Click to hide them" : "No pins: Google's place pins hidden. Click to show them"}
+            title={pinsLocked ? "Pins can't be hidden on Google dark" : pins ? "Hide Google's place pins (shops, restaurants, landmarks)" : "Show Google's place pins"}
             onClick={() => {
-              if (labelsLocked) return
-              saveLabels(!labels)
-              setLabels(!labels)
+              if (pinsLocked) return
+              savePins(!pins)
+              setPins(!pins)
             }}
           >
-            <LabelIcon /> Labels
+            <PinIcon off={!pins && !pinsLocked} /> {pins || pinsLocked ? 'Pins' : 'No pins'}
           </button>
           {nearHcmc && (
             <button
@@ -249,10 +250,12 @@ function MapIcon() {
   )
 }
 
-function LabelIcon() {
+function PinIcon({ off }: { off?: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 7V5h16v2M9 19h6M12 5v14" />
+      <path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10Z" />
+      <circle cx="12" cy="11" r="2" />
+      {off && <path d="M4 4l16 16" />}
     </svg>
   )
 }
