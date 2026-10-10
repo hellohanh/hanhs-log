@@ -1,13 +1,5 @@
 import { test, expect } from '@playwright/test'
 
-// Web fonts come from Google; serve an empty stylesheet in tests so results
-// and screenshots don't depend on the network (system fonts are used).
-test.beforeEach(async ({ page }) => {
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, route =>
-    route.fulfill({ status: 200, contentType: 'text/css', body: '' })
-  )
-})
-
 // Every page listed here is opened at every size in playwright.config.ts.
 // Add a line when a new screen is built.
 const pages = [
