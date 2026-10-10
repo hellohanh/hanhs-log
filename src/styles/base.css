@@ -86,3 +86,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
+
+/* Wanderlog and Savorlog pages: Segoe UI for headings and body (fonts.css).
+   The header and the splash keep the site fonts. */
+.segoe {
+  --font-display: 'Segoe UI Web', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-body: 'Segoe UI Web', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
+}

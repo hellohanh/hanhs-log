@@ -100,7 +100,6 @@
 .title {
   font-size: clamp(32px, 3.8vw, 50px);
   line-height: 1.05;
-  font-weight: var(--weight-brand);
   margin-bottom: 4px;
 }
 
@@ -251,6 +250,5 @@
 .footerMark {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: var(--weight-brand);
   color: var(--ink);
 }

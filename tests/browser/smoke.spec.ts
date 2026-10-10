@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test'
 
+// Web fonts come from Google; serve an empty stylesheet in tests so results
+// and screenshots don't depend on the network (system fonts are used).
+test.beforeEach(async ({ page }) => {
+  await page.route(/fonts\.(googleapis|gstatic)\.com/, route =>
+    route.fulfill({ status: 200, contentType: 'text/css', body: '' })
+  )
+})
+
 // Every page listed here is opened at every size in playwright.config.ts.
 // Add a line when a new screen is built.
 const pages = [
@@ -43,6 +51,17 @@ test('light/dark switch flips the theme and is remembered', async ({ page }) => 
   await expect(html).toHaveAttribute('data-theme', first!)
   await toggle.click()
   await expect(html).toHaveAttribute('data-theme', first === 'dark' ? 'light' : 'dark')
+})
+
+test('Wanderlog and Savorlog use Segoe UI; the splash and header keep the site fonts', async ({ page }) => {
+  for (const path of ['./wander', './savor']) {
+    await page.goto(path)
+    await expect(page.locator('main h1')).toHaveCSS('font-family', /^"Segoe UI Web"/)
+    await expect(page.locator('main .lede')).toHaveCSS('font-family', /^"Segoe UI Web"/)
+    await expect(page.locator('header')).not.toHaveCSS('font-family', /Segoe UI Web/)
+  }
+  await page.goto('./')
+  await expect(page.locator('h1').first()).toHaveCSS('font-family', /^Newsreader/)
 })
 
 test('header links move between sections', async ({ page }) => {

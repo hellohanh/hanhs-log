@@ -1,5 +1,5 @@
 /* Hanh's Log design tokens, from the approved splash mockup (MICHELIN-style:
-   muted white, Segoe UI throughout, one deep-red accent).
+   muted white, serif display over a clean sans, one deep-red accent).
    Dark mode follows the phone's setting unless the person picks one with
    the header switch, which sets data-theme on <html>. */
 :root {
@@ -13,11 +13,8 @@
   --hero-ground: #FAF6E5;
   --shadow: 0 12px 40px rgba(27, 26, 24, 0.14);
 
-  /* Segoe UI everywhere (Hanh, session 2), self-hosted in fonts.css.
-     Black (900) is kept for the brand: the wordmark and splash headline. */
-  --font-display: 'Segoe UI Web', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-body: 'Segoe UI Web', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --weight-brand: 900;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --radius-s: 8px;
   --radius-m: 16px;

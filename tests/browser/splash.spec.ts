@@ -3,6 +3,12 @@ import { test, expect } from '@playwright/test'
 // The splash page: plane flight, hand-over to the painted plane, the two
 // section panels, and the city search.
 
+test.beforeEach(async ({ page }) => {
+  await page.route(/fonts\.(googleapis|gstatic)\.com/, route =>
+    route.fulfill({ status: 200, contentType: 'text/css', body: '' })
+  )
+})
+
 // Scroll so the pinned picture is `fraction` of the way through its stretch.
 async function scrollThrough(page: import('@playwright/test').Page, fraction: number) {
   await page.evaluate(f => {
