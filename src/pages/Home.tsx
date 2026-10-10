@@ -114,7 +114,16 @@ export default function Home() {
               aria-label="Watercolor travel map: as you scroll, a paper plane takes off, turns into a jet, flies around a bowl of phở and a bánh mì, then settles in the sky by the Eiffel Tower"
               className={styles.svg}
             >
-              <image href={img('hero.webp')} x="0" y="0" width={HERO_W} height={HERO_H} />
+              {/* The picture's outer edge fades into the page's paper colour. */}
+              <defs>
+                <filter id="heroFeather" x="-10%" y="-10%" width="120%" height="120%">
+                  <feGaussianBlur stdDeviation="20" />
+                </filter>
+                <mask id="heroEdge" maskUnits="userSpaceOnUse" x="0" y="0" width={HERO_W} height={HERO_H}>
+                  <rect x="40" y="40" width={HERO_W - 80} height={HERO_H - 80} fill="#FFFFFF" filter="url(#heroFeather)" />
+                </mask>
+              </defs>
+              <image href={img('hero.webp')} x="0" y="0" width={HERO_W} height={HERO_H} mask="url(#heroEdge)" data-testid="hero-picture" />
               <image
                 ref={paintedRef}
                 data-testid="landed-jet"

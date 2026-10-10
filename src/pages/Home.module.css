@@ -1,7 +1,9 @@
 /* Splash page, from the approved mockup. The illustration's paper colour
-   stays the same in light and dark mode so the picture has no visible edge. */
+   (sampled from the edge of Hanh's new hero) stays the same in light and
+   dark mode, and the picture's outer edge fades into it (the mask in
+   Home.tsx), so the picture has no visible edge. */
 .splash {
-  --paper: #FAF6E5;
+  --paper: #F6EFE2;
 }
 
 /* The pinned stretch: the hero container and the Where to? section stay

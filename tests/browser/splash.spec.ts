@@ -35,7 +35,7 @@ test('scrolling flies the paper plane, turns it into the jet, hands over to the 
   await expect(page.getByText('Scroll to fly')).toBeVisible()
   await expect(searchCard).toHaveCSS('opacity', '0')
   const choose = page.locator('#choose')
-  await expect(choose).toHaveCSS('background-color', 'rgb(250, 246, 229)')
+  await expect(choose).toHaveCSS('background-color', 'rgb(246, 239, 226)')
   const start = await paper.getAttribute('transform')
 
   // Without scrolling the plane stays put.
@@ -60,7 +60,7 @@ test('scrolling flies the paper plane, turns it into the jet, hands over to the 
   await expect(paper).toHaveAttribute('opacity', '0.000')
   await expect(page.getByTestId('landed-jet')).toHaveAttribute('opacity', '1.000')
   await expect(searchCard).toHaveCSS('opacity', '1')
-  await expect(choose).not.toHaveCSS('background-color', 'rgb(250, 246, 229)')
+  await expect(choose).not.toHaveCSS('background-color', 'rgb(246, 239, 226)')
 
   // Desktop layout: 1080 × 800 container (scaled as a whole on smaller
   // screens), picture 40px from the top, panel 20px from the left with its
