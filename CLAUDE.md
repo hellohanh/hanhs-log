@@ -8,6 +8,10 @@
   applied by the "Database migrations" workflow; never hand over SQL to paste
   into Supabase. Rules and template: docs/database.md (enforced by
   scripts/check-migrations.mjs). The database is shared with live Wanderlog.
+- Tests (docs/testing.md): a migration that adds a table or changes access
+  comes with a tests/db test (stranger can't see it, invited member can);
+  a new screen gets a line in tests/browser/smoke.spec.ts. All PR checks
+  must be green before asking the user to merge.
 - Never put API keys or secrets in code or chat; they live in GitHub
   Settings → Secrets.
 - Wanderlog's decision log and lessons (hanhs-wanderlog repo, SKILL.md) are

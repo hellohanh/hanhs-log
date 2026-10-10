@@ -1,5 +1,8 @@
-# Runs on every pull request: the app must build and every migration must
-# follow the database rules (docs/database.md).
+# Runs on every pull request. All of these must pass before merging:
+#  - the app builds and every migration follows the rules (docs/database.md)
+#  - security tests: owner / stranger / invited guest / signed-out visitor,
+#    against a throwaway copy of the live rules (tests/db)
+#  - browser tests at phone, laptop and 150% zoom, with screenshots (tests/browser)
 name: Checks
 
 on:
@@ -26,3 +29,55 @@ jobs:
           # Migrations this PR modified or deleted (adding new ones is fine).
           changed=$(git diff --name-only --diff-filter=MDR "origin/${{ github.base_ref }}...HEAD" -- supabase/migrations | tr '\n' ' ')
           node scripts/check-migrations.mjs --changed="$changed"
+
+  security-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pg17
+      - name: Start a throwaway local Postgres 17
+        # Installed from the official PostgreSQL package source (same as the
+        # backups) rather than a Docker image, so a Docker Hub hiccup can't
+        # block the tests.
+        run: |
+          echo "create_main_cluster = false" | sudo tee -a /etc/postgresql-common/createcluster.conf > /dev/null
+          sudo apt-get install -y -qq postgresql-17 > /dev/null
+          /usr/lib/postgresql/17/bin/initdb -D "$RUNNER_TEMP/pg" -A trust -U postgres > /dev/null
+          /usr/lib/postgresql/17/bin/pg_ctl -D "$RUNNER_TEMP/pg" -o "-p 55432 -k /tmp" -l "$RUNNER_TEMP/pg.log" -w start
+      - name: Owner, stranger, guest and visitor checks
+        env:
+          TEST_DB_URL: postgresql://postgres@localhost:55432/postgres
+        run: |
+          set -o pipefail
+          tests/db/run.sh | tee security-tests.txt
+      - name: Show results on the run page
+        if: always()
+        run: |
+          [ -f security-tests.txt ] || exit 0
+          { echo '### Security tests'; echo '```'; cat security-tests.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  browser-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build for local serving
+        run: npm run build
+        env:
+          BASE_PATH: /
+      - name: Phone, laptop and 150% zoom
+        run: npx playwright test
+        env:
+          CI: 'true'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: test-results/screens/
+          retention-days: 14
+          if-no-files-found: ignore

@@ -19,6 +19,12 @@ The database is shared with Wanderlog, so it has its own rules, nightly
 encrypted backups and an approval step before any change runs. See
 [docs/database.md](docs/database.md).
 
+## Tests
+
+Every pull request runs security tests (owner, stranger, invited guest,
+signed-out visitor) and browser tests at phone, laptop and 150% zoom. See
+[docs/testing.md](docs/testing.md).
+
 ## Running it on your own computer (optional)
 
 ```
