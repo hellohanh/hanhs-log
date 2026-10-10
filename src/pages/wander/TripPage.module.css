@@ -1,0 +1,127 @@
+/* Trip page (/wander/trip/:id), from the approved M3 mockup. Desktop
+   monitor first: the page fills the window under the site header; the trip
+   bar sits on top and the map area takes the rest. */
+.page {
+  height: calc(100vh - var(--site-header-h, var(--header-h)));
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 18px 32px 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+}
+.titles { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.back { font-size: 14px; color: var(--muted); text-decoration: none; padding: 4px 0; align-self: flex-start; }
+.back:hover { color: var(--ink); }
+.titleRow { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 16px; }
+.h1 { font-size: 34px; }
+.meta { font-size: 15px; color: var(--muted); }
+
+.tabs { display: flex; gap: 24px; margin-top: 10px; }
+.tab {
+  padding: 10px 0 12px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  font-size: 15px;
+  color: var(--muted);
+}
+.tabOn { border-bottom-color: var(--accent); color: var(--ink); font-weight: 700; cursor: default; }
+
+.actions { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; flex-wrap: wrap; }
+.actions :global(.btn) { min-height: 44px; font-weight: 700; }
+
+.avatars {
+  display: flex;
+  padding: 4px;
+  margin-right: 6px;
+  border: 0;
+  background: none;
+  border-radius: var(--pill);
+  cursor: pointer;
+}
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--pill);
+  border: 2px solid var(--surface);
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.avatar + .avatar { margin-left: -8px; }
+.avatarMore { background: var(--rule); color: var(--ink); font-size: 12px; }
+
+.edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 18px 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+}
+.field {
+  flex: 2 1 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.dateField { flex: 1 1 170px; }
+.field input {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--ground);
+  color: var(--ink);
+  font-size: 16px;
+  min-width: 0;
+}
+.editButtons { display: flex; gap: 10px; }
+.editButtons :global(.btn) { min-height: 44px; }
+.error { flex-basis: 100%; margin: 0; font-size: 15px; color: var(--accent); }
+
+.body { flex: 1; min-height: 0; display: flex; }
+.side {
+  width: 320px;
+  flex: none;
+  padding: 18px 20px;
+  box-sizing: border-box;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+}
+.map {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ground);
+  background-image: radial-gradient(var(--rule) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.placeholderTitle { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
+.placeholderText { margin: 0; font-size: 15px; color: var(--muted); }
+
+/* Narrow windows: stack (full phone design comes later). */
+@media (max-width: 760px) {
+  .page { height: auto; }
+  .bar, .edit { padding-left: 16px; padding-right: 16px; }
+  .body { flex-direction: column; }
+  .side { width: auto; border-right: 0; border-bottom: 1px solid var(--rule); }
+  .map { min-height: 60vh; }
+}

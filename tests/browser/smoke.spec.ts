@@ -14,6 +14,7 @@ const pages = [
   { name: 'home', path: './' },
   { name: 'wanderlog', path: './wander' },
   { name: 'wanderlog-trip', path: './wander/trip/test-trip' },
+  { name: 'wanderlog-join', path: './wander/join/test-token' },
   { name: 'savorlog', path: './savor' },
   { name: 'signin', path: './signin' },
   { name: 'city-search', path: './search?city=Rome' },
