@@ -50,7 +50,7 @@ M3 step 4: adding and editing pins, with a pins table in the new database and th
 > Read SKILL.md (E1–E48, Q1–Q8, L1–L32), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project now and
 > started from a clean slate (live Wanderlog is never touched). Session 4 finished M3 step 3 (the
-> map). Next is M3 step 4 (add/edit pins): settle Q3/Q4, then mock up for approval first.
+> map). Start Session 5 with M3 step 4 (add/edit pins): settle Q3/Q4, then mock up for approval first.
 > Ask me decisions as tappable multiple-choice questions.
 
 ## Working agreement

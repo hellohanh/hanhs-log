@@ -124,7 +124,7 @@
 
 ---
 
-## Session 4 — 2026-10-10 (in progress; finished at its Stop Protocol)
+## Session 4 — 2026-10-10
 
 **Goal:**
 - Get caught up from the S003 zip, then M3 step 3: the real map on the trip page.
@@ -143,7 +143,7 @@
   - The old Wanderlog's coloured HCMC districts, with a chip that shows only while a district is in view.
 - **Also** (E47, E48): trip cards count sorted pins only; paper plane v2.
 
-**Built and merged so far (pull requests with previews and green checks):**
+**Built and merged (all through pull requests with previews and green checks):**
 - #18, #19: the trip map and city lookup on the shared database (superseded by #20/#22).
 - #20: Wanderlog's database given back as it was (migration 0003, now archived).
 - #21: Map look panel closes on pick, ×, Escape and click outside.
@@ -157,6 +157,7 @@
 - #28: camera control with tilt, rotate and reset; Google dark.
 - #29: Pins / No pins chip; one Satellite look.
 - #30: transit pins stay with No pins; Districts chip only when a district is in view.
+- #31: this Stop Protocol (SKILL.md E39–E48, Q8, L24–L32; README; this entry; CLAUDE.md).
 - Preview-only, closed without merging: #17 (map looks side by side), #24 (opening zoom), #27 (tilt test).
 
 **Design work:**
@@ -171,4 +172,6 @@
 
 **Open questions:** Q1 (phone layout, parked), Q3–Q7, Q8 (Google dark pins/labels need a Google Cloud style, parked).
 
-**Next:** M3 step 4: add and edit pins (settle Q3/Q4, then a mockup first).
+**Stop Protocol completed:** zip `S004 OCT 10 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** M3 step 4, adding and editing pins. Settle Q3 (tried it / ratings) and Q4 (Bib Gourmand), then mock up the add-pin form and pin drawing for approval before any code.
