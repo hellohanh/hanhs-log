@@ -8,6 +8,17 @@ out="${1:?output name required}"
 : "${SUPABASE_DB_URL:?SUPABASE_DB_URL secret is not set}"
 : "${BACKUP_PASSPHRASE:?BACKUP_PASSPHRASE secret is not set}"
 
+# A brand-new project (Hanh's Log's own, session 4) has no tables until the
+# first migration runs. There's nothing to back up then, so say so and skip
+# instead of failing; the workflows skip the upload when empty=true.
+tables_now=$(psql "$SUPABASE_DB_URL" -X -t -A -c "select count(*) from information_schema.tables where table_schema = 'public'")
+if [ "$tables_now" = "0" ]; then
+  echo "Nothing to back up yet: the database has no tables (a brand-new project)."
+  [ -n "${GITHUB_STEP_SUMMARY:-}" ] && echo "Backup skipped: the database has no tables yet (brand-new project)." >> "$GITHUB_STEP_SUMMARY"
+  [ -n "${GITHUB_OUTPUT:-}" ] && echo "empty=true" >> "$GITHUB_OUTPUT"
+  exit 0
+fi
+
 pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner --no-privileges \
   --schema=public --file="$out.dump"
 
