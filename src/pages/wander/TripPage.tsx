@@ -16,11 +16,13 @@ import {
 } from '../../lib/trips'
 import ShareDialog from './ShareDialog'
 import NamePrompt from './NamePrompt'
+import TripMap, { type CityState } from './TripMap'
+import { ensureTripCity, firstCity } from '../../lib/city'
 import styles from './TripPage.module.css'
 
 // The trip page (/wander/trip/:id), from the approved M3 mockup: the trip
-// bar (title, dates, people, Edit trip, Share & people) over the map area.
-// The map itself arrives in step 3; the pin list in steps 4–5.
+// bar (title, dates, people, Edit trip, Share & people) over the map (step 3,
+// opening on the trip's city). Adding pins is step 4; the pin list step 5.
 
 export default function TripPage() {
   const { tripId = '' } = useParams()
@@ -59,18 +61,31 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const [nameLater, setNameLater] = useState(false)
   const [editing, setEditing] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [city, setCity] = useState<CityState>({ state: 'loading' })
+
+  // The city the map opens on: saved on the trip, looked up again only when
+  // the Destination's first city changes.
+  const loadCity = useCallback((destination: string) => {
+    ensureTripCity(tripId, destination).then(
+      c => setCity(c ? { state: 'ready', city: c } : { state: 'missing', query: firstCity(destination) }),
+      e => setCity({ state: 'error', message: (e as Error).message })
+    )
+  }, [tripId])
 
   const loadPeople = useCallback(() => fetchPeople(tripId).then(setPeople, () => setPeople([])), [tripId])
 
   useEffect(() => {
     fetchTrip(tripId).then(
-      trip => setLoad(trip ? { state: 'ready', trip } : { state: 'missing' }),
+      trip => {
+        setLoad(trip ? { state: 'ready', trip } : { state: 'missing' })
+        if (trip) loadCity(trip.destination)
+      },
       e => setLoad({ state: 'error', message: (e as Error).message })
     )
     loadPeople()
     // If names can't be checked (e.g. before the database update), don't nag.
     fetchMyName(userId).then(setMyName, () => setMyName(undefined))
-  }, [tripId, userId, loadPeople])
+  }, [tripId, userId, loadPeople, loadCity])
 
   if (load.state === 'loading') return <Message text="Loading the trip…" />
   if (load.state === 'missing') {
@@ -128,6 +143,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           onSaved={t => {
             setLoad({ state: 'ready', trip: t })
             setEditing(false)
+            if (firstCity(t.destination) !== firstCity(trip.destination)) loadCity(t.destination)
           }}
         />
       )}
@@ -135,11 +151,10 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
       <div className={styles.body}>
         <aside className={styles.side} aria-label="Places">
           <p className={styles.placeholderTitle}>Places</p>
-          <p className={styles.placeholderText}>Search and the pinned list arrive with the map (steps 3–5).</p>
+          <p className={styles.placeholderText}>No places on this trip yet.</p>
+          <p className={styles.placeholderText}>Old Wanderlog pins show here and on the map once you sort them. Adding pins comes in step 4.</p>
         </aside>
-        <div className={styles.map} role="img" aria-label="Map area">
-          <p className={styles.placeholderText}>The map arrives in step 3.</p>
-        </div>
+        <TripMap city={city} />
       </div>
 
       {sharing && (

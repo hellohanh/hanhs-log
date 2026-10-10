@@ -1,0 +1,119 @@
+/* The trip map (M3 step 3), from approved mockup v2. */
+.wrap { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; }
+.map { flex: 1; min-height: 100%; background: var(--ground); }
+
+.notice {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(520px, calc(100% - 32px));
+  margin: 0;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+.controls { position: absolute; left: 20px; top: 20px; display: flex; flex-wrap: wrap; gap: 10px; z-index: 2; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--pill);
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+}
+.chip[aria-expanded='true'],
+.chip[aria-pressed='true'] { border: 2px solid var(--accent); color: var(--accent); padding: 0 15px; }
+
+.panel {
+  position: absolute;
+  left: 20px;
+  top: 74px;
+  z-index: 3;
+  width: min(620px, calc(100% - 40px));
+  max-height: calc(100% - 94px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 18px 16px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.panelHead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.panelHead strong { font-size: 18px; }
+.panelHead span { font-size: 13px; color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 6px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+.tile svg { display: block; width: 100%; height: 78px; border-radius: 8px; }
+.tileName { font-size: 13px; font-weight: 700; line-height: 1.2; padding: 0 2px; }
+.tileNote { font-size: 12px; color: var(--muted); line-height: 1.2; padding: 0 2px; }
+.tile[aria-pressed='true'] { border: 3px solid var(--accent); padding: 4px 4px 6px; }
+.tile[aria-pressed='true']::after {
+  content: '✓';
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+.panelFoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+  color: var(--muted);
+}
+.panelFoot button { border: 0; background: none; padding: 6px 0; color: var(--accent); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+.districtPill {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 3px 10px;
+  border-radius: var(--pill);
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: 'Segoe UI', 'Selawik', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}

@@ -104,18 +104,8 @@
   background: var(--surface);
   border-right: 1px solid var(--rule);
 }
-.map {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--ground);
-  background-image: radial-gradient(var(--rule) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
 .placeholderTitle { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
-.placeholderText { margin: 0; font-size: 15px; color: var(--muted); }
+.placeholderText { margin: 0 0 8px; font-size: 15px; line-height: 1.5; color: var(--muted); }
 
 /* Narrow windows: stack (full phone design comes later). */
 @media (max-width: 760px) {
@@ -123,5 +113,5 @@
   .bar, .edit { padding-left: 16px; padding-right: 16px; }
   .body { flex-direction: column; }
   .side { width: auto; border-right: 0; border-bottom: 1px solid var(--rule); }
-  .map { min-height: 60vh; }
+  .body > div:last-child { min-height: 60vh; }
 }

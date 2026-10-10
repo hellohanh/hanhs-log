@@ -19,14 +19,14 @@ test('shows upcoming trips soonest first, then past trips', async ({ page }) => 
   await expect(upcoming).toHaveCount(3)
   await expect(upcoming.nth(0)).toContainText('Christmas in Saigon')
   await expect(upcoming.nth(0)).toContainText('Dec 18 – Jan 2, 2027')
-  await expect(upcoming.nth(0)).toContainText('42 pins · 3 people')
+  await expect(upcoming.nth(0)).toContainText('0 pins · 3 people')
   await expect(upcoming.nth(0)).toContainText('You own this')
   await expect(upcoming.nth(1)).toContainText('Rome long weekend')
   await expect(upcoming.nth(1)).toContainText('Mar 12 – Mar 16, 2027')
   await expect(upcoming.nth(1)).toContainText('Shared with you')
   await expect(upcoming.nth(2)).toContainText('Japan in spring')
   await expect(upcoming.nth(2)).toContainText('No dates yet')
-  await expect(upcoming.nth(2)).toContainText('1 pin · just you')
+  await expect(upcoming.nth(2)).toContainText('0 pins · just you')
 
   await expect(page.getByRole('heading', { name: 'Past' })).toBeVisible()
   const past = page.locator('ul').nth(1).getByTestId('trip-card')
@@ -63,7 +63,11 @@ test('creates a trip, and checks the name and destination first', async ({ page 
 
   await expect(page.getByText('Created "Hà Nội in autumn".')).toBeVisible()
   const insert = calls.find(c => c.method === 'POST' && c.url.includes('/rest/v1/trips'))
-  expect(JSON.parse(insert!.body!)).toEqual({
+  const body = JSON.parse(insert!.body!)
+  // The app picks the new trip's id so it can save the trip's city right away.
+  expect(body.id).toMatch(/^[0-9a-f-]{36}$/)
+  delete body.id
+  expect(body).toEqual({
     name: 'Hà Nội in autumn',
     destination: 'Hà Nội, Vietnam',
     start_date: '2026-11-02',

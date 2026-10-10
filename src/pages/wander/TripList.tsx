@@ -12,6 +12,7 @@ import {
   tripDates,
   type TripSummary
 } from '../../lib/trips'
+import { ensureTripCity } from '../../lib/city'
 import styles from './TripList.module.css'
 
 type Load = { state: 'loading' } | { state: 'ready'; trips: TripSummary[] } | { state: 'error'; message: string }
@@ -235,7 +236,9 @@ function NewTripForm({
     setSaving(true)
     setError('')
     try {
-      await createTrip({ name: n, destination: d, start_date: start || null, end_date: end || null }, userId)
+      const id = await createTrip({ name: n, destination: d, start_date: start || null, end_date: end || null }, userId)
+      // Look the city up now and save it, so the trip's map opens on it (best effort).
+      ensureTripCity(id, d).catch(() => undefined)
       onCreated(n)
     } catch (err) {
       setError(`Couldn't create the trip: ${(err as Error).message}`)
