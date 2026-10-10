@@ -56,3 +56,39 @@
 **Stop Protocol completed:** zip `S001 OCT 9 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** Milestone 3, Wanderlog trips and map inside Hanh's Log. First lay out its checklist (from today's Wanderlog features) for Hanh to approve before any code.
+
+---
+
+## Session 2 — 2026-10-09 to 2026-10-10
+
+**Goal:**
+- Get caught up from the S001 zip, then start Milestone 3 (Wanderlog trips and map).
+- Design one pin standard for Wanderlog and Savorlog.
+
+**Decisions made:** E23–E34 recorded in SKILL.md (E13 replaced by E33). Highlights:
+- Segoe UI on Wanderlog and Savorlog pages only (E23); desktop monitor 2560 × 1440 first (E24).
+- M3 plan and order (E25); people by first name, owner-only remove/reset, owner and invite link protected (E26).
+- Pin standard (E28–E34): teardrop pins, a 36 px MICHELIN pin with our own flower, Google icons plus Hanh's 43 drawings, a collapsed three-level pinned list, all non-food categories, and Nom-Nom (cuisine › dish, colour by region). Full detail in docs/pin-standard.md.
+
+**Built and merged (all through pull requests with previews and green checks):**
+- PR #8: Session 1 Stop Protocol docs.
+- PR #9: Segoe UI fonts on Wanderlog and Savorlog pages.
+- PR #10: Google Maps key and Map ID passed into builds; "Build settings" check in each run summary.
+- PR #11: M3 step 1, the trip list at `/wander`; monitor size added to browser tests; stand-in Supabase for signed-in tests.
+- PR #12: M3 step 2a, migration 0001 (first names, people list, owner-only remove and reset, owner/invite guard) with 28 new security checks; applied to the live database through the approval-gated workflow.
+- PR #13: M3 step 2b, trip page, edit trip, Share & people, first-name prompt, invite links; people counts on trip cards.
+- PR #14: this Stop Protocol (SKILL.md, README.md, SESSION_LEDGER.md, docs/pin-standard.md, 43 pin icons in `src/assets/pin-icons/`).
+
+**Design work:**
+- Canvas "Hanh's Log — Wanderlog M3 mockup": trip list and trip/map at 2560 × 1440, Share & people, pin baseline, pin shape options, and a decisions note.
+- Inline previews for every pin decision; the "Nom-Nom icon review" page for the dish icons.
+- Hanh's icon drawings (three sheets) traced to 43 SVGs.
+
+**Lessons:** L14–L19 recorded in SKILL.md.
+
+**Open questions:** Q1 (phone layout, parked), Q3 (tried it / rating), Q4 (Bib Gourmand box), Q5 (remaining cuisines' dishes), Q6 (five American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S002 OCT 10 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** M3 step 3, the real map on the trip page with the new pin standard, desktop monitor first.
+

@@ -3,14 +3,14 @@
 One app for trip planning (**Wanderlog**) and eateries (**Savorlog**), sharing one
 login and one database. Live at https://hellohanh.github.io/hanhs-log/
 
-## Current state (after Session 1, OCT 9 2026)
+## Current state (after Session 2, OCT 10 2026)
 
 | Milestone | Status |
 |---|---|
 | M1 Foundation: design tokens, light and dark mode, header, routes, email sign-in, add to home screen | ✅ live |
 | M2 Splash: scroll-driven plane flight, hand-over to the painted plane, search and section panels, city search page | ✅ live (desktop); phone layout parked |
-| M3 Wanderlog trips and map inside Hanh's Log | ⏭ next |
-| M4 Savorlog (country → main dish) | planned |
+| M3 Wanderlog trips and map inside Hanh's Log | 🚧 trip list, trip page and sharing live; map next |
+| M4 Savorlog (Nom-Nom: cuisine → dish) | planned; pin standard designed |
 | M5 Savorlog pins on trips, by city (20 km) | planned |
 | M6 Wanderlog itinerary | planned |
 | M7 Switch over from the old Wanderlog | planned |
@@ -21,23 +21,27 @@ login and one database. Live at https://hellohanh.github.io/hanhs-log/
   - Scrolling flies the plane along the dotted route Hanh mapped.
   - At the end the flying plane hands over to the plane painted in the picture, and the search panel, Where to? section, and Wanderlog and Savorlog cards fade in.
   - With reduced motion, the page shows the finished picture straight away.
-- **City search (`/search?city=…`)**: one results page per city, with trips and eateries sections that fill in at M3 and M4.
-- **Wanderlog (`/wander`) and Savorlog (`/savor`)**: placeholder pages until M3 and M4.
+- **Wanderlog trip list (`/wander`)**: upcoming trips (soonest first) and past trips (faded), with dates, pin and people counts, owned/shared labels; New trip; owner-only delete. Built for a 2560 × 1440 monitor first.
+- **Trip page (`/wander/trip/<id>`)**: name, destination and dates, people, Edit trip, and Share & people (invite link, owner-only Reset link and Remove, first names). The map arrives in M3 step 3.
+- **Invite links (`/wander/join/<code>`)**: signed-in people join straight away; others tap Join trip (no email) and are asked for a first name.
+- **City search (`/search?city=…`)**: one results page per city; trips and eateries fill in later.
 - **Sign in (`/signin`)**: email link through Supabase, the same project as Wanderlog.
+- **Fonts**: Segoe UI inside Wanderlog and Savorlog; Newsreader and Public Sans on the splash and header.
+- **Pin standard**: every category, colour and icon for Wanderlog and Savorlog pins is in [docs/pin-standard.md](docs/pin-standard.md); Hanh's own icons are in `src/assets/pin-icons/`.
 - **Safety net**:
-  - every pull request gets a preview link, a build check, migration rules, two-person security tests and browser tests at phone, laptop and 150% zoom;
+  - every pull request gets a preview link, a build check, migration rules, two-person security tests and browser tests at phone, laptop, 150% zoom and monitor sizes;
   - database changes run only through the approval-gated migrations workflow, after a backup;
   - backups run nightly, encrypted.
 
 ## What's next
-Milestone 3. First lay out its checklist (from today's Wanderlog features) for Hanh to approve, then build it in small pull requests.
+M3 step 3: the real Google map on the trip page, drawn with the new pin standard (teardrop pins, category colours, the MICHELIN pin), then adding and editing pins (step 4) and the collapsed pinned list (step 5).
 
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E22, L1–L13), README.md and SESSION_LEDGER.md first, plus CLAUDE.md for
-> the working agreement. Session 1 finished M1 and M2 (desktop). Start Session 2 with the
-> milestone 3 checklist (Wanderlog trips and map) for my approval. Ask me decisions as tappable
-> multiple-choice questions.
+> Read SKILL.md (E1–E34, L1–L19), README.md, SESSION_LEDGER.md and docs/pin-standard.md first,
+> plus CLAUDE.md for the working agreement. Session 2 finished M3 steps 1–2 and designed the pin
+> standard. Start Session 3 with M3 step 3 (the map with the new pins), desktop monitor first.
+> Ask me decisions as tappable multiple-choice questions.
 
 ## Working agreement
 - Every change goes on a branch and through a pull request; never push to main.
@@ -69,7 +73,7 @@ encrypted backups and an approval step before any change runs. See
 ## Tests
 Every pull request runs:
 - security tests, covering the owner, a stranger, an invited guest and a signed-out visitor;
-- browser tests at phone, laptop and 150% zoom.
+- browser tests at phone, laptop, 150% zoom and a 2560 × 1440 monitor, including the signed-in Wanderlog screens against a stand-in database.
 
 See [docs/testing.md](docs/testing.md).
 
