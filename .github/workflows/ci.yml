@@ -70,7 +70,12 @@ jobs:
         run: npm run build
         env:
           BASE_PATH: /
-      - name: Phone, laptop and 150% zoom
+          # A stand-in Supabase address and key: the browser tests answer
+          # every database call themselves (tests/browser/wander.spec.ts),
+          # so nothing ever reaches a real project.
+          VITE_SUPABASE_URL: https://test-project.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-anon-key
+      - name: Phone, laptop, 150% zoom and monitor
         run: npx playwright test
         env:
           CI: 'true'
