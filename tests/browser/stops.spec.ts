@@ -2,7 +2,7 @@ import { test, expect, type Locator, type Page } from '@playwright/test'
 import { fakeSupabase } from './fake-supabase'
 import { toMin } from '../../src/lib/itineraryDays'
 
-// Places on itinerary days (M3 step 4): dropped/added as time blocks, OTD Pins,
+// Places on itinerary days (M3 step 4): dropped/added as time blocks, Day route,
 // and the three ways to add one — drag, the Add popup's "Place", and the
 // "Add to day" buttons. The map needs Google, so map fade is checked via
 // lib/pinRules; here we check the panel behaviour and what reaches the database.
@@ -126,13 +126,13 @@ test('a scheduled place can be retimed and taken off the day', async ({ page }) 
   expect(db.stops).toHaveLength(0)
 })
 
-test('OTD Pins: off by default, and the map fade rule it drives', async ({ page }) => {
+test('Day route: off by default, and the map fade rule it drives', async ({ page }) => {
   await fakeSupabase(page, { pins: PINS })
   await page.goto('./wander/trip/trip-saigon')
   const panel = await openItinerary(page)
-  await expect(panel.getByLabel('OTD Pins')).not.toBeChecked()
-  await panel.getByLabel('OTD Pins').check()
-  await expect(panel.getByLabel('OTD Pins')).toBeChecked()
+  await expect(panel.getByLabel('Day route', { exact: true })).not.toBeChecked()
+  await panel.getByLabel('Day route', { exact: true }).check()
+  await expect(panel.getByLabel('Day route', { exact: true })).toBeChecked()
 
   const { pinFaded } = await import('../../src/lib/pinRules')
   const day = new Set(['a'])

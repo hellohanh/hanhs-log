@@ -106,6 +106,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const [openDay, setOpenDay] = useState<{ id: string; label: string } | null>(null)
   const [addReq, setAddReq] = useState<{ pinId: string; n: number } | null>(null)
   const [otdPinIds, setOtdPinIds] = useState<string[] | null>(null)
+  const [dayRoute, setDayRoute] = useState<import('../../lib/directions').RouteSeg[] | null>(null)
   const loadPins = useCallback(async () => {
     try {
       const ps = await fetchPins(tripId)
@@ -242,6 +243,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             city={city}
             rightInset={panel.open ? (panel.wide ? 2 : 1) * PANEL_WIDTH : 0}
             pins={mapPins}
+            route={panel.open ? dayRoute : null}
             focus={focus}
             onPinClick={id => setPinEdit({ mode: 'edit', pinId: id })}
           />
@@ -251,7 +253,6 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               start={trip.start_date}
               end={trip.end_date}
               wide={panel.wide}
-              home={city.state === 'ready' ? { center: { lat: city.city.lat, lng: city.city.lng }, zoom: 13 } : { center: { lat: 20, lng: 0 }, zoom: 2 }}
               pins={pins}
               reviews={reviews}
               addRequest={addReq}
@@ -259,6 +260,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               onClose={() => setPanel(p => ({ ...p, open: false }))}
               onOpenDay={setOpenDay}
               onOtdPins={setOtdPinIds}
+              onDayRoute={setDayRoute}
             />
           ) : (
             <ItineraryOpener onOpen={() => setPanel(p => ({ ...p, open: true }))} />

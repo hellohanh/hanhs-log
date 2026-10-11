@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { HOUR_PX, connectorGeometry } from '../../lib/itineraryLayout'
+import { HOUR_PX, connectorGeometry, formatMeters, formatMinutes } from '../../lib/itineraryLayout'
 import type { Connector, ConnMode, Stop } from '../../lib/itinerary'
-import type { Pin } from '../../lib/pins'
-import { computeLeg, formatMeters, formatMinutes, type LegTime } from '../../lib/directions'
+import type { LegTime } from '../../lib/directions'
 import styles from './Itinerary.module.css'
 
 // Connectors between a day's time-consecutive stops (approved mockup,
@@ -24,56 +23,28 @@ const MODE_BY = Object.fromEntries(MODES.map(m => [m.key, m])) as Record<ConnMod
 const GUTTER = 72 // blocks' left edge; matches ItineraryPanel
 const SPINE = 54 // where the vertical dashed line and the badge sit
 
-const pairKey = (from: string, to: string) => `${from}>${to}`
+export const pairKey = (from: string, to: string) => `${from}>${to}`
+/** Key for a leg's live time, including the mode so a mode change refetches. */
+export const legKey = (from: string, to: string, mode: ConnMode) => `${from}>${to}:${mode}`
 
 export function StopConnectors({
   stops,
   connectors,
-  pinById,
+  times,
   dayId,
   onSet,
   onClear
 }: {
   stops: Stop[]
   connectors: Connector[]
-  pinById: Map<string, Pin>
+  /** Live Google times keyed by legKey(from, to, mode); fetched by the panel. */
+  times: Record<string, LegTime | null | undefined>
   dayId: string
   onSet: (dayId: string, fromStopId: string, toStopId: string, mode: ConnMode) => Promise<void>
   onClear: (fromStopId: string, toStopId: string) => Promise<void>
 }) {
   const modeOf = new Map(connectors.map(c => [pairKey(c.from_stop_id, c.to_stop_id), c.mode]))
   const [pick, setPick] = useState<{ from: string; to: string; mid: number } | null>(null)
-  // Live Google times, keyed by from>to:mode so a mode change refetches.
-  const [times, setTimes] = useState<Record<string, LegTime | null>>({})
-  const want = useRef(new Set<string>())
-
-  // Pairs that currently have a mode and need a time.
-  const legs: { from: string; to: string; mid: number; mode: ConnMode }[] = []
-  for (let i = 0; i < stops.length - 1; i++) {
-    const from = stops[i].id
-    const to = stops[i + 1].id
-    const mode = modeOf.get(pairKey(from, to))
-    if (mode) legs.push({ from, to, mid: connectorGeometry(stops, i).mid, mode })
-  }
-
-  useEffect(() => {
-    let live = true
-    for (const leg of legs) {
-      const fromPin = pinById.get(stops.find(s => s.id === leg.from)!.pin_id)
-      const toPin = pinById.get(stops.find(s => s.id === leg.to)!.pin_id)
-      if (!fromPin || !toPin) continue
-      const key = `${leg.from}>${leg.to}:${leg.mode}`
-      if (want.current.has(key)) continue
-      want.current.add(key)
-      computeLeg({ lat: fromPin.lat, lng: fromPin.lng }, { lat: toPin.lat, lng: toPin.lng }, leg.mode).then(r => {
-        if (live) setTimes(t => ({ ...t, [key]: r }))
-      })
-    }
-    return () => {
-      live = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connectors, stops])
 
   if (stops.length < 2) return null
 
@@ -92,8 +63,7 @@ export function StopConnectors({
         const g = connectorGeometry(stops, i)
         const mode = modeOf.get(pairKey(from, to))
         const cfg = mode ? MODE_BY[mode] : null
-        const key = mode ? `${from}>${to}:${mode}` : ''
-        const leg = mode ? times[key] : undefined
+        const leg = mode ? times[legKey(from, to, mode)] : undefined
         return (
           <div key={from} className={styles.conn} style={{ left: SPINE, top: g.mid }} onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
             <button

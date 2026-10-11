@@ -27,8 +27,9 @@ import {
   type TravelLeg
 } from '../../lib/itinerary'
 import { pinBadge, type Pin, type Review } from '../../lib/pins'
+import { computeLeg, type LegTime, type RouteSeg } from '../../lib/directions'
 import { StopBlock, StopEdit, STOP_MIN, nextStopStart } from './StopBlock'
-import { StopConnectors } from './StopConnectors'
+import { StopConnectors, legKey, pairKey } from './StopConnectors'
 import {
   HOUR_PX,
   LEG_MODE_CONFIG,
@@ -41,7 +42,6 @@ import {
   legDayOffset,
   legDurationParts
 } from '../../lib/itineraryLayout'
-import { loadGoogleMaps } from '../../lib/googleMaps'
 import TravelForm from './TravelForm'
 import { ActivityBlock, ActivityFields, AddPopup, usePopupStyle } from './ActivityBlock'
 import { ADD_SNAP_MIN, NEW_BLOCK_MIN, hhmm, minuteAt, toMin } from '../../lib/itineraryDays'
@@ -51,7 +51,7 @@ import styles from './Itinerary.module.css'
 // panel over the map, 320 px or 640 px wide (covers the map), closed by
 // default behind a tab on the map's right edge. Header: route map, widen,
 // close. Day tabs (the trip's dates, plus extra days), a row with Add
-// travel and Day note (OTD Pins joins it with places on days), then the day's hour timeline with travel
+// travel and Day note (Day route joins it with places on days), then the day's hour timeline with travel
 // legs. Scheduling places, connectors and route lines come with pins.
 
 export const PANEL_WIDTH = 320
@@ -62,20 +62,19 @@ export default function ItineraryPanel({
   start,
   end,
   wide,
-  home,
   pins,
   reviews,
   addRequest,
   onWide,
   onClose,
   onOpenDay,
-  onOtdPins
+  onOtdPins,
+  onDayRoute
 }: {
   tripId: string
   start: string | null
   end: string | null
   wide: boolean
-  home: { center: google.maps.LatLngLiteral; zoom: number }
   pins: Pin[]
   reviews: Review[]
   /** A pin the Places panel asked to add to the open day (new object each time). */
@@ -84,8 +83,10 @@ export default function ItineraryPanel({
   onClose: () => void
   /** The day shown now (for the "Add to day" button), or null. */
   onOpenDay: (day: { id: string; label: string } | null) => void
-  /** Pin ids to keep full strength on the map when OTD Pins is on, or null when off. */
+  /** Pin ids to keep full strength on the map while the day route is on, or null. */
   onOtdPins: (pinIds: string[] | null) => void
+  /** The day route to draw on the map (coloured per mode), or null when off/closed. */
+  onDayRoute: (route: RouteSeg[] | null) => void
 }) {
   const [days, setDays] = useState<ItineraryDay[] | null>(null)
   const [legs, setLegs] = useState<TravelLeg[]>([])
@@ -100,10 +101,13 @@ export default function ItineraryPanel({
   const [editing, setEditing] = useState<Activity | null>(null)
   const [editStop, setEditStop] = useState<Stop | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
-  const [routeOpen, setRouteOpen] = useState(false)
   const [confirmDay, setConfirmDay] = useState(false)
-  // OTD Pins: off every visit; on fades the map's other pins (Hanh, session 4).
-  const [otd, setOtd] = useState(false)
+  // Day route: off every visit; on draws the day's route on the map and fades
+  // the other pins (Hanh, session 6 — supersedes the old OTD Pins).
+  const [showRoute, setShowRoute] = useState(false)
+  // Live Google leg routes (time + distance + road path), keyed by from>to:mode.
+  const [legTimes, setLegTimes] = useState<Record<string, LegTime | null>>({})
+  const wantLeg = useRef(new Set<string>())
   // A pin being dragged in from the Places panel: which day tab, or the timeline, is lit up.
   const [dropTarget, setDropTarget] = useState<string | 'timeline' | null>(null)
   const timeline = useRef<HTMLDivElement>(null)
@@ -205,8 +209,32 @@ export default function ItineraryPanel({
     [own, continuing, dayActs, dayStops]
   )
 
-  // Tell the trip page which day is open and which pins to keep bright on the
-  // map (OTD Pins on → this day's pins; off → null, Places rules apply).
+  // Fetch each set connector's live Google route (time, distance, road path).
+  useEffect(() => {
+    let live = true
+    const modeOf = new Map(dayConnectors.map(c => [pairKey(c.from_stop_id, c.to_stop_id), c.mode]))
+    for (let i = 0; i < orderedStops.length - 1; i++) {
+      const from = orderedStops[i]
+      const to = orderedStops[i + 1]
+      const mode = modeOf.get(pairKey(from.id, to.id))
+      if (!mode) continue
+      const fp = pinById.get(from.pin_id)
+      const tp = pinById.get(to.pin_id)
+      if (!fp || !tp) continue
+      const k = legKey(from.id, to.id, mode)
+      if (wantLeg.current.has(k)) continue
+      wantLeg.current.add(k)
+      computeLeg({ lat: fp.lat, lng: fp.lng }, { lat: tp.lat, lng: tp.lng }, mode).then(r => {
+        if (live) setLegTimes(t => ({ ...t, [k]: r }))
+      })
+    }
+    return () => {
+      live = false
+    }
+  }, [dayConnectors, orderedStops, pinById])
+
+  // Tell the trip page which day is open, which pins to keep bright, and the
+  // day route to draw (Day route on → this day's pins + route; off → cleared).
   useEffect(() => {
     if (day) {
       const t = dayTab(day, dayIndex)
@@ -214,9 +242,25 @@ export default function ItineraryPanel({
     } else onOpenDay(null)
   }, [day, dayIndex, onOpenDay])
   useEffect(() => {
-    onOtdPins(otd && day ? dayStops.map(s => s.pin_id) : null)
-  }, [otd, day, dayStops, onOtdPins])
-  useEffect(() => () => { onOpenDay(null); onOtdPins(null) }, [onOpenDay, onOtdPins])
+    onOtdPins(showRoute && day ? dayStops.map(s => s.pin_id) : null)
+  }, [showRoute, day, dayStops, onOtdPins])
+  useEffect(() => {
+    if (!showRoute || !day) return onDayRoute(null)
+    const modeOf = new Map(dayConnectors.map(c => [pairKey(c.from_stop_id, c.to_stop_id), c.mode]))
+    const segs: RouteSeg[] = []
+    for (let i = 0; i < orderedStops.length - 1; i++) {
+      const from = orderedStops[i]
+      const to = orderedStops[i + 1]
+      const fp = pinById.get(from.pin_id)
+      const tp = pinById.get(to.pin_id)
+      if (!fp || !tp) continue
+      const mode = modeOf.get(pairKey(from.id, to.id)) ?? null
+      const leg = mode ? legTimes[legKey(from.id, to.id, mode)] : null
+      segs.push({ from: { lat: fp.lat, lng: fp.lng }, to: { lat: tp.lat, lng: tp.lng }, mode, path: leg?.path ?? null })
+    }
+    onDayRoute(segs)
+  }, [showRoute, day, orderedStops, dayConnectors, legTimes, pinById, onDayRoute])
+  useEffect(() => () => { onOpenDay(null); onOtdPins(null); onDayRoute(null) }, [onOpenDay, onOtdPins, onDayRoute])
 
   async function reloadActs() {
     if (days) setActs(await fetchActivities(days.map(d => d.id)))
@@ -266,7 +310,6 @@ export default function ItineraryPanel({
     <aside className={`${styles.panel} ${wide ? styles.wide : ''}`} aria-label="Itinerary">
       <div className={styles.head}>
         <strong>Itinerary</strong>
-        <IconBtn label="Day route map" onClick={() => setRouteOpen(true)}><MapIcon /></IconBtn>
         <IconBtn label={wide ? 'Back to normal width' : 'Widen to 200%'} pressed={wide} onClick={onWide}><WidenIcon /></IconBtn>
         <IconBtn label="Close the itinerary" onClick={onClose}><CloseIcon /></IconBtn>
       </div>
@@ -332,8 +375,8 @@ export default function ItineraryPanel({
           {day && (
             <>
               <div className={styles.tools}>
-                <label className={styles.showAll} title="Fade the map's other pins, so this day's places stand out">
-                  <input type="checkbox" checked={otd} onChange={e => setOtd(e.target.checked)} /> OTD Pins
+                <label className={styles.showAll} title="Draw this day's route on the map and fade the other pins">
+                  <input type="checkbox" checked={showRoute} onChange={e => setShowRoute(e.target.checked)} /> Day route
                 </label>
                 <IconBtn label="Add travel (flight, train, bus, own transport)" onClick={() => setForm({ leg: null })}><PlaneIcon /></IconBtn>
                 <IconBtn label="Day note" pressed={noteOpen || !!day.note} onClick={() => setNoteOpen(o => !o)}><NoteIcon /></IconBtn>
@@ -439,7 +482,7 @@ export default function ItineraryPanel({
                     <StopConnectors
                       stops={orderedStops}
                       connectors={dayConnectors}
-                      pinById={pinById}
+                      times={legTimes}
                       dayId={day.id}
                       onSet={async (dId, from, to, mode: ConnMode) => {
                         await saveConnector(dId, from, to, mode)
@@ -556,7 +599,6 @@ export default function ItineraryPanel({
         </>
       )}
 
-      {routeOpen && <RouteMap home={home} title={day ? `${dayTab(day, dayIndex).top} ${dayTab(day, dayIndex).main}` : 'Day'} onClose={() => setRouteOpen(false)} />}
     </aside>
   )
 }
@@ -640,33 +682,6 @@ function Badge({ leg }: { leg: TravelLeg }) {
   return <span className={styles.modeDot} style={{ background: cfg.color }} dangerouslySetInnerHTML={{ __html: cfg.svg }} />
 }
 
-// The day's route map (kept from old Wanderlog). Stops and their route
-// appear once places can be scheduled (after pins).
-function RouteMap({ home, title, onClose }: { home: { center: google.maps.LatLngLiteral; zoom: number }; title: string; onClose: () => void }) {
-  const box = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    loadGoogleMaps().then(g => {
-      if (!g || !box.current) return
-      new g.maps.Map(box.current, { ...home, mapTypeControl: false, streetViewControl: false, fullscreenControl: false, gestureHandling: 'greedy' })
-    }, () => undefined)
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [home, onClose])
-  return (
-    <div className={styles.routeScrim} onMouseDown={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.route} role="dialog" aria-label="Day route map">
-        <div className={styles.routeHead}>
-          <strong>{title} · route</strong>
-          <IconBtn label="Close" onClick={onClose}><CloseIcon /></IconBtn>
-        </div>
-        <div ref={box} className={styles.routeMap} />
-        <p className={styles.muted}>This day's stops and route show here once places are added to the day.</p>
-      </div>
-    </div>
-  )
-}
-
 function IconBtn({ label, pressed, onClick, children }: { label: string; pressed?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" className={styles.ib} aria-label={label} title={label} aria-pressed={pressed} onClick={onClick}>
@@ -676,7 +691,6 @@ function IconBtn({ label, pressed, onClick, children }: { label: string; pressed
 }
 
 const svg = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true }
-const MapIcon = () => <svg {...svg}><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" /><path d="M9 4v14M15 6v14" /></svg>
 const WidenIcon = () => <svg {...svg}><path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4" /></svg>
 const CloseIcon = () => <svg {...svg}><path d="M6 6l12 12M18 6 6 18" /></svg>
 const PlaneIcon = () => <svg {...svg}><path d="M21 16v-2l-8-5V4.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-3 2v1.5l4.5-1 4.5 1V21l-3-2v-4.5l8 2.5z" /></svg>
