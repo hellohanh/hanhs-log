@@ -33,12 +33,15 @@ export interface FakePerson {
 
 export interface FakeDay { id: string; trip_id: string; date: string | null; note: string | null; created_at: string }
 export interface FakeLeg { id: string; day_id: string; [k: string]: unknown }
+export type FakeRow = Record<string, unknown>
 
 export interface FakeDb {
   trips: FakeTrip[]
   days: FakeDay[]
   legs: FakeLeg[]
   acts: FakeLeg[]
+  pins: FakeRow[]
+  reviews: FakeRow[]
   /** People per trip id. Trips missing here answer "not allowed". */
   people: Record<string, FakePerson[]>
   myName: string | null
@@ -98,7 +101,7 @@ const deny = (route: Route, message: string) =>
  */
 export async function fakeSupabase(
   page: Page,
-  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null } = {}
+  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[] } = {}
 ): Promise<FakeDb> {
   const me = opts.signedInAs === undefined ? ME : opts.signedInAs
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00'))
@@ -112,6 +115,8 @@ export async function fakeSupabase(
     days: [],
     legs: [],
     acts: [],
+    pins: structuredClone(opts.pins ?? []),
+    reviews: structuredClone(opts.reviews ?? []),
     calls: []
   }
   let currentUser = me
@@ -188,6 +193,37 @@ export async function fakeSupabase(
         return route.fulfill({ status: 204, body: '' })
       }
     }
+    // Pins (step 4) and each person's WTG / VIS.
+    if (path === '/rest/v1/pins') {
+      const trip = url.searchParams.get('trip_id')?.replace('eq.', '')
+      if (req.method() === 'GET') return route.fulfill({ json: db.pins.filter(p => p.trip_id === trip) })
+      if (req.method() === 'POST') {
+        db.pins.push({ created_at: '2026-10-10T12:00:00Z', ...args })
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'PATCH') {
+        db.pins = db.pins.map(p => (p.id === idEq ? { ...p, ...args } : p))
+        return route.fulfill({ status: 204, body: '' })
+      }
+      if (req.method() === 'DELETE') {
+        db.pins = db.pins.filter(p => p.id !== idEq)
+        db.reviews = db.reviews.filter(r => r.pin_id !== idEq)
+        return route.fulfill({ status: 204, body: '' })
+      }
+    }
+    if (path === '/rest/v1/pin_reviews') {
+      if (req.method() === 'GET') {
+        const ids = (url.searchParams.get('pin_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
+        return route.fulfill({ json: db.reviews.filter(r => ids.includes(r.pin_id as string)) })
+      }
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) {
+          db.reviews = db.reviews.filter(x => !(x.pin_id === r.pin_id && x.user_id === r.user_id))
+          db.reviews.push({ ...r, updated_at: `2026-10-10T12:${String(db.calls.length % 60).padStart(2, '0')}:00Z` })
+        }
+        return route.fulfill({ status: 201, body: '' })
+      }
+    }
     if (path === '/rest/v1/travel_legs') {
       if (req.method() === 'GET') {
         const ids = (url.searchParams.get('day_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
@@ -246,4 +282,15 @@ export async function fakeSupabase(
     return route.fulfill({ json: {} })
   })
   return db
+}
+
+/** Answer the Places panel's Google search with these places. */
+export async function fakePlaces(page: Page, places: { id: string; name: string; address: string; lat: number; lng: number }[]) {
+  await page.route('https://places.googleapis.com/**', route =>
+    route.fulfill({
+      json: {
+        places: places.map(p => ({ id: p.id, displayName: { text: p.name }, formattedAddress: p.address, location: { latitude: p.lat, longitude: p.lng } }))
+      }
+    })
+  )
 }

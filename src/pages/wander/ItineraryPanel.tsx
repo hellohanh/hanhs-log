@@ -38,8 +38,8 @@ import styles from './Itinerary.module.css'
 // The itinerary panel (approved inline mockup, session 4): a right-hand
 // panel over the map, 320 px or 640 px wide (covers the map), closed by
 // default behind a tab on the map's right edge. Header: route map, widen,
-// close. Day tabs (the trip's dates, plus extra days), a row with Show all
-// pins, Add travel and Day note, then the day's hour timeline with travel
+// close. Day tabs (the trip's dates, plus extra days), a row with Add
+// travel and Day note (OTD Pins joins it with places on days), then the day's hour timeline with travel
 // legs. Scheduling places, connectors and route lines come with pins.
 
 export const PANEL_WIDTH = 320
@@ -72,7 +72,6 @@ export default function ItineraryPanel({
   const [adding, setAdding] = useState<{ start: number; end: number } | null>(null)
   const [editing, setEditing] = useState<Activity | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
-  const [showAll, setShowAll] = useState(true)
   const [routeOpen, setRouteOpen] = useState(false)
   const [confirmDay, setConfirmDay] = useState(false)
   const timeline = useRef<HTMLDivElement>(null)
@@ -218,9 +217,8 @@ export default function ItineraryPanel({
           {day && (
             <>
               <div className={styles.tools}>
-                <label className={styles.showAll}>
-                  <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show all pins
-                </label>
+                {/* "Show all pins" moved to the Places panel; OTD Pins comes here with places on days. */}
+                <span className={styles.showAll} />
                 <IconBtn label="Add travel (flight, train, bus, own transport)" onClick={() => setForm({ leg: null })}><PlaneIcon /></IconBtn>
                 <IconBtn label="Day note" pressed={noteOpen || !!day.note} onClick={() => setNoteOpen(o => !o)}><NoteIcon /></IconBtn>
                 {canDelete && <IconBtn label="Delete this day" onClick={() => setConfirmDay(true)}><TrashIcon /></IconBtn>}

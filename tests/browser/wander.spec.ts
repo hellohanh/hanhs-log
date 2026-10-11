@@ -19,7 +19,7 @@ test('shows upcoming trips soonest first, then past trips', async ({ page }) => 
   await expect(upcoming).toHaveCount(3)
   await expect(upcoming.nth(0)).toContainText('Christmas in Saigon')
   await expect(upcoming.nth(0)).toContainText('Dec 18 – Jan 2, 2027')
-  await expect(upcoming.nth(0)).toContainText('0 pins · 3 people')
+  await expect(upcoming.nth(0)).toContainText('42 pins · 3 people')
   await expect(upcoming.nth(0)).toContainText('Hồ Chí Minh City · Vietnam')
   await expect(upcoming.nth(0)).toContainText('You own this')
   await expect(upcoming.nth(1)).toContainText('Rome long weekend')
@@ -27,7 +27,7 @@ test('shows upcoming trips soonest first, then past trips', async ({ page }) => 
   await expect(upcoming.nth(1)).toContainText('Shared with you')
   await expect(upcoming.nth(2)).toContainText('Japan in spring')
   await expect(upcoming.nth(2)).toContainText('No dates yet')
-  await expect(upcoming.nth(2)).toContainText('0 pins · just you')
+  await expect(upcoming.nth(2)).toContainText('1 pin · just you')
 
   await expect(page.getByRole('heading', { name: 'Past' })).toBeVisible()
   const past = page.locator('ul').nth(1).getByTestId('trip-card')

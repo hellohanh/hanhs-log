@@ -25,7 +25,7 @@ export interface NewTrip extends TripPlace {
   end_date: string | null
 }
 
-type Row = Omit<TripSummary, 'pinCount'> & { pins?: unknown }
+type Row = Omit<TripSummary, 'pinCount'> & { pins?: { count: number }[] }
 
 function client() {
   if (!supabase) throw new Error("Sign-in isn't set up in this build.")
@@ -35,11 +35,11 @@ function client() {
 export async function fetchTrips(): Promise<TripSummary[]> {
   const { data, error } = await client()
     .from('trips')
-    .select(`id, name, ${PLACE_COLUMNS}, start_date, end_date, owner_id, created_at`)
+    .select(`id, name, ${PLACE_COLUMNS}, start_date, end_date, owner_id, created_at, pins(count)`)
   if (error) throw new Error(error.message)
-  // Cards count sorted pins only (Hanh, session 4). Pins arrive in step 4,
-  // so for now every trip shows 0.
-  return ((data ?? []) as Row[]).map(({ pins: _pins, ...t }) => ({ ...t, pinCount: 0 }))
+  // Cards count sorted pins only (Hanh, session 4): every Hanh's Log pin is
+  // sorted (its category is picked when it's added).
+  return ((data ?? []) as Row[]).map(({ pins, ...t }) => ({ ...t, pinCount: pins?.[0]?.count ?? 0 }))
 }
 
 /** Map fields saved with a trip: where its map opens (see lib/city.ts). */

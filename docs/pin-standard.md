@@ -13,7 +13,10 @@ mockup" holds the boards and a decisions note with the same content.
   drawn with a **1 px** line (`vector-effect: non-scaling-stroke`). Never the
   MICHELIN Guide logo itself.
 - **MICHELIN stars**: 1–3 small red stars in a white chip above the pin. Bib
-  Gourmand: the word "Bib" in the chip (see Q4).
+  Gourmand places are just "Mentioned": the MICHELIN pin with no chip (E52).
+- **Status badge** (E51): top-right of every pin. Blank orange `#E8862A` for WTG;
+  for VIS, green `#2F8A3E` with a white ✓ (revisit), yellow `#F2C230` with a
+  black dash (2nd chance), red `#C8352F` with a white ✗ (don't go back).
 - **Filtered out**: the pin fades to 10%.
 
 Flower geometry (100 × 100 grid, rotated 6 × 60°):
@@ -150,12 +153,19 @@ Every level is collapsed by default and opens with its arrow.
 Still to do (Q5): dishes for East Asian, South Asian, European, Americas, and Café /
 Bakery / Bar / Fusion.
 
-## Badges and the add-pin form (to build)
+## The add-pin form (built in session 4)
 
-- MICHELIN: click boxes for MICHELIN mentioned (selected), 1, 2 or 3 stars, plus
-  the year (Bib Gourmand: Q4).
-- Tried it and your rating: to design (Q3, E10).
-- Street food and fine dining: badges, not dishes (E34).
+- Opened from the Places panel's Google search box; category picked by hand.
+- You: WTG / VIS; VIS needs ✓, – or ✗; an optional 1–5 rating in half stars.
+  Editing lists everyone's status and the average rating (card only).
+- MICHELIN (food and drink only): None / Mentioned / ★ / ★★ / ★★★ plus the year.
+- Street food and Fine dining: badges, not dishes (E34), food and drink only.
+- Code: `src/lib/pinCatalog.ts` (categories), `src/lib/pinDraw.ts` (the pin),
+  `src/lib/materialIcons.ts` (the Material Symbols used). Two names in this file
+  aren't in Material Symbols and were swapped for the closest match: Viewpoint
+  uses `mountain_flag` (not `terrain`), Souvenirs / gifts uses `redeem` (not
+  `card_giftcard`). Café, Bakery and Bar use `coffee`, `bakery_dining` and
+  `local_bar`; cuisines without dishes yet use `restaurant`.
 
 ## Old Wanderlog food pins (E33)
 
