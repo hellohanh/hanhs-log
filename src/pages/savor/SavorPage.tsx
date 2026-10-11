@@ -1,19 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
 import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, priceLabel, type Eatery, type EateryReview } from '../../lib/eateries'
-import { buildCountryTree, type CountryNode } from '../../lib/savorTree'
+import { searchLocations, resolveScope, inScope, type LocationHit, type Scope } from '../../lib/savorLocation'
+import { buildCountryTree } from '../../lib/savorTree'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml, badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
 import { pinBadge, pinFaded, averageRating } from '../../lib/pinRules'
-import SavorMap, { type FitPoints } from './SavorMap'
+import SavorMap, { type Frame } from './SavorMap'
 import { type MapPin } from '../wander/mapPinLayer'
 import styles from './Savor.module.css'
 
-// The Savorlog page (/savor): the shared eatery catalogue by country → dish on
-// the left, the whole catalogue on one map on the right (approved mockup,
-// Direction A). Adding and editing an eatery (search box, price, photos) is 4d.
+// The Savorlog page (/savor): a required location gate (E66) scopes the page to
+// a country or a city, then the shared eatery catalogue by country → dish on
+// the left and the chosen place on one map. Adding / editing an eatery is 4d.
 
 const asLook = (e: Eatery) => ({ category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
 
@@ -46,13 +47,12 @@ function SavorLoaded() {
   const [eateries, setEateries] = useState<Eatery[]>([])
   const [reviews, setReviews] = useState<EateryReview[]>([])
   const [error, setError] = useState('')
-  const [loaded, setLoaded] = useState(false)
   const [showAll, setShowAll] = useState(true)
   const [michelinOnly, setMichelinOnly] = useState(false)
   const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
-  const [fitTo, setFitTo] = useState<FitPoints | null>(null)
-  const [panTo, setPanTo] = useState<{ lat: number; lng: number } | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
+  // The location gate: null until a country/city is chosen (asked every visit).
+  const [scope, setScope] = useState<Scope | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -63,21 +63,21 @@ function SavorLoaded() {
       setError('')
     } catch (e) {
       setError((e as Error).message)
-    } finally {
-      setLoaded(true)
     }
   }, [])
   useEffect(() => {
     load()
   }, [load])
 
-  const tree = useMemo(() => buildCountryTree(eateries), [eateries])
-  const hasMichelin = eateries.some(e => e.michelin)
-  const michelinCount = eateries.filter(e => e.michelin).length
+  const shown = useMemo(() => (scope ? eateries.filter(e => inScope(e, scope)) : []), [eateries, scope])
+  const tree = useMemo(() => buildCountryTree(shown), [shown])
+  const hasMichelin = shown.some(e => e.michelin)
+  const michelinCount = shown.filter(e => e.michelin).length
+  const frame: Frame | null = scope ? (scope.kind === 'country' ? { bounds: scope.bounds, center: scope.center } : { center: scope.center, zoom: 13 }) : null
 
   const mapPins = useMemo<MapPin[]>(
     () =>
-      eateries.map(e => {
+      shown.map(e => {
         const look = pinLook(asLook(e))
         const box = pinBox(e)
         return {
@@ -91,7 +91,7 @@ function SavorLoaded() {
           faded: pinFaded({ id: e.id, michelin: e.michelin }, { editing: false, otdPins: null, showAll, michelinOnly })
         }
       }),
-    [eateries, reviews, showAll, michelinOnly]
+    [shown, reviews, showAll, michelinOnly]
   )
 
   const toggle = (key: string) =>
@@ -100,25 +100,28 @@ function SavorLoaded() {
       next.has(key) ? next.delete(key) : next.add(key)
       return next
     })
-  const allOf = (c: CountryNode<Eatery>) => [...c.loose, ...c.dishes.flatMap(d => d.eateries)]
-  const openCountry = (c: CountryNode<Eatery>) => {
-    const was = openKeys.has(c.key)
-    toggle(c.key)
-    if (!was) setFitTo(allOf(c).map(e => ({ lat: e.lat, lng: e.lng }))) // expanding flies the map there
-  }
-  const openEatery = (e: Eatery) => {
-    setOpenId(e.id)
-    setPanTo({ lat: e.lat, lng: e.lng })
+  const openEatery = (e: Eatery) => setOpenId(e.id)
+  const chooseScope = (s: Scope) => {
+    setScope(s)
+    setOpenKeys(new Set())
+    setOpenId(null)
   }
 
-  const open = openId ? eateries.find(e => e.id === openId) ?? null : null
+  const open = openId ? shown.find(e => e.id === openId) ?? null : null
 
   return (
     <main className={`segoe ${styles.page}`}>
       <div className={styles.bar}>
-        <p className={styles.eyebrow}>Savorlog</p>
-        <h1 className={styles.h1}>Eateries</h1>
-        <p className={styles.sub}>The family's whole catalogue — by country, then main dish.</p>
+        <div className={styles.titles}>
+          <p className={styles.eyebrow}>Savorlog</p>
+          <h1 className={styles.h1}>Eateries</h1>
+        </div>
+        {scope && (
+          <div className={styles.where}>
+            Showing <b>{scope.name}</b> {scope.kind === 'city' ? '(city)' : '(country)'}
+            <button type="button" className={styles.change} onClick={() => setScope(null)}>Change</button>
+          </div>
+        )}
       </div>
       <div className={styles.body}>
         <aside className={styles.side} aria-label="Catalogue">
@@ -128,9 +131,10 @@ function SavorLoaded() {
             <>
               <div className={styles.head}>
                 <strong>Catalogue</strong>
-                <span className={styles.count}>{eateries.length > 0 ? eateries.length : ''}</span>
+                <span className={styles.count}>{shown.length > 0 ? shown.length : ''}</span>
               </div>
-              {eateries.length > 0 && (
+              {error && <p className={styles.error} role="alert">Couldn't load the catalogue: {error}</p>}
+              {scope && shown.length > 0 && (
                 <div className={styles.filters}>
                   <label className={styles.showAll}>
                     <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show all
@@ -142,17 +146,16 @@ function SavorLoaded() {
                   )}
                 </div>
               )}
-              {error && <p className={styles.error} role="alert">Couldn't load the catalogue: {error}</p>}
-              {loaded && eateries.length === 0 && !error && (
-                <p className={styles.muted}>No eateries yet. Adding comes in the next step.</p>
+              {scope && shown.length === 0 && !error && (
+                <p className={styles.muted}>No eateries in {scope.name} yet.</p>
               )}
-              {eateries.length > 0 && (
+              {scope && shown.length > 0 && (
                 <ul className={styles.tree}>
                   {tree.map(c => {
                     const openC = openKeys.has(c.key)
                     return (
                       <li key={c.key}>
-                        <button type="button" className={styles.node} aria-expanded={openC} onClick={() => openCountry(c)}>
+                        <button type="button" className={styles.node} aria-expanded={openC} onClick={() => toggle(c.key)}>
                           <span className={styles.arrow} aria-hidden="true">{openC ? '▾' : '▸'}</span>
                           <span className={styles.dot} style={{ background: c.color }} />
                           <span className={styles.name}>{c.label}</span>
@@ -194,10 +197,62 @@ function SavorLoaded() {
           )}
         </aside>
         <div className={styles.mapArea}>
-          <SavorMap pins={mapPins} fitTo={fitTo} panTo={panTo} onPinClick={id => openEatery(eateries.find(e => e.id === id)!)} />
+          <SavorMap pins={mapPins} frame={frame} onPinClick={id => { const e = shown.find(x => x.id === id); if (e) openEatery(e) }} />
         </div>
       </div>
+      {!scope && <LocationPicker onPick={h => chooseScope(resolveScope(h))} />}
     </main>
+  )
+}
+
+function LocationPicker({ onPick }: { onPick: (hit: LocationHit) => void }) {
+  const [query, setQuery] = useState('')
+  const [hits, setHits] = useState<LocationHit[]>([])
+  const [searching, setSearching] = useState(false)
+  const [err, setErr] = useState('')
+  const seq = useRef(0)
+
+  function run(q: string) {
+    setQuery(q)
+    const n = ++seq.current
+    if (!q.trim()) {
+      setHits([])
+      setErr('')
+      return
+    }
+    setSearching(true)
+    searchLocations(q).then(
+      r => { if (n === seq.current) { setHits(r); setErr(''); setSearching(false) } },
+      e => { if (n === seq.current) { setHits([]); setErr((e as Error).message); setSearching(false) } }
+    )
+  }
+
+  return (
+    <div className={styles.scrim}>
+      <div className={styles.modal} role="dialog" aria-modal="true" aria-label="Where to see eateries">
+        <h2 className={styles.modalH}>Where do you want to see eateries?</h2>
+        <p className={styles.modalP}>Pick a country or a city — the catalogue and the map show that place.</p>
+        <form className={styles.search} role="search" onSubmit={e => e.preventDefault()}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          <input autoFocus type="search" value={query} onChange={e => run(e.target.value)} placeholder="Search a country or city" aria-label="Search a country or city" />
+        </form>
+        {err && <p className={styles.error} role="alert">{err}</p>}
+        {hits.length > 0 && (
+          <ul className={styles.results} aria-label="Places">
+            {hits.map(h => (
+              <li key={h.id}>
+                <button type="button" className={styles.res} onClick={() => onPick(h)}>
+                  <span><b>{h.name}</b>{h.kind === 'city' && h.sub ? <span className={styles.resSub}> {h.sub}</span> : null}</span>
+                  <span className={styles.kind}>{h.kind}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {query.trim() && !searching && hits.length === 0 && !err && <p className={styles.muted}>Nothing found. Try another name.</p>}
+        <p className={styles.req}>A country or city is required to open Savorlog.</p>
+      </div>
+    </div>
   )
 }
 

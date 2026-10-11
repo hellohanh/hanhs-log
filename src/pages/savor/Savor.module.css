@@ -8,17 +8,38 @@
 }
 .bar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 4px 16px;
-  padding: 14px 32px;
+  gap: 8px 16px;
+  padding: 12px 32px;
   background: var(--surface);
   border-bottom: 1px solid var(--rule);
 }
-.eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: 12px; font-weight: 700; color: var(--accent); margin: 0; width: 100%; }
-.h1 { font-size: 30px; margin: 0; }
+.titles { display: flex; flex-direction: column; }
+.eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: 12px; font-weight: 700; color: var(--accent); margin: 0; }
+.h1 { font-size: 28px; margin: 0; }
 .sub { font-size: 14px; color: var(--muted); margin: 0; }
+.where { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+.where b { color: var(--ink); }
+.change { border: 1px solid var(--rule); background: var(--surface); border-radius: var(--pill); padding: 6px 14px; font: inherit; font-size: 13px; font-weight: 700; color: var(--accent); cursor: pointer; }
+.change:hover { background: var(--ground); }
 .body { flex: 1; min-height: 0; display: flex; }
+
+/* location gate (E66) */
+.scrim { position: fixed; inset: 0; background: rgba(20, 18, 16, .45); display: flex; align-items: flex-start; justify-content: center; padding: 14vh 16px 0; z-index: 20; }
+.modal { width: min(520px, 100%); background: var(--surface); border: 1px solid var(--rule); border-radius: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, .25); padding: 22px; box-sizing: border-box; }
+.modalH { margin: 0 0 4px; font-size: 22px; }
+.modalP { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+.search { display: flex; align-items: center; gap: 8px; padding: 0 6px 0 12px; border: 1px solid var(--rule); border-radius: var(--pill); background: var(--ground); color: var(--muted); }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; height: 46px; outline: none; }
+.search:focus-within { border-color: var(--accent); }
+.results { list-style: none; margin: 12px 0 0; padding: 0; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.results li + li { border-top: 1px solid var(--rule); }
+.res { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 14px; border: 0; background: var(--surface); color: var(--ink); text-align: left; font: inherit; cursor: pointer; }
+.res:hover { background: var(--ground); }
+.resSub { color: var(--muted); font-size: 12px; }
+.kind { margin-left: auto; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border: 1px solid var(--rule); border-radius: var(--pill); padding: 2px 8px; }
+.req { margin: 14px 0 0; font-size: 12px; color: var(--muted); }
 
 .side {
   width: 340px;
