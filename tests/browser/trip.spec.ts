@@ -147,11 +147,11 @@ test('invite link: an old or wrong link explains what to do', async ({ page }) =
   await expect(page.getByRole('alert')).toContainText("This invite link doesn't work")
 })
 
-test('the map area opens empty: no old pins, and says why there is no map in a build without a key', async ({ page }) => {
+test('the map area opens empty: no old pins, a search box to add one, and says why there is no map in a build without a key', async ({ page }) => {
   await fakeSupabase(page)
   await page.goto('./wander/trip/trip-saigon')
   await expect(page.getByText('No places on this trip yet.')).toBeVisible()
-  await expect(page.getByText('Old Wanderlog pins show here and on the map once you sort them.', { exact: false })).toBeVisible()
+  await expect(page.getByRole('searchbox', { name: 'Search Google for a place to add' })).toBeVisible()
   await expect(page.getByRole('status').filter({ hasText: "The map can't load in this build" })).toBeVisible()
 })
 

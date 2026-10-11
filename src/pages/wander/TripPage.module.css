@@ -61,22 +61,11 @@
 }
 
 .body { flex: 1; min-height: 0; display: flex; }
-.side {
-  width: 320px;
-  flex: none;
-  padding: 18px 20px;
-  box-sizing: border-box;
-  background: var(--surface);
-  border-right: 1px solid var(--rule);
-}
-.placeholderTitle { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
-.placeholderText { margin: 0 0 8px; font-size: 15px; line-height: 1.5; color: var(--muted); }
 
 /* Narrow windows: stack (full phone design comes later). */
 @media (max-width: 760px) {
   .page { height: auto; }
   .bar, .edit { padding-left: 16px; padding-right: 16px; }
   .body { flex-direction: column; }
-  .side { width: auto; border-right: 0; border-bottom: 1px solid var(--rule); }
   .body > div:last-child { min-height: 60vh; }
 }

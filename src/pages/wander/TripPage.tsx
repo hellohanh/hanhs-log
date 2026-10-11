@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
@@ -19,7 +19,11 @@ import {
 } from '../../lib/trips'
 import ShareDialog from './ShareDialog'
 import NamePrompt from './NamePrompt'
-import TripMap, { type CityState } from './TripMap'
+import TripMap, { type CityState, type MapPin } from './TripMap'
+import PlacesPanel, { type Editing } from './PlacesPanel'
+import { fetchPins, fetchReviews, pinBadge, type Pin, type Review } from '../../lib/pins'
+import { pinLook } from '../../lib/pinCatalog'
+import { pinBox, pinHtml } from '../../lib/pinDraw'
 import ItineraryPanel, { ItineraryOpener, PANEL_WIDTH } from './ItineraryPanel'
 import { readPanelState, savePanelState, type PanelState } from '../../lib/itinerary'
 import { ensureTripCity, type City } from '../../lib/city'
@@ -29,7 +33,8 @@ import styles from './TripPage.module.css'
 // The trip page (/wander/trip/:id), from the approved M3 mockup: the trip
 // bar (title, dates, people, Edit trip, Share & people) over Places (left),
 // the map, and the itinerary panel (right; session 4 moved the itinerary
-// out of its own tab). Adding pins is step 4; the pin list step 5.
+// out of its own tab). Pins (step 4): added from the Places panel's search
+// box and drawn on the map; the full pin list tree is step 5.
 
 export default function TripPage() {
   const { tripId = '' } = useParams()
@@ -86,6 +91,48 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
       e => setCity({ state: 'error', message: (e as Error).message })
     )
   }, [tripId])
+
+  // Pins and everyone's WTG / VIS. "Show all pins" and the MICHELIN filter
+  // start fresh on every visit (Hanh, session 4).
+  const [pins, setPins] = useState<Pin[]>([])
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [pinsError, setPinsError] = useState('')
+  const [showAll, setShowAll] = useState(true)
+  const [michelinOnly, setMichelinOnly] = useState(false)
+  const [pinEdit, setPinEdit] = useState<Editing>(null)
+  const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null)
+  const loadPins = useCallback(async () => {
+    try {
+      const ps = await fetchPins(tripId)
+      setPins(ps)
+      setReviews(await fetchReviews(ps.map(p => p.id)))
+      setPinsError('')
+    } catch (e) {
+      setPinsError((e as Error).message)
+    }
+  }, [tripId])
+  useEffect(() => {
+    loadPins()
+  }, [loadPins])
+  const mapPins = useMemo<MapPin[]>(
+    () =>
+      pins.map(p => {
+        const look = pinLook(p)
+        const box = pinBox(p)
+        const editingThis = pinEdit?.mode === 'edit' && pinEdit.pinId === p.id
+        return {
+          id: p.id,
+          lat: p.lat,
+          lng: p.lng,
+          title: `${p.name} (${look.label})`,
+          html: pinHtml({ color: look.color, icon: look.icon, michelin: p.michelin, badge: pinBadge(reviews.filter(r => r.pin_id === p.id)) }),
+          width: box.width,
+          height: box.height,
+          faded: !editingThis && (!showAll || (michelinOnly && !p.michelin))
+        }
+      }),
+    [pins, reviews, showAll, michelinOnly, pinEdit]
+  )
 
   const loadPeople = useCallback(() => fetchPeople(tripId).then(setPeople, () => setPeople([])), [tripId])
 
@@ -161,13 +208,31 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
       )}
 
       <div className={styles.body}>
-        <aside className={styles.side} aria-label="Places">
-          <p className={styles.placeholderTitle}>Places</p>
-          <p className={styles.placeholderText}>No places on this trip yet.</p>
-          <p className={styles.placeholderText}>Old Wanderlog pins show here and on the map once you sort them. Adding pins comes in step 4.</p>
-        </aside>
+        <PlacesPanel
+          tripId={trip.id}
+          userId={userId}
+          people={people}
+          pins={pins}
+          reviews={reviews}
+          loadError={pinsError}
+          showAll={showAll}
+          onShowAll={setShowAll}
+          michelinOnly={michelinOnly}
+          onMichelinOnly={setMichelinOnly}
+          editing={pinEdit}
+          onEditing={setPinEdit}
+          onSaved={() => loadPins()}
+          onFocus={at => setFocus({ lat: at.lat, lng: at.lng })}
+          near={city.state === 'ready' ? { lat: city.city.lat, lng: city.city.lng } : undefined}
+        />
         <div className={styles.mapArea}>
-          <TripMap city={city} rightInset={panel.open ? (panel.wide ? 2 : 1) * PANEL_WIDTH : 0} />
+          <TripMap
+            city={city}
+            rightInset={panel.open ? (panel.wide ? 2 : 1) * PANEL_WIDTH : 0}
+            pins={mapPins}
+            focus={focus}
+            onPinClick={id => setPinEdit({ mode: 'edit', pinId: id })}
+          />
           {panel.open ? (
             <ItineraryPanel
               tripId={trip.id}
