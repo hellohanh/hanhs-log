@@ -47,6 +47,8 @@ jobs:
           A: ${{ secrets.VITE_SUPABASE_URL }}
           B: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           DB: ${{ secrets.SUPABASE_DB_URL }}
+          MAPSKEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          MAPID: ${{ secrets.VITE_GOOGLE_MAP_ID }}
         run: |
           url="${A%/}"; url="${url%/rest/v1}"
           ref=$(printf '%s' "$url" | sed -E 's#^https?://([^.]+)\.supabase\.co.*#\1#')
@@ -73,6 +75,26 @@ jobs:
             else echo "::notice title=Database::Connected to Hanh's Log's database. Migrations applied: $mig"; fi
           else
             echo "::warning title=Database::Could not connect with SUPABASE_DB_URL (check the password and that it's the Session pooler URI)"
+          fi
+          # Tilt and rotate work only on Google's own looks, and only on the
+          # vector map, which the app builds only when a Map ID is present. A
+          # missing Map ID greys tilt/rotate out on every look (standard,
+          # terrain, satellite included). CI can tell set from missing and
+          # that the key is accepted; it can't confirm the Map ID is a *vector*
+          # map in the key's project — that part is checked by eye on the map.
+          if [ -z "$MAPID" ]; then
+            echo "::warning title=Map::VITE_GOOGLE_MAP_ID is missing, so tilt and rotate are greyed out on every look. Add it in Settings → Secrets (a Vector Map ID)."
+          elif [ -z "$MAPSKEY" ]; then
+            echo "::warning title=Map::VITE_GOOGLE_MAPS_API_KEY is missing, so the map (and tilt) can't load."
+          else
+            # Does Google accept this key for the Maps JS API? (A referrer-restricted
+            # key can still pass this unreferred check; a dead or wrong key won't.)
+            mapcode=$(curl -s -o /dev/null -w '%{http_code}' "https://maps.googleapis.com/maps/api/js?key=$MAPSKEY")
+            if [ "$mapcode" = "200" ]; then
+              echo "::notice title=Map::Map ID is set and the Maps key is accepted. Tilt also needs the Map ID to be a Vector map in the same Google Cloud project as the key."
+            else
+              echo "::warning title=Map::Map ID is set, but the Maps key was refused (HTTP $mapcode). The map and tilt won't load until the key is fixed."
+            fi
           fi
           rm -f settings.json
       - run: npm run build
