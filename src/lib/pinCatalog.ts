@@ -181,6 +181,63 @@ export interface CategoryPath {
   subsubcategory: string | null
 }
 
+/**
+ * Formal title case for a place name, applied on save so sloppy entries are
+ * stored tidily (Hanh, session 6): "phở hòa pasteur" / "ANAN SAIGON" →
+ * "Phở Hòa Pasteur" / "Anan Saigon". Lower-cases everything, then capitalises
+ * the first letter after the start or a separator (space, - / ' ( . & dash).
+ * Keeps diacritics; the name field stays editable for the odd acronym.
+ */
+export function titleCase(s: string): string {
+  return s
+    .toLocaleLowerCase()
+    .replace(/(^|[\s\-/'(.&–—])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toLocaleUpperCase())
+}
+
+export interface PinNode<T> {
+  key: string
+  label: string
+  color: string
+  count: number
+  children: PinNode<T>[]
+  /** Pins that sit directly at this node (their deeper level isn't set). */
+  pins: T[]
+}
+
+type Placed = { category: string; subcategory: string | null; subsubcategory: string | null }
+
+/**
+ * Groups pins into the collapsible tree (category › sub › sub-sub › pins),
+ * in catalogue order, only including branches that have pins (E30, E53). A pin
+ * whose deeper level isn't set — or uses a key not in the catalogue — sits
+ * directly under its parent.
+ */
+export function buildPinTree<T extends Placed>(pins: T[]): PinNode<T>[] {
+  const out: PinNode<T>[] = []
+  for (const c of CATEGORIES) {
+    const inCat = pins.filter(p => p.category === c.key)
+    if (inCat.length === 0) continue
+    const subKeys = new Set(c.subs.map(s => s.key))
+    const catNode: PinNode<T> = { key: c.key, label: c.label, color: c.color, count: inCat.length, children: [], pins: [] }
+    catNode.pins = inCat.filter(p => !p.subcategory || !subKeys.has(p.subcategory))
+    for (const sub of c.subs) {
+      const inSub = inCat.filter(p => p.subcategory === sub.key)
+      if (inSub.length === 0) continue
+      const leafKeys = new Set((sub.leaves ?? []).map(l => l.key))
+      const subNode: PinNode<T> = { key: `${c.key}/${sub.key}`, label: sub.label, color: sub.color, count: inSub.length, children: [], pins: [] }
+      subNode.pins = inSub.filter(p => !p.subsubcategory || !leafKeys.has(p.subsubcategory))
+      for (const leaf of sub.leaves ?? []) {
+        const inLeaf = inSub.filter(p => p.subsubcategory === leaf.key)
+        if (inLeaf.length === 0) continue
+        subNode.children.push({ key: `${c.key}/${sub.key}/${leaf.key}`, label: leaf.label, color: sub.color, count: inLeaf.length, children: [], pins: inLeaf })
+      }
+      catNode.children.push(subNode)
+    }
+    out.push(catNode)
+  }
+  return out
+}
+
 /** What a pin looks like from its category path: colour, icon and a label like "Nom-Nom › Vietnamese › Phở". */
 export function pinLook(p: CategoryPath): { color: string; icon: string; label: string; parts: string[] } {
   const c = categoryOf(p.category)

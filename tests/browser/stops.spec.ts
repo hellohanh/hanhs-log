@@ -21,6 +21,14 @@ async function openItinerary(page: Page): Promise<Locator> {
   return panel
 }
 
+// The pinned list is a collapsed tree (step 5): expand Nom-Nom › Vietnamese ›
+// Phở so Anan (under Vietnamese) and Phở Hòa Pasteur (under Phở) are reachable.
+async function expandTree(places: Locator) {
+  await places.getByRole('button', { name: /^Nom-Nom,/ }).click()
+  await places.getByRole('button', { name: /^Vietnamese,/ }).click()
+  await places.getByRole('button', { name: /^Phở,/ }).click()
+}
+
 // y pixels down the timeline for a minute-of-day (HOUR_PX = 60).
 async function clickTimeline(panel: Locator, minute: number) {
   const tl = panel.getByTestId('day-timeline')
@@ -50,6 +58,7 @@ test('the + on a list row adds to the open day; it is off when the itinerary is 
   const db = await fakeSupabase(page, { pins: PINS })
   await page.goto('./wander/trip/trip-saigon')
   const places = page.getByRole('complementary', { name: 'Places' })
+  await expandTree(places)
   // Closed: the + is disabled.
   await expect(places.getByRole('button', { name: /Add to a day/ }).first()).toBeDisabled()
   await openItinerary(page)
@@ -70,12 +79,14 @@ test('the pin card has an "Add to day" button for the open day', async ({ page }
   const db = await fakeSupabase(page, { pins: PINS })
   await page.goto('./wander/trip/trip-saigon')
   const places = page.getByRole('complementary', { name: 'Places' })
+  await expandTree(places)
   await places.getByRole('button', { name: /Phở Hòa Pasteur/ }).first().click()
   const card = places.getByRole('form', { name: 'Edit place' })
   // Itinerary closed: the button is disabled.
   await expect(card.getByRole('button', { name: /open the itinerary first/ })).toBeDisabled()
   await card.getByRole('button', { name: 'Close' }).click()
   const panel = await openItinerary(page)
+  await expandTree(places)
   await places.getByRole('button', { name: /Phở Hòa Pasteur/ }).first().click()
   await places.getByRole('form', { name: 'Edit place' }).getByRole('button', { name: /^\+ Add to/ }).click()
   await expect(panel.getByRole('button', { name: /Phở Hòa Pasteur, .* to / })).toBeVisible()
@@ -88,6 +99,7 @@ test('a dragged pin lands on the timeline where it is dropped', async ({ page })
   await page.goto('./wander/trip/trip-saigon')
   const panel = await openItinerary(page)
   const places = page.getByRole('complementary', { name: 'Places' })
+  await expandTree(places)
   const row = places.getByRole('button', { name: /Anan Saigon/ }).first()
   const tl = panel.getByTestId('day-timeline')
   await panel.locator('[data-scroll="timeline"]').evaluate(el => (el.scrollTop = 0))
@@ -109,8 +121,10 @@ test('a scheduled place can be retimed and taken off the day', async ({ page }) 
   const db = await fakeSupabase(page, { pins: PINS })
   await page.goto('./wander/trip/trip-saigon')
   const panel = await openItinerary(page)
+  const places = page.getByRole('complementary', { name: 'Places' })
+  await expandTree(places)
   // Add one via the list +, then open it.
-  await page.getByRole('complementary', { name: 'Places' }).getByRole('button', { name: /Add Phở Hòa Pasteur to/ }).click()
+  await places.getByRole('button', { name: /Add Phở Hòa Pasteur to/ }).click()
   const block = panel.getByRole('button', { name: /Phở Hòa Pasteur, 0?9:00 to 10:00/ })
   await block.click()
   const edit = panel.getByRole('dialog', { name: 'Phở Hòa Pasteur' })

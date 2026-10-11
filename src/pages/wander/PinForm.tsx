@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { CATEGORIES, categoryOf, pinLook } from '../../lib/pinCatalog'
+import { CATEGORIES, categoryOf, pinLook, titleCase } from '../../lib/pinCatalog'
 import { BADGE, flowerSvg, pinHtml, type Michelin } from '../../lib/pinDraw'
 import { averageRating, deletePin, pinBadge, saveMyReview, savePin, type FoundPlace, type MyReview, type Pin, type PinFields, type Review, type Verdict } from '../../lib/pins'
 import type { Person } from '../../lib/trips'
@@ -85,7 +85,7 @@ export default function PinForm({
     const fields: PinFields = {
       trip_id: tripId,
       google_place_id: pin?.google_place_id ?? place?.id ?? null,
-      name: name.trim(),
+      name: titleCase(name.trim()),
       address,
       lat: pin?.lat ?? place!.lat,
       lng: pin?.lng ?? place!.lng,

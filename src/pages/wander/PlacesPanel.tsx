@@ -1,10 +1,9 @@
-import { useMemo, useState, type FormEvent } from 'react'
-import { CATEGORIES } from '../../lib/pinCatalog'
+import { useState, type FormEvent } from 'react'
 import { flowerSvg } from '../../lib/pinDraw'
-import { BADGE } from '../../lib/pinDraw'
-import { pinBadge, searchPlaces, type FoundPlace, type Pin, type Review } from '../../lib/pins'
+import { searchPlaces, type FoundPlace, type Pin, type Review } from '../../lib/pins'
 import type { Person } from '../../lib/trips'
 import PinForm from './PinForm'
+import PinTree from './PinTree'
 import styles from './Places.module.css'
 
 // The Places panel (left of the map; approved mockups, session 4):
@@ -61,10 +60,6 @@ export default function PlacesPanel({
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
 
-  const byCategory = useMemo(
-    () => CATEGORIES.map(c => ({ c, list: pins.filter(p => p.category === c.key) })).filter(g => g.list.length > 0),
-    [pins]
-  )
   const hasMichelin = pins.some(p => p.michelin)
   const michelinCount = pins.filter(p => p.michelin).length
 
@@ -178,57 +173,20 @@ export default function PlacesPanel({
         <p className={styles.muted}>No places on this trip yet. Search above to add one.</p>
       )}
 
-      <div className={styles.list}>
-        {byCategory.map(({ c, list }) => (
-          <section key={c.key} aria-label={c.label}>
-            <h3 className={styles.cat}>
-              <span className={styles.catDot} style={{ background: c.color }} />
-              {c.label}
-              <span className={styles.count}>{list.length}</span>
-            </h3>
-            <ul className={styles.rows}>
-              {list.map(p => {
-                const badge = pinBadge(reviews.filter(r => r.pin_id === p.id))
-                return (
-                  <li key={p.id} className={styles.rowLi}>
-                    <button
-                      type="button"
-                      className={styles.row}
-                      draggable
-                      onDragStart={e => {
-                        e.dataTransfer.setData('text/plain', p.id)
-                        e.dataTransfer.effectAllowed = 'copy'
-                      }}
-                      onClick={() => {
-                        onFocus(p)
-                        onEditing({ mode: 'edit', pinId: p.id })
-                      }}
-                    >
-                      <span className={styles.status} style={{ background: BADGE[badge].fill }} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" />
-                      <span className={styles.name}>{p.name}</span>
-                      {p.michelin && (
-                        <span className={styles.mich} title={p.michelin === 'mentioned' ? 'MICHELIN' : `MICHELIN ${p.michelin} star${p.michelin === '1' ? '' : 's'}`}>
-                          {p.michelin === 'mentioned' ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(p.michelin))}
-                        </span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.addDay}
-                      disabled={!openDay}
-                      onClick={() => openDay && onAddToDay(p.id)}
-                      aria-label={openDay ? `Add ${p.name} to ${openDay.label}` : 'Add to a day — open the itinerary first'}
-                      title={openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}
-                    >
-                      +
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        ))}
-      </div>
+      {pins.length > 0 && (
+        <div className={styles.list}>
+          <PinTree
+            pins={pins}
+            reviews={reviews}
+            openDay={openDay}
+            onOpen={p => {
+              onFocus(p)
+              onEditing({ mode: 'edit', pinId: p.id })
+            }}
+            onAddToDay={onAddToDay}
+          />
+        </div>
+      )}
     </aside>
   )
 }
