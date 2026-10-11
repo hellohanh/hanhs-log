@@ -6,7 +6,10 @@ import { anyDistrictInView } from '../../lib/districts'
 import { MODE_COLOR, type RouteSeg } from '../../lib/directions'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from './CameraControl'
+import { makePinLayer, type MapPin, type PinLayer } from './mapPinLayer'
 import styles from './TripMap.module.css'
+
+export type { MapPin } from './mapPinLayer'
 
 // The trip map (M3 step 3, approved mockup v2, session 4): opens on the
 // trip's Primary City centre at zoom 13, no pins yet (old Wanderlog pins
@@ -22,19 +25,6 @@ export type CityState = { state: 'loading' } | { state: 'ready'; city: City } | 
 
 const WORLD = { center: { lat: 20, lng: 0 }, zoom: 2 }
 const OPENING_ZOOM = 13
-
-/** One of the trip's own pins, drawn by lib/pinDraw (point at the bottom centre). */
-export interface MapPin {
-  id: string
-  lat: number
-  lng: number
-  title: string
-  html: string
-  width: number
-  height: number
-  /** Faded to 10% (Show all pins off, or filtered out). */
-  faded: boolean
-}
 
 export default function TripMap({
   city,
@@ -142,7 +132,7 @@ export default function TripMap({
   clickRef.current = onPinClick
   useEffect(() => {
     if (!map) return
-    const layer = makePinLayer(id => clickRef.current?.(id))
+    const layer = makePinLayer(id => clickRef.current?.(id), styles.tripPin)
     layer.setMap(map)
     pinLayer.current = layer
     return () => {
@@ -369,87 +359,6 @@ function LayersIcon() {
       <path d="m3 13 9 5 9-5" />
     </svg>
   )
-}
-
-// ---- The trip's own pins ----
-// HTML pins on an overlay, so they look the same on the flat and the tilt
-// map. Each pin's point sits exactly on its place; clicking opens its card.
-
-interface PinLayer {
-  setPins(pins: MapPin[]): void
-  setMap(map: google.maps.Map | null): void
-}
-
-// Made only once Google's code has loaded (google.maps doesn't exist before).
-function makePinLayer(onClick: (id: string) => void): PinLayer {
-  class Layer extends google.maps.OverlayView {
-    private els = new Map<string, HTMLDivElement>()
-    private pins: MapPin[] = []
-
-    constructor(private onClick: (id: string) => void) {
-      super()
-    }
-
-    setPins(pins: MapPin[]) {
-      this.pins = pins
-      this.sync()
-    }
-
-    onAdd() {
-      this.sync()
-    }
-
-    private sync() {
-      const pane = this.getPanes()?.overlayMouseTarget
-      if (!pane) return
-      const keep = new Set(this.pins.map(p => p.id))
-      for (const [id, el] of this.els) if (!keep.has(id)) { el.remove(); this.els.delete(id) }
-      for (const p of this.pins) {
-        let el = this.els.get(p.id)
-        if (!el) {
-          el = document.createElement('div')
-          el.className = styles.tripPin
-          el.setAttribute('role', 'button')
-          el.tabIndex = 0
-          const id = p.id
-          el.addEventListener('click', e => { e.stopPropagation(); this.onClick(id) })
-          el.addEventListener('keydown', e => { if (e.key === 'Enter') this.onClick(id) })
-          google.maps.OverlayView.preventMapHitsAndGesturesFrom(el)
-          pane.appendChild(el)
-          this.els.set(p.id, el)
-        }
-        if (el.dataset.html !== p.html) {
-          el.innerHTML = p.html
-          el.dataset.html = p.html
-        }
-        el.title = p.title
-        el.setAttribute('aria-label', p.title)
-        el.style.width = `${p.width}px`
-        el.style.height = `${p.height}px`
-        el.style.opacity = p.faded ? '0.1' : '1'
-        el.style.zIndex = p.faded ? '0' : '1'
-      }
-      this.draw()
-    }
-
-    draw() {
-      const proj = this.getProjection()
-      if (!proj) return
-      for (const p of this.pins) {
-        const el = this.els.get(p.id)
-        const pt = proj.fromLatLngToDivPixel(new google.maps.LatLng(p.lat, p.lng))
-        if (!el || !pt) continue
-        el.style.left = `${pt.x - p.width / 2}px`
-        el.style.top = `${pt.y - p.height}px`
-      }
-    }
-
-    onRemove() {
-      for (const el of this.els.values()) el.remove()
-      this.els.clear()
-    }
-  }
-  return new Layer(onClick)
 }
 
 // ---- HCMC districts: the old Wanderlog overlay (Hanh, session 4) ----

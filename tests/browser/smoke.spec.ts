@@ -69,7 +69,7 @@ test('Wanderlog and Savorlog use Segoe UI; the splash and header keep the site f
 test('header links move between sections', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('link', { name: 'Savorlog' }).first().click()
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Eateries by country and main dish')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Eateries')
   await page.getByRole('link', { name: 'Wanderlog' }).first().click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your trips')
 })

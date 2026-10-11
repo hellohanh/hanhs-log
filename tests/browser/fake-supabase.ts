@@ -44,6 +44,8 @@ export interface FakeDb {
   conns: FakeRow[]
   pins: FakeRow[]
   reviews: FakeRow[]
+  eateries: FakeRow[]
+  eateryReviews: FakeRow[]
   /** People per trip id. Trips missing here answer "not allowed". */
   people: Record<string, FakePerson[]>
   myName: string | null
@@ -103,7 +105,7 @@ const deny = (route: Route, message: string) =>
  */
 export async function fakeSupabase(
   page: Page,
-  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[] } = {}
+  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[] } = {}
 ): Promise<FakeDb> {
   const me = opts.signedInAs === undefined ? ME : opts.signedInAs
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00'))
@@ -121,6 +123,8 @@ export async function fakeSupabase(
     conns: [],
     pins: structuredClone(opts.pins ?? []),
     reviews: structuredClone(opts.reviews ?? []),
+    eateries: structuredClone(opts.eateries ?? []),
+    eateryReviews: structuredClone(opts.eateryReviews ?? []),
     calls: []
   }
   let currentUser = me
@@ -286,6 +290,33 @@ export async function fakeSupabase(
         return route.fulfill({ status: 204, body: '' })
       }
     }
+
+    // Savorlog: the shared eatery catalogue and each person's review (0007).
+    if (path === '/rest/v1/eateries') {
+      if (req.method() === 'GET') return route.fulfill({ json: db.eateries })
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) db.eateries.push({ created_at: '2026-10-11T12:00:00Z', deleted_at: null, ...r })
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'PATCH') {
+        db.eateries = db.eateries.map(e => (e.id === idEq ? { ...e, ...args } : e))
+        return route.fulfill({ status: 204, body: '' })
+      }
+    }
+    if (path === '/rest/v1/eatery_reviews') {
+      if (req.method() === 'GET') {
+        const ids = (url.searchParams.get('eatery_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
+        return route.fulfill({ json: db.eateryReviews.filter(r => ids.includes(r.eatery_id as string)) })
+      }
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) {
+          db.eateryReviews = db.eateryReviews.filter(x => !(x.eatery_id === r.eatery_id && x.user_id === r.user_id))
+          db.eateryReviews.push({ ...r, updated_at: `2026-10-11T12:${String(db.calls.length % 60).padStart(2, '0')}:00Z` })
+        }
+        return route.fulfill({ status: 201, body: '' })
+      }
+    }
+    if (path === '/rest/v1/rpc/claim_savorlog') return route.fulfill({ json: 'owner' })
 
     if (path === '/rest/v1/profiles') {
       if (req.method() === 'GET') return route.fulfill({ json: db.myName ? [{ display_name: db.myName }] : [] })
