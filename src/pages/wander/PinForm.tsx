@@ -31,6 +31,8 @@ export default function PinForm({
   place,
   pin,
   reviews,
+  openDay,
+  onAddToDay,
   onCancel,
   onSaved
 }: {
@@ -40,6 +42,8 @@ export default function PinForm({
   place?: FoundPlace
   pin?: Pin
   reviews: Review[]
+  openDay: { id: string; label: string } | null
+  onAddToDay: (pinId: string) => void
   onCancel: () => void
   onSaved: (pinId: string) => void
 }) {
@@ -136,6 +140,18 @@ export default function PinForm({
         <input value={name} onChange={e => setName(e.target.value)} maxLength={200} />
       </label>
       {address && <p className={styles.address}>{address}</p>}
+
+      {pin && (
+        <button
+          type="button"
+          className={styles.addToDay}
+          disabled={!openDay}
+          onClick={() => openDay && onAddToDay(pin.id)}
+          title={openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}
+        >
+          + {openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}
+        </button>
+      )}
 
       <fieldset className={styles.group}>
         <legend>Category</legend>

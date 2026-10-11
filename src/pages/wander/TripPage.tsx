@@ -21,7 +21,7 @@ import ShareDialog from './ShareDialog'
 import NamePrompt from './NamePrompt'
 import TripMap, { type CityState, type MapPin } from './TripMap'
 import PlacesPanel, { type Editing } from './PlacesPanel'
-import { fetchPins, fetchReviews, pinBadge, type Pin, type Review } from '../../lib/pins'
+import { fetchPins, fetchReviews, pinBadge, pinFaded, type Pin, type Review } from '../../lib/pins'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml } from '../../lib/pinDraw'
 import ItineraryPanel, { ItineraryOpener, PANEL_WIDTH } from './ItineraryPanel'
@@ -101,6 +101,11 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const [michelinOnly, setMichelinOnly] = useState(false)
   const [pinEdit, setPinEdit] = useState<Editing>(null)
   const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null)
+  // Itinerary ↔ Places: the open day (for "Add to day"), a request to schedule
+  // a pin on it, and OTD Pins (the day's pin ids to keep bright on the map).
+  const [openDay, setOpenDay] = useState<{ id: string; label: string } | null>(null)
+  const [addReq, setAddReq] = useState<{ pinId: string; n: number } | null>(null)
+  const [otdPinIds, setOtdPinIds] = useState<string[] | null>(null)
   const loadPins = useCallback(async () => {
     try {
       const ps = await fetchPins(tripId)
@@ -114,12 +119,17 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   useEffect(() => {
     loadPins()
   }, [loadPins])
+  // OTD Pins (itinerary open, toggle on) overrides Show all pins and the
+  // MICHELIN filter: the day's pins stay bright, the rest fade (Hanh, session 4).
+  const otdActive = panel.open && otdPinIds !== null
+  const otdSet = useMemo(() => new Set(otdPinIds ?? []), [otdPinIds])
   const mapPins = useMemo<MapPin[]>(
     () =>
       pins.map(p => {
         const look = pinLook(p)
         const box = pinBox(p)
         const editingThis = pinEdit?.mode === 'edit' && pinEdit.pinId === p.id
+        const faded = pinFaded(p, { editing: editingThis, otdPins: otdActive ? otdSet : null, showAll, michelinOnly })
         return {
           id: p.id,
           lat: p.lat,
@@ -128,10 +138,10 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           html: pinHtml({ color: look.color, icon: look.icon, michelin: p.michelin, badge: pinBadge(reviews.filter(r => r.pin_id === p.id)) }),
           width: box.width,
           height: box.height,
-          faded: !editingThis && (!showAll || (michelinOnly && !p.michelin))
+          faded
         }
       }),
-    [pins, reviews, showAll, michelinOnly, pinEdit]
+    [pins, reviews, showAll, michelinOnly, pinEdit, otdActive, otdSet]
   )
 
   const loadPeople = useCallback(() => fetchPeople(tripId).then(setPeople, () => setPeople([])), [tripId])
@@ -224,6 +234,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           onSaved={() => loadPins()}
           onFocus={at => setFocus({ lat: at.lat, lng: at.lng })}
           near={city.state === 'ready' ? { lat: city.city.lat, lng: city.city.lng } : undefined}
+          openDay={panel.open ? openDay : null}
+          onAddToDay={pinId => setAddReq(r => ({ pinId, n: (r?.n ?? 0) + 1 }))}
         />
         <div className={styles.mapArea}>
           <TripMap
@@ -240,8 +252,13 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               end={trip.end_date}
               wide={panel.wide}
               home={city.state === 'ready' ? { center: { lat: city.city.lat, lng: city.city.lng }, zoom: 13 } : { center: { lat: 20, lng: 0 }, zoom: 2 }}
+              pins={pins}
+              reviews={reviews}
+              addRequest={addReq}
               onWide={() => setPanel(p => ({ ...p, wide: !p.wide }))}
               onClose={() => setPanel(p => ({ ...p, open: false }))}
+              onOpenDay={setOpenDay}
+              onOtdPins={setOtdPinIds}
             />
           ) : (
             <ItineraryOpener onOpen={() => setPanel(p => ({ ...p, open: true }))} />

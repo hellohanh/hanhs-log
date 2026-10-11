@@ -111,3 +111,12 @@ export function dayTab(day: ItineraryDay, index: number): { top: string; main: s
   }
 }
 
+
+// Places on days (session 4): a dropped/added place is a 60-minute block.
+export const STOP_MIN = 60
+
+/** Default start for a place added to a day: after the latest stop, else 9:00. */
+export function nextStopStart(stops: { end_time: string }[]): number {
+  const latest = stops.reduce((m, s) => Math.max(m, toMin(s.end_time)), 0)
+  return Math.min(latest || 9 * 60, 24 * 60 - STOP_MIN)
+}

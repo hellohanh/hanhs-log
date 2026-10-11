@@ -40,6 +40,7 @@ export interface FakeDb {
   days: FakeDay[]
   legs: FakeLeg[]
   acts: FakeLeg[]
+  stops: FakeLeg[]
   pins: FakeRow[]
   reviews: FakeRow[]
   /** People per trip id. Trips missing here answer "not allowed". */
@@ -115,6 +116,7 @@ export async function fakeSupabase(
     days: [],
     legs: [],
     acts: [],
+    stops: [],
     pins: structuredClone(opts.pins ?? []),
     reviews: structuredClone(opts.reviews ?? []),
     calls: []
@@ -222,6 +224,25 @@ export async function fakeSupabase(
           db.reviews.push({ ...r, updated_at: `2026-10-10T12:${String(db.calls.length % 60).padStart(2, '0')}:00Z` })
         }
         return route.fulfill({ status: 201, body: '' })
+      }
+    }
+    // Places scheduled onto days (step 4).
+    if (path === '/rest/v1/itinerary_stops') {
+      if (req.method() === 'GET') {
+        const ids = (url.searchParams.get('day_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
+        return route.fulfill({ json: db.stops.filter(s => ids.includes(s.day_id)) })
+      }
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) db.stops.push({ id: `stop-${db.stops.length + 1}`, note: null, ...r })
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'PATCH') {
+        db.stops = db.stops.map(s => (s.id === idEq ? { ...s, ...args } : s))
+        return route.fulfill({ status: 204, body: '' })
+      }
+      if (req.method() === 'DELETE') {
+        db.stops = db.stops.filter(s => s.id !== idEq)
+        return route.fulfill({ status: 204, body: '' })
       }
     }
     if (path === '/rest/v1/travel_legs') {

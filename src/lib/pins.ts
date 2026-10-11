@@ -24,7 +24,7 @@ export interface Pin {
 }
 export type PinFields = Omit<Pin, 'id' | 'created_at'>
 
-export { pinBadge, averageRating, type Verdict, type Review, type MyReview } from './pinRules'
+export { pinBadge, averageRating, pinFaded, type Verdict, type Review, type MyReview } from './pinRules'
 import type { MyReview, Review } from './pinRules'
 
 function client() {

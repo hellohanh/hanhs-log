@@ -33,7 +33,9 @@ export default function PlacesPanel({
   onEditing,
   onSaved,
   onFocus,
-  near
+  near,
+  openDay,
+  onAddToDay
 }: {
   tripId: string
   userId: string
@@ -50,6 +52,9 @@ export default function PlacesPanel({
   onSaved: (focusPinId?: string) => void
   onFocus: (at: { lat: number; lng: number }) => void
   near?: { lat: number; lng: number }
+  /** The itinerary's open day, for "Add to day" and drag; null when it's closed. */
+  openDay: { id: string; label: string } | null
+  onAddToDay: (pinId: string) => void
 }) {
   const [query, setQuery] = useState('')
   const [found, setFound] = useState<FoundPlace[] | null>(null)
@@ -101,6 +106,8 @@ export default function PlacesPanel({
           place={editing.mode === 'add' ? editing.place : undefined}
           pin={pin}
           reviews={pin ? reviews.filter(r => r.pin_id === pin.id) : []}
+          openDay={openDay}
+          onAddToDay={onAddToDay}
           onCancel={() => onEditing(null)}
           onSaved={id => {
             if (editing.mode === 'add') onFocus(editing.place)
@@ -183,10 +190,15 @@ export default function PlacesPanel({
               {list.map(p => {
                 const badge = pinBadge(reviews.filter(r => r.pin_id === p.id))
                 return (
-                  <li key={p.id}>
+                  <li key={p.id} className={styles.rowLi}>
                     <button
                       type="button"
                       className={styles.row}
+                      draggable
+                      onDragStart={e => {
+                        e.dataTransfer.setData('text/plain', p.id)
+                        e.dataTransfer.effectAllowed = 'copy'
+                      }}
                       onClick={() => {
                         onFocus(p)
                         onEditing({ mode: 'edit', pinId: p.id })
@@ -199,6 +211,16 @@ export default function PlacesPanel({
                           {p.michelin === 'mentioned' ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(p.michelin))}
                         </span>
                       )}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.addDay}
+                      disabled={!openDay}
+                      onClick={() => openDay && onAddToDay(p.id)}
+                      aria-label={openDay ? `Add ${p.name} to ${openDay.label}` : 'Add to a day — open the itinerary first'}
+                      title={openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}
+                    >
+                      +
                     </button>
                   </li>
                 )

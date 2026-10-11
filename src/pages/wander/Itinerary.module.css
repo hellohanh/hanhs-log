@@ -221,6 +221,17 @@
 .addForm { display: flex; flex-direction: column; gap: 8px; }
 .muted0 { margin: 0; font-size: 13px; color: var(--muted); }
 
+/* The "Place" pin picker in the Add popup (session 4). */
+.pickWrap { display: flex; flex-direction: column; gap: 8px; }
+.pickSearch { min-height: 34px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--ground); color: var(--ink); font: inherit; font-size: 14px; }
+.pickList { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 8px; }
+.pickList li + li { border-top: 1px solid var(--rule); }
+.pickItem { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: 0; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.pickItem:hover { background: var(--ground); }
+.pickDot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.pickName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pickItem small { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
 /* Activity blocks: handles at the top and bottom, drag the middle to move. */
 .act {
   position: absolute;
@@ -258,3 +269,16 @@
 .act:hover .handle::after, .actDragging .handle::after { opacity: 0.7; }
 .handleTop { top: 0; }
 .handleBottom { bottom: 0; }
+
+/* A place dropped onto a day (session 4): the pin's colour on the left edge. */
+.stop { background: var(--surface); border-left-width: 5px; }
+.stopName { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.stopName b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.stopIcon { width: 15px; height: 15px; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.stopIcon :global(svg) { color: #fff; }
+.stopBadge { flex: none; display: inline-flex; margin-left: auto; }
+.actShort .stopName b { flex: 0 1 auto; }
+
+/* A day tab or the timeline lit up as a drop target while dragging a pin. */
+.dropOn { border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.timelineDrop { outline: 2px dashed var(--accent); outline-offset: -2px; }
