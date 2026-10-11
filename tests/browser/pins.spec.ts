@@ -53,11 +53,15 @@ test('add a pin: search Google, pick the category by hand, VIS needs a verdict, 
   await card.getByLabel('Street food').check()
   await card.getByRole('button', { name: 'Add pin' }).click()
 
-  // Back to the list, under Nom-Nom, with the green (revisit) status.
-  const nomNom = places.getByRole('region', { name: 'Nom-Nom' })
-  await expect(nomNom.getByRole('button', { name: /Phở Hòa Pasteur/ })).toBeVisible()
-  await expect(nomNom.getByRole('img', { name: 'Visited: revisit' })).toBeVisible()
-  await expect(places.getByRole('region', { name: 'Shopping' })).toHaveCount(0) // categories only with pins
+  // Back to the tree: Nom-Nom appears (collapsed), no Shopping branch.
+  await expect(places.getByRole('button', { name: /^Nom-Nom,/ })).toBeVisible()
+  await expect(places.getByRole('button', { name: /^Shopping,/ })).toHaveCount(0) // categories only with pins
+  // Expand down to the pin and check its green (revisit) status.
+  await places.getByRole('button', { name: /^Nom-Nom,/ }).click()
+  await places.getByRole('button', { name: /^Vietnamese,/ }).click()
+  await places.getByRole('button', { name: /^Phở,/ }).click()
+  await expect(places.getByText('Phở Hòa Pasteur')).toBeVisible()
+  await expect(places.getByRole('img', { name: 'Visited: revisit' })).toBeVisible()
 
   const pin = JSON.parse(db.calls.find(c => c.method === 'POST' && c.path === '/rest/v1/pins')!.body!)
   expect(pin).toMatchObject({
@@ -68,7 +72,7 @@ test('add a pin: search Google, pick the category by hand, VIS needs a verdict, 
   expect(review).toEqual({ pin_id: pin.id, user_id: ME, status: 'vis', verdict: 'revisit', rating: 4.5 })
 })
 
-test('the list: grouped by category, MICHELIN chip, Show all pins on by default; edit shows everyone and the average', async ({ page }) => {
+test('the tree: collapses by category, MICHELIN chip, Show all pins on by default; edit shows everyone and the average', async ({ page }) => {
   const db = await fakeSupabase(page, {
     pins: SAVED_PINS,
     reviews: [
@@ -79,17 +83,23 @@ test('the list: grouped by category, MICHELIN chip, Show all pins on by default;
   await fakePlaces(page, [MARKET])
   await page.goto('./wander/trip/trip-saigon')
   const places = page.getByRole('complementary', { name: 'Places' })
-  await expect(places.getByRole('region', { name: 'Nom-Nom' }).getByRole('listitem')).toHaveCount(2)
-  await expect(places.getByRole('region', { name: 'Shopping' }).getByRole('listitem')).toHaveCount(1)
-  await expect(places.getByRole('region', { name: 'Accommodation' })).toHaveCount(0)
+  // Collapsed by default: just the categories with pins.
+  await expect(places.getByRole('button', { name: /^Nom-Nom, 2 pins/ })).toBeVisible()
+  await expect(places.getByRole('button', { name: /^Shopping, 1 pin/ })).toBeVisible()
+  await expect(places.getByRole('button', { name: /^Accommodation/ })).toHaveCount(0)
+  await expect(places.getByText('Phở Hòa Pasteur')).toHaveCount(0) // leaves hidden until expanded
   await expect(places.getByLabel('Show all pins')).toBeChecked()
   await expect(places.getByRole('button', { name: 'MICHELIN 2' })).toHaveAttribute('aria-pressed', 'false')
-  // Most recent VIS wins: Mai's ✗ is newer than Hanh's ✓.
-  await expect(places.getByRole('button', { name: /Phở Hòa Pasteur/ }).getByRole('img')).toHaveAttribute('aria-label', "Visited: don't go back")
-  // A place with no reviews is WTG.
-  await expect(places.getByRole('button', { name: /Bến Thành Market/ }).getByRole('img')).toHaveAttribute('aria-label', 'Want to go')
 
-  await places.getByRole('button', { name: /Phở Hòa Pasteur/ }).click()
+  // Expand down: Phở (dish) holds pin-pho; Anan sits directly under Vietnamese (no dish).
+  await places.getByRole('button', { name: /^Nom-Nom,/ }).click()
+  await places.getByRole('button', { name: /^Vietnamese,/ }).click()
+  await expect(places.getByText('Anan Saigon')).toBeVisible()
+  await places.getByRole('button', { name: /^Phở,/ }).click()
+  // Most recent VIS wins: Mai's ✗ is newer than Hanh's ✓.
+  await expect(places.getByRole('img', { name: "Visited: don't go back" })).toBeVisible()
+
+  await places.getByText('Phở Hòa Pasteur').click()
   const card = places.getByRole('form', { name: 'Edit place' })
   await expect(card.getByRole('radio', { name: /Revisit/ })).toHaveAttribute('aria-checked', 'true')
   const everyone = card.getByRole('group', { name: 'Everyone on the trip' })
@@ -112,10 +122,10 @@ test('the list: grouped by category, MICHELIN chip, Show all pins on by default;
   await places.getByRole('button', { name: /Bến Thành Market/ }).first().click()
   await expect(places.getByRole('form', { name: 'Edit place' }).getByLabel('Name')).toHaveValue('Bến Thành Market')
 
-  // Delete asks first.
+  // Delete asks first; the Shopping branch then disappears.
   await places.getByRole('button', { name: 'Delete' }).click()
   await places.getByRole('alert').getByRole('button', { name: 'Delete' }).click()
-  await expect(places.getByRole('region', { name: 'Shopping' })).toHaveCount(0)
+  await expect(places.getByRole('button', { name: /^Shopping,/ })).toHaveCount(0)
   await expect.poll(() => db.pins.map(p => p.id)).toEqual(['pin-pho', 'pin-anan'])
 })
 
@@ -144,25 +154,57 @@ test('pin drawing: teardrop, MICHELIN flower and stars chip, status badge', asyn
   await fakeSupabase(page, { pins: SAVED_PINS, reviews: [{ pin_id: 'pin-anan', user_id: FRIEND, status: 'vis', verdict: 'second', rating: null, updated_at: '2026-10-02T10:00:00Z' }] })
   await page.goto('./wander/trip/trip-saigon')
   const places = page.getByRole('complementary', { name: 'Places' })
-  const preview = async (name: RegExp) => {
-    await places.getByRole('button', { name }).click()
+  // The tree collapses again after each edit, so expand the path each time.
+  const preview = async (expand: RegExp[], leaf: string) => {
+    for (const n of expand) await places.getByRole('button', { name: n }).click()
+    await places.getByText(leaf, { exact: true }).click()
     const html = await places.locator('[class*="preview"]').innerHTML()
     await places.getByRole('button', { name: 'Cancel' }).click()
     return html
   }
   // 1-star MICHELIN: 36 px red pin, our flower, stars chip, yellow badge (2nd chance).
-  const anan = await preview(/Anan Saigon/)
+  const anan = await preview([/^Nom-Nom,/, /^Vietnamese,/], 'Anan Saigon')
   expect(anan).toContain('fill="#9E2A2B"')
   expect(anan).toContain('width="36"')
   expect(anan).toMatch(/>★<\/span>/)
   expect(anan).toContain('#F2C230')
   // Mentioned: MICHELIN pin, no chip.
-  const pho = await preview(/Phở Hòa Pasteur/)
+  const pho = await preview([/^Nom-Nom,/, /^Vietnamese,/, /^Phở,/], 'Phở Hòa Pasteur')
   expect(pho).toContain('fill="#9E2A2B"')
   expect(pho).not.toContain('★')
   // Shopping market: 33 px, its own colour, orange WTG badge.
-  const market = await preview(/Bến Thành Market/)
+  const market = await preview([/^Shopping,/, /^Market,/], 'Bến Thành Market')
   expect(market).toContain('fill="#548120"')
   expect(market).toContain('width="33"')
   expect(market).toContain('#E8862A')
+})
+
+test('pin tree + title case helpers', async () => {
+  const { buildPinTree, titleCase } = await import('../../src/lib/pinCatalog')
+  type P = { id: string; category: string; subcategory: string | null; subsubcategory: string | null }
+  const p = (id: string, category: string, subcategory: string | null, subsubcategory: string | null): P => ({ id, category, subcategory, subsubcategory })
+  const tree = buildPinTree<P>([
+    p('1', 'food', 'vietnamese', 'pho'),
+    p('2', 'food', 'vietnamese', 'pho'),
+    p('3', 'food', 'vietnamese', null), // no dish → directly under Vietnamese
+    p('4', 'food', 'japanese', null),
+    p('5', 'shopping', 'market', null),
+    p('6', 'attraction', 'worship', 'temple-pagoda')
+  ])
+  // Catalogue order: Nom-Nom (food) first, then attraction, shopping.
+  expect(tree.map(n => n.label)).toEqual(['Nom-Nom', 'Attraction', 'Shopping'])
+  const food = tree[0]
+  expect(food.count).toBe(4)
+  const viet = food.children.find(n => n.label === 'Vietnamese')!
+  expect(viet.count).toBe(3)
+  expect(viet.children.map(n => n.label)).toEqual(['Phở']) // only the dish with pins
+  expect(viet.children[0].count).toBe(2)
+  expect(viet.pins.map(x => x.id)).toEqual(['3']) // the dishless pin sits on Vietnamese
+  // Only branches with pins appear.
+  expect(food.children.map(n => n.label)).toEqual(['Vietnamese', 'Japanese'])
+
+  expect(titleCase('phở hòa pasteur')).toBe('Phở Hòa Pasteur')
+  expect(titleCase('ANAN SAIGON')).toBe('Anan Saigon')
+  expect(titleCase('bánh mì huỳnh hoa')).toBe('Bánh Mì Huỳnh Hoa')
+  expect(titleCase("l'usine")).toBe("L'Usine")
 })

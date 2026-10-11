@@ -39,6 +39,12 @@
 .cat { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 14px; }
 .catDot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .rows { list-style: none; margin: 0; padding: 0; }
+
+/* The collapsible pinned-list tree (E30, session 6). */
+.tree { list-style: none; margin: 0; padding: 0; }
+.node { display: flex; align-items: center; gap: 7px; width: 100%; padding: 6px 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; font-weight: 700; text-align: left; cursor: pointer; }
+.node:hover { background: var(--ground); }
+.arrow { width: 14px; flex: none; color: var(--muted); font-size: 10px; display: inline-flex; justify-content: center; }
 .rowLi { display: flex; align-items: center; gap: 2px; }
 .row { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 7px 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: grab; }
 .row:hover { background: var(--ground); }
