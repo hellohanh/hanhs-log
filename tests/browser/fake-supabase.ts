@@ -106,7 +106,7 @@ const deny = (route: Route, message: string) =>
  */
 export async function fakeSupabase(
   page: Page,
-  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[] } = {}
+  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[] } = {}
 ): Promise<FakeDb> {
   const me = opts.signedInAs === undefined ? ME : opts.signedInAs
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00'))
