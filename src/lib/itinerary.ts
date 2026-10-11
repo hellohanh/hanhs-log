@@ -131,6 +131,40 @@ export async function deleteStop(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+// ---- Connectors between a day's stops (migration 0006) ----
+
+export type ConnMode = 'walk' | 'drive' | 'transit' | 'bike'
+export interface Connector {
+  id: string
+  day_id: string
+  from_stop_id: string
+  to_stop_id: string
+  mode: ConnMode
+}
+
+export async function fetchConnectors(dayIds: string[]): Promise<Connector[]> {
+  if (dayIds.length === 0) return []
+  const { data, error } = await client()
+    .from('itinerary_connectors')
+    .select('id, day_id, from_stop_id, to_stop_id, mode')
+    .in('day_id', dayIds)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as Connector[]
+}
+
+/** Sets (or changes) the travel mode between two consecutive stops. */
+export async function saveConnector(dayId: string, fromStopId: string, toStopId: string, mode: ConnMode): Promise<void> {
+  const { error } = await client()
+    .from('itinerary_connectors')
+    .upsert({ day_id: dayId, from_stop_id: fromStopId, to_stop_id: toStopId, mode }, { onConflict: 'from_stop_id,to_stop_id' })
+  if (error) throw new Error(error.message)
+}
+
+export async function clearConnector(fromStopId: string, toStopId: string): Promise<void> {
+  const { error } = await client().from('itinerary_connectors').delete().eq('from_stop_id', fromStopId).eq('to_stop_id', toStopId)
+  if (error) throw new Error(error.message)
+}
+
 // ---- Panel state on this device (Hanh, session 4: remember open and width) ----
 
 export interface PanelState {

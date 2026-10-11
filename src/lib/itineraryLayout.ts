@@ -332,3 +332,33 @@ export const LEG_DIVIDER_ICONS: Record<LegMode, string> = {
 }
 
 export const EDIT_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`
+
+// Where a connector attaches between two time-consecutive stops (session 6):
+// endpoints at 50%, a middle block at 58% (outgoing) and 42% (incoming).
+// `mid` is the vertical centre of the dashed C, where the badge sits.
+export function connectorGeometry(stops: { start_time: string; end_time: string }[], i: number): { yU: number; yL: number; mid: number } {
+  const n = stops.length
+  const box = (s: { start_time: string; end_time: string }) => {
+    const top = ((timeToMinutes(s.start_time) ?? 0) / 60) * HOUR_PX
+    return { top, h: (((timeToMinutes(s.end_time) ?? 0) - (timeToMinutes(s.start_time) ?? 0)) / 60) * HOUR_PX }
+  }
+  const up = box(stops[i])
+  const low = box(stops[i + 1])
+  const yU = up.top + (i > 0 ? 0.58 : 0.5) * up.h
+  const yL = low.top + (i + 1 < n - 1 ? 0.42 : 0.5) * low.h
+  return { yU, yL, mid: (yU + yL) / 2 }
+}
+
+/** "12 min" / "1 h 15 min" from whole minutes (connector times, session 6). */
+export function formatMinutes(min: number): string {
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return m ? `${h} h ${m} min` : `${h} h`
+}
+
+/** "850 m" under a km, otherwise "3.2 km" (one decimal). */
+export function formatMeters(m: number): string {
+  if (m < 1000) return `${Math.round(m / 10) * 10} m`
+  return `${(m / 1000).toFixed(1)} km`
+}

@@ -15,7 +15,12 @@ import {
   deleteStop,
   fetchStops,
   saveStop,
+  clearConnector,
+  fetchConnectors,
+  saveConnector,
   type Activity,
+  type ConnMode,
+  type Connector,
   type ItineraryDay,
   type LegFields,
   type Stop,
@@ -23,6 +28,7 @@ import {
 } from '../../lib/itinerary'
 import { pinBadge, type Pin, type Review } from '../../lib/pins'
 import { StopBlock, StopEdit, STOP_MIN, nextStopStart } from './StopBlock'
+import { StopConnectors } from './StopConnectors'
 import {
   HOUR_PX,
   LEG_MODE_CONFIG,
@@ -49,7 +55,7 @@ import styles from './Itinerary.module.css'
 // legs. Scheduling places, connectors and route lines come with pins.
 
 export const PANEL_WIDTH = 320
-const GUTTER = 52
+const GUTTER = 72 // wider so connector badges clear the hour labels (session 6)
 
 export default function ItineraryPanel({
   tripId,
@@ -84,6 +90,7 @@ export default function ItineraryPanel({
   const [days, setDays] = useState<ItineraryDay[] | null>(null)
   const [legs, setLegs] = useState<TravelLeg[]>([])
   const [stops, setStops] = useState<Stop[]>([])
+  const [connectors, setConnectors] = useState<Connector[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [form, setForm] = useState<{ leg: TravelLeg | null; preset?: { from: string; to: string } } | null>(null)
@@ -109,6 +116,7 @@ export default function ItineraryPanel({
       setLegs(await fetchLegs(list.map(d => d.id)))
       setActs(await fetchActivities(list.map(d => d.id)))
       setStops(await fetchStops(list.map(d => d.id)))
+      setConnectors(await fetchConnectors(list.map(d => d.id)))
       setSelected(s => (s && list.some(d => d.id === s) ? s : list[0]?.id ?? null))
     } catch (e) {
       setError((e as Error).message)
@@ -123,6 +131,9 @@ export default function ItineraryPanel({
 
   async function reloadStops() {
     if (days) setStops(await fetchStops(days.map(d => d.id)))
+  }
+  async function reloadConnectors() {
+    if (days) setConnectors(await fetchConnectors(days.map(d => d.id)))
   }
 
   // Add a pin to a day: at a given minute (timeline drop / Add popup) or the
@@ -171,6 +182,9 @@ export default function ItineraryPanel({
 
   const dayActs = useMemo(() => (day ? acts.filter(a => a.day_id === day.id) : []), [acts, day])
   const dayStops = useMemo(() => (day ? stops.filter(s => s.day_id === day.id) : []), [stops, day])
+  // Stops in time order, for the connectors between consecutive places.
+  const orderedStops = useMemo(() => [...dayStops].sort((a, b) => toMin(a.start_time) - toMin(b.start_time) || a.id.localeCompare(b.id)), [dayStops])
+  const dayConnectors = useMemo(() => (day ? connectors.filter(c => c.day_id === day.id) : []), [connectors, day])
 
   const layout = useMemo(
     () =>
@@ -422,6 +436,20 @@ export default function ItineraryPanel({
                         }}
                       />
                     ))}
+                    <StopConnectors
+                      stops={orderedStops}
+                      connectors={dayConnectors}
+                      pinById={pinById}
+                      dayId={day.id}
+                      onSet={async (dId, from, to, mode: ConnMode) => {
+                        await saveConnector(dId, from, to, mode)
+                        await reloadConnectors()
+                      }}
+                      onClear={async (from, to) => {
+                        await clearConnector(from, to)
+                        await reloadConnectors()
+                      }}
+                    />
                     {dayStops.map(s => {
                       const pin = pinById.get(s.pin_id)
                       if (!pin) return null
