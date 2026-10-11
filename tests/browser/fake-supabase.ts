@@ -41,6 +41,7 @@ export interface FakeDb {
   legs: FakeLeg[]
   acts: FakeLeg[]
   stops: FakeLeg[]
+  conns: FakeRow[]
   pins: FakeRow[]
   reviews: FakeRow[]
   /** People per trip id. Trips missing here answer "not allowed". */
@@ -117,6 +118,7 @@ export async function fakeSupabase(
     legs: [],
     acts: [],
     stops: [],
+    conns: [],
     pins: structuredClone(opts.pins ?? []),
     reviews: structuredClone(opts.reviews ?? []),
     calls: []
@@ -242,6 +244,27 @@ export async function fakeSupabase(
       }
       if (req.method() === 'DELETE') {
         db.stops = db.stops.filter(s => s.id !== idEq)
+        return route.fulfill({ status: 204, body: '' })
+      }
+    }
+    // Connectors between a day's stops (step 4).
+    if (path === '/rest/v1/itinerary_connectors') {
+      if (req.method() === 'GET') {
+        const ids = (url.searchParams.get('day_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
+        return route.fulfill({ json: db.conns.filter(c => ids.includes(c.day_id as string)) })
+      }
+      if (req.method() === 'POST') {
+        // upsert on (from_stop_id, to_stop_id)
+        for (const r of Array.isArray(args) ? args : [args]) {
+          db.conns = db.conns.filter(c => !(c.from_stop_id === r.from_stop_id && c.to_stop_id === r.to_stop_id))
+          db.conns.push({ id: `conn-${db.conns.length + 1}`, ...r })
+        }
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'DELETE') {
+        const from = url.searchParams.get('from_stop_id')?.replace('eq.', '')
+        const to = url.searchParams.get('to_stop_id')?.replace('eq.', '')
+        db.conns = db.conns.filter(c => !(c.from_stop_id === from && c.to_stop_id === to))
         return route.fulfill({ status: 204, body: '' })
       }
     }
