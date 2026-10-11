@@ -61,10 +61,16 @@ jobs:
           dbref=$(printf '%s' "$DB" | sed -nE 's#^postgres(ql)?://postgres\.([a-z0-9]+):.*#\2#p')
           if [ "$dbref" = "$ref" ]; then echo "::notice title=Database secret::SUPABASE_DB_URL is for the same project ($ref)"
           else echo "::warning title=Database secret::SUPABASE_DB_URL is for project '${dbref:-unknown}', not $ref"; fi
-          if out=$(psql "$DB" -X -t -A -c "select count(*) filter (where table_name = 'itinerary_days'), count(*) from information_schema.tables where table_schema = 'public'" 2>&1); then
-            old=${out%%|*}; n=${out##*|}
-            if [ "$old" != "0" ]; then echo "::warning title=Database::Connected, but this is the OLD Wanderlog database"
-            else echo "::notice title=Database::Connected to a Hanh's Log database ($n tables in public)"; fi
+          # Hanh's Log's own project has run 0001_hanhs_log_foundation; the old
+          # Wanderlog database never did (it has itinerary_days, but so does
+          # Hanh's Log since 0002, so that alone can't tell them apart).
+          if has=$(psql "$DB" -X -t -A -c "select to_regclass('hanhs_log_meta.applied_migrations') is not null" 2>&1); then
+            mig=-
+            if [ "$has" = "t" ]; then
+              mig=$(psql "$DB" -X -t -A -c "select case when bool_or(filename = '0001_hanhs_log_foundation.sql') then string_agg(left(filename, 4), ' ' order by filename) else '-' end from hanhs_log_meta.applied_migrations")
+            fi
+            if [ "${mig:--}" = "-" ]; then echo "::warning title=Database::Connected, but this is not Hanh's Log's database (no 0001_hanhs_log_foundation). It may be the OLD Wanderlog database"
+            else echo "::notice title=Database::Connected to Hanh's Log's database. Migrations applied: $mig"; fi
           else
             echo "::warning title=Database::Could not connect with SUPABASE_DB_URL (check the password and that it's the Session pooler URI)"
           fi
