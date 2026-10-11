@@ -39,6 +39,16 @@ jobs:
               if [ -n "$value" ]; then echo "- $name: set ✅"; else echo "- $name: **missing** ❌"; fi
             done
           } >> "$GITHUB_STEP_SUMMARY"
+          # An annotation (not just the summary) so a greyed-out tilt is easy to
+          # trace: tilt/rotate need a Vector Map ID; without one they grey out
+          # on every look (standard, terrain, satellite included).
+          if [ -z "$D" ]; then
+            echo "::warning title=Map::VITE_GOOGLE_MAP_ID is missing — this live build has no vector map, so tilt and rotate are greyed out everywhere. Add it in Settings → Secrets and re-run Deploy."
+          elif [ -z "$C" ]; then
+            echo "::warning title=Map::VITE_GOOGLE_MAPS_API_KEY is missing — the map won't load."
+          else
+            echo "::notice title=Map::Map ID and Maps key are both set in this build. If tilt is still greyed, the Map ID isn't a Vector map, or it's in a different Google Cloud project than the key."
+          fi
       - run: npm run build
         env:
           BASE_PATH: /hanhs-log/
