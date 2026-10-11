@@ -39,8 +39,16 @@
 .cat { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 14px; }
 .catDot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .rows { list-style: none; margin: 0; padding: 0; }
-.row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.rowLi { display: flex; align-items: center; gap: 2px; }
+.row { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 7px 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: grab; }
 .row:hover { background: var(--ground); }
+.row:active { cursor: grabbing; }
+.addDay { flex: none; width: 28px; height: 28px; border: 1px solid var(--rule); border-radius: var(--pill); background: var(--surface); color: var(--accent); font-size: 18px; line-height: 1; cursor: pointer; }
+.addDay:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.addDay:disabled { color: var(--muted); border-style: dashed; cursor: default; opacity: 0.6; }
+.addToDay { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 38px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); color: var(--accent); font: inherit; font-size: 14px; cursor: pointer; }
+.addToDay:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.addToDay:disabled { color: var(--muted); border-style: dashed; cursor: default; }
 .status { width: 12px; height: 12px; border-radius: 50%; flex: none; display: inline-block; }
 .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mich { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: var(--pill); background: #FBECEC; color: #C8102E; border: 1px solid #E7B7B7; font-size: 11px; line-height: 15px; }

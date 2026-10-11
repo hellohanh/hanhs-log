@@ -97,6 +97,40 @@ export async function deleteActivity(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+// ---- Places on days: scheduled stops (migration 0005) ----
+
+export interface Stop {
+  id: string
+  day_id: string
+  pin_id: string
+  start_time: string
+  end_time: string
+  note: string | null
+}
+export type StopFields = Omit<Stop, 'id'>
+
+export async function fetchStops(dayIds: string[]): Promise<Stop[]> {
+  if (dayIds.length === 0) return []
+  const { data, error } = await client()
+    .from('itinerary_stops')
+    .select('id, day_id, pin_id, start_time, end_time, note')
+    .in('day_id', dayIds)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as Stop[]
+}
+
+export async function saveStop(fields: Partial<StopFields>, id?: string): Promise<void> {
+  const { error } = id
+    ? await client().from('itinerary_stops').update(fields).eq('id', id)
+    : await client().from('itinerary_stops').insert(fields)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteStop(id: string): Promise<void> {
+  const { error } = await client().from('itinerary_stops').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 // ---- Panel state on this device (Hanh, session 4: remember open and width) ----
 
 export interface PanelState {

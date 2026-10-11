@@ -175,8 +175,13 @@
 
 **Correction to Session 3's entry:** session 3's Stop Protocol docs landed in PR #14, together with session 2's.
 
-**Open questions:** Q1 (phone layout, parked), Q3–Q7, Q8 (Google dark pins/labels need a Google Cloud style, parked).
+**Open questions:** Q1 (phone layout, parked), Q5–Q7, Q8 (Google dark pins/labels need a Google Cloud style, parked). Q3 → E51, Q4 → E52.
 
 **Stop Protocol completed:** zip `S004 OCT 10 2026 Hanhs Log.zip` produced and presented.
 
-**Next session starts at:** M3 step 4, adding and editing pins (then the itinerary's stops, connectors and day routes, E49). Settle Q3 (tried it / ratings) and Q4 (Bib Gourmand), then mock up the add-pin form and pin drawing for approval before any code.
+**Work continued after the Stop Protocol:**
+- Pins add/edit (PR #38, merged + migration 0004 applied): WTG/VIS (E51), MICHELIN (E52), Places panel, pins on the map, pin toggles (E54), import order (E55).
+- Places on itinerary days (PR #40, migration 0005 `itinerary_stops`): scheduled stops as time blocks, four ways to add (E56), OTD Pins built (E57).
+- CI (PR #39): deploy/preview annotate whether the vector Map ID reached the build (greyed-out tilt turned out to be a missing/invalid `VITE_GOOGLE_MAP_ID`, not a code regression).
+
+**Next session starts at:** the itinerary's connectors between stops (walk/drive/Grab/transit/bike with Google times) and the day's route on the map + route popup; then step 5 (the collapsed three-level pinned list tree). Then M4 Savorlog, M5, the old-pin import (after Savorlog), M7 switch-over.

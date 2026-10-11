@@ -12,11 +12,17 @@ import {
   deleteActivity,
   fetchActivities,
   saveActivity,
+  deleteStop,
+  fetchStops,
+  saveStop,
   type Activity,
   type ItineraryDay,
   type LegFields,
+  type Stop,
   type TravelLeg
 } from '../../lib/itinerary'
+import { pinBadge, type Pin, type Review } from '../../lib/pins'
+import { StopBlock, StopEdit, STOP_MIN, nextStopStart } from './StopBlock'
 import {
   HOUR_PX,
   LEG_MODE_CONFIG,
@@ -32,7 +38,7 @@ import {
 import { loadGoogleMaps } from '../../lib/googleMaps'
 import TravelForm from './TravelForm'
 import { ActivityBlock, ActivityFields, AddPopup, usePopupStyle } from './ActivityBlock'
-import { ADD_SNAP_MIN, NEW_BLOCK_MIN, minuteAt, toMin } from '../../lib/itineraryDays'
+import { ADD_SNAP_MIN, NEW_BLOCK_MIN, hhmm, minuteAt, toMin } from '../../lib/itineraryDays'
 import styles from './Itinerary.module.css'
 
 // The itinerary panel (approved inline mockup, session 4): a right-hand
@@ -51,19 +57,33 @@ export default function ItineraryPanel({
   end,
   wide,
   home,
+  pins,
+  reviews,
+  addRequest,
   onWide,
-  onClose
+  onClose,
+  onOpenDay,
+  onOtdPins
 }: {
   tripId: string
   start: string | null
   end: string | null
   wide: boolean
   home: { center: google.maps.LatLngLiteral; zoom: number }
+  pins: Pin[]
+  reviews: Review[]
+  /** A pin the Places panel asked to add to the open day (new object each time). */
+  addRequest: { pinId: string; n: number } | null
   onWide: () => void
   onClose: () => void
+  /** The day shown now (for the "Add to day" button), or null. */
+  onOpenDay: (day: { id: string; label: string } | null) => void
+  /** Pin ids to keep full strength on the map when OTD Pins is on, or null when off. */
+  onOtdPins: (pinIds: string[] | null) => void
 }) {
   const [days, setDays] = useState<ItineraryDay[] | null>(null)
   const [legs, setLegs] = useState<TravelLeg[]>([])
+  const [stops, setStops] = useState<Stop[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [form, setForm] = useState<{ leg: TravelLeg | null; preset?: { from: string; to: string } } | null>(null)
@@ -71,9 +91,14 @@ export default function ItineraryPanel({
   // Click on an empty spot: "Add at …" popup at that 15-minute mark (session 4).
   const [adding, setAdding] = useState<{ start: number; end: number } | null>(null)
   const [editing, setEditing] = useState<Activity | null>(null)
+  const [editStop, setEditStop] = useState<Stop | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
   const [routeOpen, setRouteOpen] = useState(false)
   const [confirmDay, setConfirmDay] = useState(false)
+  // OTD Pins: off every visit; on fades the map's other pins (Hanh, session 4).
+  const [otd, setOtd] = useState(false)
+  // A pin being dragged in from the Places panel: which day tab, or the timeline, is lit up.
+  const [dropTarget, setDropTarget] = useState<string | 'timeline' | null>(null)
   const timeline = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
@@ -83,6 +108,7 @@ export default function ItineraryPanel({
       setDays(list)
       setLegs(await fetchLegs(list.map(d => d.id)))
       setActs(await fetchActivities(list.map(d => d.id)))
+      setStops(await fetchStops(list.map(d => d.id)))
       setSelected(s => (s && list.some(d => d.id === s) ? s : list[0]?.id ?? null))
     } catch (e) {
       setError((e as Error).message)
@@ -92,6 +118,38 @@ export default function ItineraryPanel({
   useEffect(() => {
     load()
   }, [load])
+
+  const pinById = useMemo(() => new Map(pins.map(p => [p.id, p])), [pins])
+
+  async function reloadStops() {
+    if (days) setStops(await fetchStops(days.map(d => d.id)))
+  }
+
+  // Add a pin to a day: at a given minute (timeline drop / Add popup) or the
+  // next free slot (day tab drop, the "+" button). 60-minute block.
+  const addStop = useCallback(
+    async (dayId: string, pinId: string, startMin?: number) => {
+      const s = startMin ?? nextStopStart(stops.filter(st => st.day_id === dayId))
+      const e = Math.min(24 * 60 - 1, s + STOP_MIN)
+      try {
+        await saveStop({ day_id: dayId, pin_id: pinId, start_time: hhmm(s), end_time: hhmm(e) })
+        if (days) setStops(await fetchStops(days.map(d => d.id)))
+      } catch (err) {
+        setError((err as Error).message)
+      }
+    },
+    [stops, days]
+  )
+
+  // The Places panel asked to add a pin to the open day. Start caught up so a
+  // request from a previous open session isn't re-run when the panel reopens.
+  const lastReq = useRef(addRequest?.n ?? 0)
+  useEffect(() => {
+    if (addRequest && addRequest.n !== lastReq.current && selected) {
+      lastReq.current = addRequest.n
+      addStop(selected, addRequest.pinId)
+    }
+  }, [addRequest, selected, addStop])
 
   const dayIndex = days?.findIndex(d => d.id === selected) ?? -1
   const day = days && dayIndex >= 0 ? days[dayIndex] : null
@@ -112,6 +170,7 @@ export default function ItineraryPanel({
   }, [legs, day])
 
   const dayActs = useMemo(() => (day ? acts.filter(a => a.day_id === day.id) : []), [acts, day])
+  const dayStops = useMemo(() => (day ? stops.filter(s => s.day_id === day.id) : []), [stops, day])
 
   const layout = useMemo(
     () =>
@@ -122,14 +181,36 @@ export default function ItineraryPanel({
           id: `a-${a.id}`,
           top: (toMin(a.start_time) / 60) * HOUR_PX,
           height: ((toMin(a.end_time) - toMin(a.start_time)) / 60) * HOUR_PX
+        })),
+        ...dayStops.map(s => ({
+          id: `s-${s.id}`,
+          top: (toMin(s.start_time) / 60) * HOUR_PX,
+          height: ((toMin(s.end_time) - toMin(s.start_time)) / 60) * HOUR_PX
         }))
       ]),
-    [own, continuing, dayActs]
+    [own, continuing, dayActs, dayStops]
   )
+
+  // Tell the trip page which day is open and which pins to keep bright on the
+  // map (OTD Pins on → this day's pins; off → null, Places rules apply).
+  useEffect(() => {
+    if (day) {
+      const t = dayTab(day, dayIndex)
+      onOpenDay({ id: day.id, label: `${t.top} ${t.main}`.trim() })
+    } else onOpenDay(null)
+  }, [day, dayIndex, onOpenDay])
+  useEffect(() => {
+    onOtdPins(otd && day ? dayStops.map(s => s.pin_id) : null)
+  }, [otd, day, dayStops, onOtdPins])
+  useEffect(() => () => { onOpenDay(null); onOtdPins(null) }, [onOpenDay, onOtdPins])
 
   async function reloadActs() {
     if (days) setActs(await fetchActivities(days.map(d => d.id)))
   }
+
+  // Read the pin id a drag carries (set by the Places panel's rows).
+  const draggedPin = (e: React.DragEvent) => e.dataTransfer.getData('text/plain')
+  const hasPin = (e: React.DragEvent) => e.dataTransfer.types.includes('text/plain')
 
   async function changeActivity(a: Activity, startT: string, endT: string) {
     // Show the new time straight away; put it back if saving fails.
@@ -139,6 +220,16 @@ export default function ItineraryPanel({
     } catch (e) {
       setError((e as Error).message)
       await reloadActs()
+    }
+  }
+
+  async function changeStop(s: Stop, startT: string, endT: string) {
+    setStops(list => list.map(x => (x.id === s.id ? { ...x, start_time: startT, end_time: endT } : x)))
+    try {
+      await saveStop({ start_time: startT, end_time: endT }, s.id)
+    } catch (e) {
+      setError((e as Error).message)
+      await reloadStops()
     }
   }
 
@@ -180,13 +271,23 @@ export default function ItineraryPanel({
                   type="button"
                   role="tab"
                   aria-selected={d.id === selected}
-                  className={styles.day}
+                  className={`${styles.day} ${dropTarget === d.id ? styles.dropOn : ''}`}
                   onClick={() => {
                     setSelected(d.id)
                     setForm(null)
                     setAdding(null)
                     setEditing(null)
+                    setEditStop(null)
                     setConfirmDay(false)
+                  }}
+                  onDragOver={e => { if (hasPin(e)) { e.preventDefault(); setDropTarget(d.id) } }}
+                  onDragLeave={() => setDropTarget(t => (t === d.id ? null : t))}
+                  onDrop={e => {
+                    if (!hasPin(e)) return
+                    e.preventDefault()
+                    setDropTarget(null)
+                    const pinId = draggedPin(e)
+                    if (pinId) addStop(d.id, pinId)
                   }}
                 >
                   {t.top}
@@ -217,8 +318,9 @@ export default function ItineraryPanel({
           {day && (
             <>
               <div className={styles.tools}>
-                {/* "Show all pins" moved to the Places panel; OTD Pins comes here with places on days. */}
-                <span className={styles.showAll} />
+                <label className={styles.showAll} title="Fade the map's other pins, so this day's places stand out">
+                  <input type="checkbox" checked={otd} onChange={e => setOtd(e.target.checked)} /> OTD Pins
+                </label>
                 <IconBtn label="Add travel (flight, train, bus, own transport)" onClick={() => setForm({ leg: null })}><PlaneIcon /></IconBtn>
                 <IconBtn label="Day note" pressed={noteOpen || !!day.note} onClick={() => setNoteOpen(o => !o)}><NoteIcon /></IconBtn>
                 {canDelete && <IconBtn label="Delete this day" onClick={() => setConfirmDay(true)}><TrashIcon /></IconBtn>}
@@ -226,7 +328,7 @@ export default function ItineraryPanel({
 
               {confirmDay && (
                 <div className={styles.confirm} role="alert">
-                  <span>Delete this day, its travel and activities?</span>
+                  <span>Delete this day, its travel, activities and places?</span>
                   <button type="button" className="btn" onClick={removeDay}>Delete</button>
                   <button type="button" className="btn btn-quiet" onClick={() => setConfirmDay(false)}>Keep</button>
                 </div>
@@ -266,14 +368,29 @@ export default function ItineraryPanel({
               ) : (
                 <div className={styles.timeline} ref={timeline} data-scroll="timeline">
                   <div
-                    className={styles.hours}
+                    className={`${styles.hours} ${dropTarget === 'timeline' ? styles.timelineDrop : ''}`}
                     style={{ height: 24 * HOUR_PX }}
                     data-testid="day-timeline"
                     onClick={e => {
-                      if (adding || editing) return setAdding(null)
+                      if (adding || editing || editStop) {
+                        setAdding(null)
+                        setEditStop(null)
+                        return
+                      }
                       const y = e.clientY - e.currentTarget.getBoundingClientRect().top
                       const start = minuteAt(y, HOUR_PX, ADD_SNAP_MIN)
                       setAdding({ start, end: Math.min(24 * 60 - 1, start + NEW_BLOCK_MIN) })
+                    }}
+                    onDragOver={e => { if (hasPin(e)) { e.preventDefault(); setDropTarget('timeline') } }}
+                    onDragLeave={e => { if (e.currentTarget === e.target) setDropTarget(t => (t === 'timeline' ? null : t)) }}
+                    onDrop={e => {
+                      if (!hasPin(e)) return
+                      e.preventDefault()
+                      setDropTarget(null)
+                      const pinId = draggedPin(e)
+                      if (!pinId) return
+                      const y = e.clientY - e.currentTarget.getBoundingClientRect().top
+                      addStop(day.id, pinId, minuteAt(y, HOUR_PX, ADD_SNAP_MIN))
                     }}
                   >
                     {Array.from({ length: 24 }, (_, h) => (
@@ -305,6 +422,25 @@ export default function ItineraryPanel({
                         }}
                       />
                     ))}
+                    {dayStops.map(s => {
+                      const pin = pinById.get(s.pin_id)
+                      if (!pin) return null
+                      return (
+                        <StopBlock
+                          key={s.id}
+                          stop={s}
+                          pin={pin}
+                          badge={pinBadge(reviews.filter(r => r.pin_id === s.pin_id))}
+                          pos={blockPositionStyle(layout.get(`s-${s.id}`), GUTTER)}
+                          onChange={(st, en) => changeStop(s, st, en)}
+                          onOpen={() => {
+                            setAdding(null)
+                            setEditing(null)
+                            setEditStop(s)
+                          }}
+                        />
+                      )
+                    })}
                     {adding && (
                       <>
                         <div
@@ -317,6 +453,7 @@ export default function ItineraryPanel({
                           endPx={(adding.end / 60) * HOUR_PX}
                           start={adding.start}
                           end={adding.end}
+                          pins={pins}
                           onCancel={() => setAdding(null)}
                           onTravel={(st, en) => {
                             setAdding(null)
@@ -326,6 +463,11 @@ export default function ItineraryPanel({
                             await saveActivity({ day_id: day.id, title, start_time: st, end_time: en })
                             setAdding(null)
                             await reloadActs()
+                          }}
+                          onAddPlace={async (pinId, st, en) => {
+                            await saveStop({ day_id: day.id, pin_id: pinId, start_time: st, end_time: en })
+                            setAdding(null)
+                            await reloadStops()
                           }}
                         />
                       </>
@@ -354,6 +496,30 @@ export default function ItineraryPanel({
                         />
                       </EditPop>
                     )}
+                    {editStop && pinById.get(editStop.pin_id) && (
+                      <EditPop startPx={(toMin(editStop.start_time) / 60) * HOUR_PX} endPx={(toMin(editStop.end_time) / 60) * HOUR_PX} label={pinById.get(editStop.pin_id)!.name}>
+                        <div className={styles.addHead}>
+                          <strong>{pinById.get(editStop.pin_id)!.name}</strong>
+                          <button type="button" className={styles.ib} aria-label="Close" onClick={() => setEditStop(null)}>×</button>
+                        </div>
+                        <StopEdit
+                          key={editStop.id}
+                          stop={editStop}
+                          pin={pinById.get(editStop.pin_id)!}
+                          onSubmit={async (st, en) => {
+                            await saveStop({ start_time: st, end_time: en }, editStop.id)
+                            setEditStop(null)
+                            await reloadStops()
+                          }}
+                          onCancel={() => setEditStop(null)}
+                          onDelete={async () => {
+                            await deleteStop(editStop.id)
+                            setEditStop(null)
+                            await reloadStops()
+                          }}
+                        />
+                      </EditPop>
+                    )}
                   </div>
                 </div>
               )}
@@ -367,11 +533,11 @@ export default function ItineraryPanel({
   )
 }
 
-function EditPop({ startPx, endPx, children }: { startPx: number; endPx: number; children: React.ReactNode }) {
+function EditPop({ startPx, endPx, label = 'Edit activity', children }: { startPx: number; endPx: number; label?: string; children: React.ReactNode }) {
   const box = useRef<HTMLDivElement>(null)
   const pos = usePopupStyle(box, startPx, endPx)
   return (
-    <div ref={box} className={styles.addPop} style={pos} role="dialog" aria-label="Edit activity" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+    <div ref={box} className={styles.addPop} style={pos} role="dialog" aria-label={label} onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
       {children}
     </div>
   )

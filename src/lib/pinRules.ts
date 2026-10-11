@@ -30,3 +30,20 @@ export function averageRating(reviews: Review[]): number | null {
   return Math.round((rs.reduce((a, b) => a + b, 0) / rs.length) * 10) / 10
 }
 
+/**
+ * Whether a pin is faded to 10% on the map (Hanh, session 4):
+ * - the pin being edited is never faded;
+ * - OTD Pins (itinerary open, toggle on) shows `otdPins` bright and fades the
+ *   rest — it overrides Show all pins and the MICHELIN filter;
+ * - otherwise Show all pins off fades everything, and the MICHELIN filter
+ *   fades non-MICHELIN pins.
+ */
+export function pinFaded(
+  pin: { id: string; michelin: string | null },
+  s: { editing: boolean; otdPins: Set<string> | null; showAll: boolean; michelinOnly: boolean }
+): boolean {
+  if (s.editing) return false
+  if (s.otdPins) return !s.otdPins.has(pin.id)
+  return !s.showAll || (s.michelinOnly && !pin.michelin)
+}
+
