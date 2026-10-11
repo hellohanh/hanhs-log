@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { fakeSupabase, ME } from './fake-supabase'
+import { fakeSupabase, ME, FRIEND } from './fake-supabase'
 
 // Savorlog page (M4 steps 4c–4d): a required location gate scopes the page to a
 // country or city; then the catalogue by country → dish, the search-to-add box
@@ -111,6 +111,25 @@ test('a country with no eateries says so; Change reopens the gate', async ({ pag
   await expect(page.getByText(/No eateries in Italy yet/)).toBeVisible()
   await page.getByRole('button', { name: 'Change' }).click()
   await expect(page.getByRole('dialog', { name: 'Where to see eateries' })).toBeVisible()
+})
+
+test('the Family dialog lists the circle; the owner can remove a member', async ({ page }) => {
+  await fakeSupabase(page, {
+    eateries: EATERIES,
+    savorPeople: [
+      { user_id: ME, display_name: 'Hanh', is_owner: true, joined_at: null },
+      { user_id: FRIEND, display_name: 'Mai', is_owner: false, joined_at: '2026-10-02T15:00:00Z' }
+    ]
+  })
+  await enter(page, 'viet', /Vietnam/)
+  await page.getByRole('button', { name: 'Family' }).click()
+  const dlg = page.getByRole('dialog', { name: 'Savorlog family' })
+  await expect(dlg).toBeVisible()
+  await expect(dlg.getByLabel('Invite link')).toHaveValue(/savor\/join\/savor-tok/)
+  await expect(dlg.getByText('Mai', { exact: true })).toBeVisible()
+  page.on('dialog', d => d.accept())
+  await dlg.getByRole('button', { name: 'Remove' }).click()
+  await expect(dlg.getByText('Mai', { exact: true })).toHaveCount(0)
 })
 
 test('country → dish tree helper', async () => {

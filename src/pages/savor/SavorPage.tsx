@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
-import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, priceLabel, type Eatery, type EateryReview } from '../../lib/eateries'
+import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, priceLabel, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
 import { searchPlaces, type FoundPlace } from '../../lib/pins'
+import { fetchMyName, type Person } from '../../lib/trips'
 import { searchLocations, resolveScope, inScope, type LocationHit, type Scope } from '../../lib/savorLocation'
 import { buildCountryTree } from '../../lib/savorTree'
 import { pinLook } from '../../lib/pinCatalog'
@@ -11,6 +12,8 @@ import { pinBox, pinHtml, badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
 import { pinBadge, pinFaded } from '../../lib/pinRules'
 import SavorMap, { type Frame } from './SavorMap'
 import SavorForm from './SavorForm'
+import SavorShareDialog from './SavorShareDialog'
+import NamePrompt from '../wander/NamePrompt'
 import { type MapPin } from '../wander/mapPinLayer'
 import styles from './Savor.module.css'
 
@@ -60,7 +63,14 @@ function SavorLoaded({ userId }: { userId: string }) {
   const [found, setFound] = useState<FoundPlace[] | null>(null)
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
+  // The Savorlog circle (4e): members, your name, the Family dialog.
+  const [people, setPeople] = useState<Person[]>([])
+  const [myName, setMyName] = useState<string | null | undefined>(undefined)
+  const [nameLater, setNameLater] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [inviteToken, setInviteToken] = useState('')
 
+  const loadCircle = useCallback(() => savorlogPeople().then(setPeople, () => setPeople([])), [])
   const load = useCallback(async () => {
     try {
       await claimSavorlog().catch(() => {})
@@ -71,10 +81,22 @@ function SavorLoaded({ userId }: { userId: string }) {
     } catch (e) {
       setError((e as Error).message)
     }
-  }, [])
+    loadCircle()
+    fetchMyName(userId).then(setMyName, () => setMyName(undefined))
+  }, [loadCircle, userId])
   useEffect(() => {
     load()
   }, [load])
+
+  const isOwner = people.find(p => p.is_me)?.is_owner ?? false
+  async function openShare() {
+    try {
+      setInviteToken(await savorlogInvite())
+    } catch {
+      setInviteToken('')
+    }
+    setSharing(true)
+  }
 
   const shown = useMemo(() => (scope ? eateries.filter(e => inScope(e, scope)) : []), [eateries, scope])
   const tree = useMemo(() => buildCountryTree(shown), [shown])
@@ -142,12 +164,15 @@ function SavorLoaded({ userId }: { userId: string }) {
           <p className={styles.eyebrow}>Savorlog</p>
           <h1 className={styles.h1}>Eateries</h1>
         </div>
-        {scope && (
-          <div className={styles.where}>
-            Showing <b>{scope.name}</b> {scope.kind === 'city' ? '(city)' : '(country)'}
-            <button type="button" className={styles.change} onClick={() => setScope(null)}>Change</button>
-          </div>
-        )}
+        <div className={styles.where}>
+          {scope && (
+            <>
+              Showing <b>{scope.name}</b> {scope.kind === 'city' ? '(city)' : '(country)'}
+              <button type="button" className={styles.change} onClick={() => setScope(null)}>Change</button>
+            </>
+          )}
+          <button type="button" className={styles.change} onClick={openShare}>Family</button>
+        </div>
       </div>
       <div className={styles.body}>
         <aside className={styles.side} aria-label="Catalogue">
@@ -252,7 +277,23 @@ function SavorLoaded({ userId }: { userId: string }) {
           <SavorMap pins={mapPins} frame={frame} onPinClick={id => { if (shown.some(e => e.id === id)) setEditing({ mode: 'edit', id }) }} />
         </div>
       </div>
-      {!scope && <LocationPicker onPick={h => chooseScope(resolveScope(h))} />}
+      {!scope && !sharing && <LocationPicker onPick={h => chooseScope(resolveScope(h))} />}
+      {sharing && (
+        <SavorShareDialog
+          token={inviteToken}
+          people={people}
+          isOwner={isOwner}
+          myName={myName ?? null}
+          userId={userId}
+          onTokenChange={setInviteToken}
+          onPeopleChange={loadCircle}
+          onNameChange={name => { setMyName(name); loadCircle() }}
+          onClose={() => setSharing(false)}
+        />
+      )}
+      {myName === null && !nameLater && !sharing && scope && (
+        <NamePrompt userId={userId} onSaved={name => { setMyName(name); loadCircle() }} onLater={() => setNameLater(true)} />
+      )}
     </main>
   )
 }
