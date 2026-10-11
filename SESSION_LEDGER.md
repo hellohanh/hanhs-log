@@ -179,9 +179,30 @@
 
 **Stop Protocol completed:** zip `S004 OCT 10 2026 Hanhs Log.zip` produced and presented.
 
-**Work continued after the Stop Protocol:**
-- Pins add/edit (PR #38, merged + migration 0004 applied): WTG/VIS (E51), MICHELIN (E52), Places panel, pins on the map, pin toggles (E54), import order (E55).
-- Places on itinerary days (PR #40, migration 0005 `itinerary_stops`): scheduled stops as time blocks, four ways to add (E56), OTD Pins built (E57).
-- CI (PR #39): deploy/preview annotate whether the vector Map ID reached the build (greyed-out tilt turned out to be a missing/invalid `VITE_GOOGLE_MAP_ID`, not a code regression).
+---
+
+## Session 5 — 2026-10-10
+
+M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Continued straight on from Session 4's map work.
+
+**Decisions settled:** Q3 → E51 (WTG/VIS: status, verdict, half-star rating, badge colours; anyone's status shows, most recent VIS wins, average in the card only). Q4 → E52 (no Bib Gourmand box/chip — Bib places are "Mentioned"; one MICHELIN filter chip). Plus E53 (pins added only from the Google search box, category by hand), E54 (Show-all-pins / OTD Pins model), E55 (import order), E56 (places on days: four add methods), E57 (OTD Pins fade rule, `pinFaded`).
+
+**Shipped (all merged to main):**
+- #37: No-pins keeps park names.
+- #38: Pins add/edit — migration `0004_pins` (pins + pin_reviews), the Places panel, the add/edit card, pins drawn on the map, Show-all-pins and MICHELIN chips. Trip cards count pins. (E51–E55)
+- #39: CI — deploy/preview emit a "Map" annotation saying whether the vector Map ID reached the build.
+- #40: Places on itinerary days — migration `0005_itinerary_stops`, stops as time blocks, four ways to add (drag → day tab / timeline slot, the Add popup's Place picker, a + on each list row, the card's Add to day), OTD Pins. (E56–E57)
+
+**Design work:** inline mockups for the WTG/VIS badges (re-shown with Hanh's colours), the MICHELIN pin levels, the add-pin form, places-on-days timeline blocks, the Add-to-day button placements.
+
+**Diagnosed (not a code bug):** greyed tilt/rotate on Google's own looks — `VITE_GOOGLE_MAP_ID` is set and the Maps key is accepted, so the fix is a **Vector** Map ID in the **same Google Cloud project** as the key (Console change). The #39 annotation now surfaces this on every run.
+
+**Lessons:** L35–L38 recorded in SKILL.md.
+
+**New standing preference:** always show the merge link when something is ready to merge, without being asked.
+
+**Open questions:** Q1 (phone layout, parked), Q5 (remaining cuisines' dishes), Q6 (five American icon names), Q7 (no lobster icon), Q8 (Google-dark pins/labels need a Google Cloud style, parked).
+
+**Stop Protocol completed:** zip `S005 OCT 10 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** the itinerary's connectors between stops (walk/drive/Grab/transit/bike with Google times) and the day's route on the map + route popup; then step 5 (the collapsed three-level pinned list tree). Then M4 Savorlog, M5, the old-pin import (after Savorlog), M7 switch-over.
