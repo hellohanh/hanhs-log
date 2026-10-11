@@ -3,6 +3,7 @@ import { loadGoogleMaps } from '../../lib/googleMaps'
 import { MAP_LOOKS, canHidePins, lookOptions, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
 import { type City } from '../../lib/city'
 import { anyDistrictInView } from '../../lib/districts'
+import { MODE_COLOR, type RouteSeg } from '../../lib/directions'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from './CameraControl'
 import styles from './TripMap.module.css'
@@ -39,12 +40,15 @@ export default function TripMap({
   city,
   rightInset = 0,
   pins: tripPins = [],
+  route,
   onPinClick,
   focus
 }: {
   city: CityState
   rightInset?: number
   pins?: MapPin[]
+  /** The day route to draw, coloured per mode, or null/undefined when off. */
+  route?: RouteSeg[] | null
   onPinClick?: (id: string) => void
   /** Pan here (a new object each time, so the same place can be re-focused). */
   focus?: { lat: number; lng: number } | null
@@ -154,6 +158,35 @@ export default function TripMap({
     map.panTo(focus)
     if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
   }, [map, focus])
+
+  // The day route (session 6): one polyline per leg, coloured by travel mode;
+  // an unset leg is a straight dashed grey line. Rebuilt with the map.
+  const routeLines = useRef<google.maps.Polyline[]>([])
+  useEffect(() => {
+    if (!map) return
+    for (const l of routeLines.current) l.setMap(null)
+    routeLines.current = []
+    for (const seg of route ?? []) {
+      const set = seg.mode && seg.path && seg.path.length > 1
+      const line = new google.maps.Polyline({
+        map,
+        path: set ? seg.path! : [seg.from, seg.to],
+        geodesic: !set,
+        strokeColor: set ? MODE_COLOR[seg.mode!] : '#8A8780',
+        strokeWeight: set ? 5 : 3,
+        strokeOpacity: set ? 0.9 : 0,
+        icons: set
+          ? undefined
+          : [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, strokeColor: '#8A8780', scale: 3 }, offset: '0', repeat: '12px' }],
+        zIndex: 1
+      })
+      routeLines.current.push(line)
+    }
+    return () => {
+      for (const l of routeLines.current) l.setMap(null)
+      routeLines.current = []
+    }
+  }, [map, route])
 
   // Watch the view: is any HCMC district on screen?
   useEffect(() => {

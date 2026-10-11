@@ -11,6 +11,18 @@ import type { ConnMode } from './itinerary'
 export interface LegTime {
   minutes: number
   meters: number
+  /** The route's path along the roads, for drawing the day route on the map. */
+  path: google.maps.LatLngLiteral[]
+}
+
+/** One leg of the day route drawn on the map (session 6). */
+export interface RouteSeg {
+  from: google.maps.LatLngLiteral
+  to: google.maps.LatLngLiteral
+  /** The travel mode, or null when none is set yet (drawn as a dashed grey line). */
+  mode: ConnMode | null
+  /** Google's road path for the mode, or null (then a straight line is drawn). */
+  path: google.maps.LatLngLiteral[] | null
 }
 
 const TRAVEL_MODE: Record<ConnMode, google.maps.TravelMode | 'DRIVING' | 'WALKING' | 'TRANSIT' | 'TWO_WHEELER'> = {
@@ -25,9 +37,14 @@ let service: google.maps.DirectionsService | null = null
 async function route(g: typeof google, req: google.maps.DirectionsRequest): Promise<LegTime | null> {
   service = service ?? new g.maps.DirectionsService()
   const res = await service.route(req)
-  const leg = res.routes[0]?.legs[0]
-  if (!leg) return null
-  return { minutes: Math.round((leg.duration?.value ?? 0) / 60), meters: Math.round(leg.distance?.value ?? 0) }
+  const r = res.routes[0]
+  const leg = r?.legs[0]
+  if (!r || !leg) return null
+  return {
+    minutes: Math.round((leg.duration?.value ?? 0) / 60),
+    meters: Math.round(leg.distance?.value ?? 0),
+    path: (r.overview_path ?? []).map(p => ({ lat: p.lat(), lng: p.lng() }))
+  }
 }
 
 export async function computeLeg(
@@ -54,3 +71,6 @@ export async function computeLeg(
 }
 
 export { formatMinutes, formatMeters } from './itineraryLayout'
+
+/** The route line colour per mode (matches the connector badges). */
+export const MODE_COLOR: Record<ConnMode, string> = { walk: '#2F8A3E', drive: '#185FA5', transit: '#6A3FA0', bike: '#C8781E' }
