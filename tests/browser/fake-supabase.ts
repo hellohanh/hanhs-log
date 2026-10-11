@@ -46,6 +46,7 @@ export interface FakeDb {
   reviews: FakeRow[]
   eateries: FakeRow[]
   eateryReviews: FakeRow[]
+  eateryPhotos: FakeRow[]
   /** People per trip id. Trips missing here answer "not allowed". */
   people: Record<string, FakePerson[]>
   myName: string | null
@@ -125,6 +126,7 @@ export async function fakeSupabase(
     reviews: structuredClone(opts.reviews ?? []),
     eateries: structuredClone(opts.eateries ?? []),
     eateryReviews: structuredClone(opts.eateryReviews ?? []),
+    eateryPhotos: structuredClone(opts.eateryPhotos ?? []),
     calls: []
   }
   let currentUser = me
@@ -293,7 +295,7 @@ export async function fakeSupabase(
 
     // Savorlog: the shared eatery catalogue and each person's review (0007).
     if (path === '/rest/v1/eateries') {
-      if (req.method() === 'GET') return route.fulfill({ json: db.eateries })
+      if (req.method() === 'GET') return route.fulfill({ json: db.eateries.filter(e => !e.deleted_at) })
       if (req.method() === 'POST') {
         for (const r of Array.isArray(args) ? args : [args]) db.eateries.push({ created_at: '2026-10-11T12:00:00Z', deleted_at: null, ...r })
         return route.fulfill({ status: 201, body: '' })
@@ -317,6 +319,24 @@ export async function fakeSupabase(
       }
     }
     if (path === '/rest/v1/rpc/claim_savorlog') return route.fulfill({ json: 'owner' })
+    if (path === '/rest/v1/rpc/request_eatery_deletion') {
+      db.eateries = db.eateries.map(e => (e.id === args._id ? { ...e, deleted_at: '2026-10-11T12:00:00Z' } : e))
+      return route.fulfill({ status: 204, body: '' })
+    }
+    if (path === '/rest/v1/eatery_photos') {
+      if (req.method() === 'GET') {
+        const ids = (url.searchParams.get('eatery_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
+        return route.fulfill({ json: db.eateryPhotos.filter(p => ids.includes(p.eatery_id as string)) })
+      }
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) db.eateryPhotos.push({ ...r })
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'DELETE') {
+        db.eateryPhotos = db.eateryPhotos.filter(p => p.id !== idEq)
+        return route.fulfill({ status: 204, body: '' })
+      }
+    }
 
     if (path === '/rest/v1/profiles') {
       if (req.method() === 'GET') return route.fulfill({ json: db.myName ? [{ display_name: db.myName }] : [] })

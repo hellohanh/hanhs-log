@@ -1,22 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
 import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, priceLabel, type Eatery, type EateryReview } from '../../lib/eateries'
+import { searchPlaces, type FoundPlace } from '../../lib/pins'
 import { searchLocations, resolveScope, inScope, type LocationHit, type Scope } from '../../lib/savorLocation'
 import { buildCountryTree } from '../../lib/savorTree'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml, badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
-import { pinBadge, pinFaded, averageRating } from '../../lib/pinRules'
+import { pinBadge, pinFaded } from '../../lib/pinRules'
 import SavorMap, { type Frame } from './SavorMap'
+import SavorForm from './SavorForm'
 import { type MapPin } from '../wander/mapPinLayer'
 import styles from './Savor.module.css'
 
 // The Savorlog page (/savor): a required location gate (E66) scopes the page to
 // a country or a city, then the shared eatery catalogue by country → dish on
-// the left and the chosen place on one map. Adding / editing an eatery is 4d.
+// the left and the chosen place on one map. Add / edit from the search box and
+// the card (4d).
 
 const asLook = (e: Eatery) => ({ category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
+type Editing = { mode: 'add'; place: FoundPlace } | { mode: 'edit'; id: string } | null
 
 export default function SavorPage() {
   const { session, loading } = useAuth()
@@ -29,7 +33,7 @@ export default function SavorPage() {
       </Message>
     )
   }
-  return <SavorLoaded />
+  return <SavorLoaded userId={session.user.id} />
 }
 
 function Message({ text, children }: { text: string; children?: React.ReactNode }) {
@@ -43,20 +47,23 @@ function Message({ text, children }: { text: string; children?: React.ReactNode 
   )
 }
 
-function SavorLoaded() {
+function SavorLoaded({ userId }: { userId: string }) {
   const [eateries, setEateries] = useState<Eatery[]>([])
   const [reviews, setReviews] = useState<EateryReview[]>([])
   const [error, setError] = useState('')
   const [showAll, setShowAll] = useState(true)
   const [michelinOnly, setMichelinOnly] = useState(false)
   const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
-  const [openId, setOpenId] = useState<string | null>(null)
-  // The location gate: null until a country/city is chosen (asked every visit).
+  const [editing, setEditing] = useState<Editing>(null)
   const [scope, setScope] = useState<Scope | null>(null)
+  const [query, setQuery] = useState('')
+  const [found, setFound] = useState<FoundPlace[] | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState('')
 
   const load = useCallback(async () => {
     try {
-      await claimSavorlog().catch(() => {}) // best-effort: become owner if the circle is empty
+      await claimSavorlog().catch(() => {})
       const es = await fetchCatalogue()
       setEateries(es)
       setReviews(await fetchEateryReviews(es.map(e => e.id)))
@@ -81,13 +88,10 @@ function SavorLoaded() {
         const look = pinLook(asLook(e))
         const box = pinBox(e)
         return {
-          id: e.id,
-          lat: e.lat,
-          lng: e.lng,
+          id: e.id, lat: e.lat, lng: e.lng,
           title: `${e.name} (${look.label})`,
           html: pinHtml({ color: look.color, icon: look.icon, michelin: e.michelin, badge: pinBadge(asReviews(reviews, e.id)) }),
-          width: box.width,
-          height: box.height,
+          width: box.width, height: box.height,
           faded: pinFaded({ id: e.id, michelin: e.michelin }, { editing: false, otdPins: null, showAll, michelinOnly })
         }
       }),
@@ -100,14 +104,36 @@ function SavorLoaded() {
       next.has(key) ? next.delete(key) : next.add(key)
       return next
     })
-  const openEatery = (e: Eatery) => setOpenId(e.id)
   const chooseScope = (s: Scope) => {
     setScope(s)
     setOpenKeys(new Set())
-    setOpenId(null)
+    setEditing(null)
+    setFound(null)
+    setQuery('')
   }
 
-  const open = openId ? shown.find(e => e.id === openId) ?? null : null
+  async function search(e: FormEvent) {
+    e.preventDefault()
+    if (!query.trim()) return
+    setSearching(true)
+    setSearchError('')
+    try {
+      setFound(await searchPlaces(query, scope?.center))
+    } catch (err) {
+      setFound(null)
+      setSearchError((err as Error).message)
+    } finally {
+      setSearching(false)
+    }
+  }
+  function pick(place: FoundPlace) {
+    setFound(null)
+    setQuery('')
+    const already = eateries.find(e => e.google_place_id === place.id)
+    setEditing(already ? { mode: 'edit', id: already.id } : { mode: 'add', place })
+  }
+
+  const editingEatery = editing?.mode === 'edit' ? eateries.find(e => e.id === editing.id) : undefined
 
   return (
     <main className={`segoe ${styles.page}`}>
@@ -125,10 +151,40 @@ function SavorLoaded() {
       </div>
       <div className={styles.body}>
         <aside className={styles.side} aria-label="Catalogue">
-          {open ? (
-            <Peek eatery={open} reviews={asReviews(reviews, open.id)} onClose={() => setOpenId(null)} />
+          {editing ? (
+            <SavorForm
+              key={editing.mode === 'edit' ? editing.id : editing.place.id}
+              userId={userId}
+              place={editing.mode === 'add' ? editing.place : undefined}
+              eatery={editingEatery}
+              reviews={editingEatery ? reviews.filter(r => r.eatery_id === editingEatery.id) : []}
+              onCancel={() => setEditing(null)}
+              onSaved={() => { setEditing(null); load() }}
+            />
           ) : (
             <>
+              <form className={styles.search} role="search" onSubmit={search}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+                <input type="search" value={query} onChange={e => { setQuery(e.target.value); if (!e.target.value) setFound(null) }} placeholder="Search Google to add an eatery" aria-label="Search Google for an eatery to add" />
+                <button type="submit" className={styles.go} disabled={searching}>{searching ? '…' : 'Search'}</button>
+              </form>
+              {searchError && <p className={styles.error} role="alert">{searchError}</p>}
+              {found && (
+                <ul className={styles.results} aria-label="Search results">
+                  {found.length === 0 && <li className={styles.muted} style={{ padding: '8px 12px' }}>Nothing found. Try other words.</li>}
+                  {found.map(f => {
+                    const already = eateries.some(e => e.google_place_id === f.id)
+                    return (
+                      <li key={f.id}>
+                        <button type="button" className={styles.res} onClick={() => pick(f)}>
+                          <span><b>{f.name}</b>{f.address ? <span className={styles.resSub}> {f.address}</span> : null}{already ? <span className={styles.resSub}> · already added</span> : null}</span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+
               <div className={styles.head}>
                 <strong>Catalogue</strong>
                 <span className={styles.count}>{shown.length > 0 ? shown.length : ''}</span>
@@ -147,7 +203,7 @@ function SavorLoaded() {
                 </div>
               )}
               {scope && shown.length === 0 && !error && (
-                <p className={styles.muted}>No eateries in {scope.name} yet.</p>
+                <p className={styles.muted}>No eateries in {scope.name} yet. Search above to add one.</p>
               )}
               {scope && shown.length > 0 && (
                 <ul className={styles.tree}>
@@ -163,9 +219,7 @@ function SavorLoaded() {
                         </button>
                         {openC && (
                           <ul className={styles.tree} style={{ paddingLeft: 22 }}>
-                            {c.loose.map(e => (
-                              <EateryRow key={e.id} e={e} reviews={reviews} onOpen={openEatery} />
-                            ))}
+                            {c.loose.map(e => <EateryRow key={e.id} e={e} reviews={reviews} onOpen={() => setEditing({ mode: 'edit', id: e.id })} />)}
                             {c.dishes.map(d => {
                               const dk = `${c.key}/${d.key}`
                               const openD = openKeys.has(dk)
@@ -178,9 +232,7 @@ function SavorLoaded() {
                                   </button>
                                   {openD && (
                                     <ul className={styles.tree} style={{ paddingLeft: 22 }}>
-                                      {d.eateries.map(e => (
-                                        <EateryRow key={e.id} e={e} reviews={reviews} onOpen={openEatery} />
-                                      ))}
+                                      {d.eateries.map(e => <EateryRow key={e.id} e={e} reviews={reviews} onOpen={() => setEditing({ mode: 'edit', id: e.id })} />)}
                                     </ul>
                                   )}
                                 </li>
@@ -197,7 +249,7 @@ function SavorLoaded() {
           )}
         </aside>
         <div className={styles.mapArea}>
-          <SavorMap pins={mapPins} frame={frame} onPinClick={id => { const e = shown.find(x => x.id === id); if (e) openEatery(e) }} />
+          <SavorMap pins={mapPins} frame={frame} onPinClick={id => { if (shown.some(e => e.id === id)) setEditing({ mode: 'edit', id }) }} />
         </div>
       </div>
       {!scope && <LocationPicker onPick={h => chooseScope(resolveScope(h))} />}
@@ -215,11 +267,7 @@ function LocationPicker({ onPick }: { onPick: (hit: LocationHit) => void }) {
   function run(q: string) {
     setQuery(q)
     const n = ++seq.current
-    if (!q.trim()) {
-      setHits([])
-      setErr('')
-      return
-    }
+    if (!q.trim()) { setHits([]); setErr(''); return }
     setSearching(true)
     searchLocations(q).then(
       r => { if (n === seq.current) { setHits(r); setErr(''); setSearching(false) } },
@@ -256,11 +304,11 @@ function LocationPicker({ onPick }: { onPick: (hit: LocationHit) => void }) {
   )
 }
 
-function EateryRow({ e, reviews, onOpen }: { e: Eatery; reviews: EateryReview[]; onOpen: (e: Eatery) => void }) {
+function EateryRow({ e, reviews, onOpen }: { e: Eatery; reviews: EateryReview[]; onOpen: () => void }) {
   const badge = pinBadge(asReviews(reviews, e.id))
   return (
     <li className={styles.rowLi}>
-      <button type="button" className={styles.row} onClick={() => onOpen(e)}>
+      <button type="button" className={styles.row} onClick={onOpen}>
         <span className={styles.status} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" dangerouslySetInnerHTML={{ __html: badgeSvg(badge, 12) }} />
         <span className={styles.name}>{e.name}</span>
         {e.michelin && (
@@ -271,37 +319,5 @@ function EateryRow({ e, reviews, onOpen }: { e: Eatery; reviews: EateryReview[];
         {e.price != null && <span className={styles.price}>{priceLabel(e.price)}</span>}
       </button>
     </li>
-  )
-}
-
-function Peek({ eatery, reviews, onClose }: { eatery: Eatery; reviews: ReturnType<typeof asReviews>; onClose: () => void }) {
-  const look = pinLook(asLook(eatery))
-  const badge = pinBadge(reviews)
-  const avg = averageRating(reviews)
-  return (
-    <div className={styles.peek}>
-      <div className={styles.peekHead}>
-        <strong>{eatery.name}</strong>
-        <button type="button" className={styles.x} aria-label="Close" onClick={onClose}>×</button>
-      </div>
-      <p className={styles.path}>{look.label}</p>
-      <div className={styles.marks}>
-        <span className={styles.status} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" dangerouslySetInnerHTML={{ __html: badgeSvg(badge, 14) }} />
-        <span>{BADGE[badge].label}</span>
-        {eatery.michelin && (
-          <span className={styles.mich}>
-            {eatery.michelin === 'mentioned' ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(13, '#9E2A2B') }} /> : '★'.repeat(Number(eatery.michelin))}
-            {eatery.michelin_year ? ` ${eatery.michelin_year}` : ''}
-          </span>
-        )}
-        {eatery.price != null && <span className={styles.price}>{priceLabel(eatery.price)}</span>}
-        {eatery.street_food && <span className={styles.tag}>Street food</span>}
-        {eatery.fine_dining && <span className={styles.tag}>Fine dining</span>}
-      </div>
-      {eatery.address && <p className={styles.path}>{eatery.address}</p>}
-      {eatery.note && <p className={styles.note}>{eatery.note}</p>}
-      <p className={styles.avg}>{avg != null ? `Average rating ${avg} / 5 (${reviews.filter(r => r.rating != null).length})` : 'No ratings yet'}</p>
-      <p className={styles.muted} style={{ fontSize: 12 }}>Adding your own rating and editing come in the next step.</p>
-    </div>
   )
 }
