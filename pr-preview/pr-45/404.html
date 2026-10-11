@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hanh's Log</title>
+    <script>
+      // GitHub Pages serves this file for any path that isn't a real file,
+      // e.g. a shared link to /hanhs-log/savor. Send it to the right copy of
+      // the app (the live site, or a pull-request preview under
+      // /hanhs-log/pr-preview/pr-N/) with the path tucked into the query
+      // string; index.html puts it back.
+      ;(function (l) {
+        var m = l.pathname.match(/^(\/hanhs-log\/(?:pr-preview\/pr-\d+\/)?)(.*)$/)
+        if (!m) return
+        l.replace(
+          l.protocol + '//' + l.host + m[1] + '?/' +
+          m[2].replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash
+        )
+      })(window.location)
+    </script>
+  </head>
+  <body></body>
+</html>
