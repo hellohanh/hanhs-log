@@ -31,7 +31,7 @@ jobs:
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pg17
       - name: Check the migration rules again
         run: node scripts/check-migrations.mjs
@@ -39,7 +39,7 @@ jobs:
         id: backup
         if: env.DRY_RUN != 'true'
         run: scripts/backup-db.sh "pre-migration-${{ github.run_id }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: env.DRY_RUN != 'true' && steps.backup.outputs.empty != 'true'
         with:
           name: pre-migration-backup-${{ github.run_id }}
