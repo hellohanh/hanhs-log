@@ -4,28 +4,30 @@ import { MAP_LOOKS, canHidePins, lookOptions, readLook, readPins, saveLook, save
 import { useIsDark } from '../../lib/theme'
 import CameraControl from '../wander/CameraControl'
 import { makePinLayer, type MapPin, type PinLayer } from '../wander/mapPinLayer'
+import type { Bounds } from '../../lib/countryBounds'
 import styles from '../wander/TripMap.module.css'
 
-// The Savorlog map (M4 step 4c): the whole eatery catalogue on one map,
+// The Savorlog map (M4 step 4c): the chosen place's eateries on one map,
 // reusing the trip map's looks (11), Pins toggle and 3 × 4 camera control.
-// The catalogue spans countries, so it opens framing every eatery and flies
-// to a country's eateries when one is picked in the list, or to a single
-// eatery when it's opened (Hanh, session 6).
+// The location gate (E66) frames a country to its mainland box, or a city at
+// zoom 13 on its centre.
 
 const WORLD = { center: { lat: 20, lng: 0 }, zoom: 2 }
 
-/** A set of points to frame (a country's eateries), re-sent as a new array. */
-export type FitPoints = { lat: number; lng: number }[]
+/** Where the map should sit: a country's box, or a city centre at a zoom. */
+export interface Frame {
+  bounds?: Bounds
+  center?: { lat: number; lng: number }
+  zoom?: number
+}
 
 export default function SavorMap({
   pins,
-  fitTo,
-  panTo,
+  frame,
   onPinClick
 }: {
   pins: MapPin[]
-  fitTo?: FitPoints | null
-  panTo?: { lat: number; lng: number } | null
+  frame?: Frame | null
   onPinClick?: (id: string) => void
 }) {
   const box = useRef<HTMLDivElement>(null)
@@ -46,13 +48,11 @@ export default function SavorMap({
   const tiltable = Boolean(mapId) && opts.tiltable
   const kind = tiltable ? (look.dark ? 'tilt-dark' : 'tilt') : 'flat'
 
-  // The whole catalogue's centre, for the camera control's Reset.
-  const home = useMemo(() => {
-    if (pins.length === 0) return WORLD
-    const lat = pins.reduce((s, p) => s + p.lat, 0) / pins.length
-    const lng = pins.reduce((s, p) => s + p.lng, 0) / pins.length
-    return { center: { lat, lng }, zoom: 4 }
-  }, [pins])
+  // The camera control's Reset returns to the chosen place's centre.
+  const home = useMemo(
+    () => (frame?.center ? { center: frame.center, zoom: frame.zoom ?? 5 } : WORLD),
+    [frame]
+  )
 
   // Create the map, and again whenever the kind changes (keeping the view).
   useEffect(() => {
@@ -97,26 +97,17 @@ export default function SavorMap({
     map.setOptions(kind === 'flat' ? { mapTypeId: opts.mapTypeId, styles: opts.styles } : { mapTypeId: opts.mapTypeId })
   }, [map, kind, opts.mapTypeId, opts.styles])
 
-  // Open framing every eatery, once the pins are in.
-  const framed = useRef(false)
+  // Frame the chosen place: a country to its mainland box, a city at its zoom.
   useEffect(() => {
-    if (!map || framed.current || pins.length === 0) return
-    framed.current = true
-    fit(map, pins)
-  }, [map, pins])
-
-  // Fly to a country's eateries when the list asks (a new array each time).
-  useEffect(() => {
-    if (!map || !fitTo || fitTo.length === 0) return
-    fit(map, fitTo)
-  }, [map, fitTo])
-
-  // Fly to a single eatery when it's opened.
-  useEffect(() => {
-    if (!map || !panTo) return
-    map.panTo(panTo)
-    if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
-  }, [map, panTo])
+    if (!map || !frame) return
+    if (frame.bounds) {
+      const b = frame.bounds
+      map.fitBounds({ south: b.south, west: b.west, north: b.north, east: b.east }, 24)
+    } else if (frame.center) {
+      map.setCenter(frame.center)
+      map.setZoom(frame.zoom ?? 13)
+    }
+  }, [map, frame])
 
   // The eatery pins (rebuilt with the map when the map is replaced).
   const pinLayer = useRef<PinLayer | null>(null)
@@ -224,17 +215,6 @@ export default function SavorMap({
       )}
     </div>
   )
-}
-
-function fit(map: google.maps.Map, points: { lat: number; lng: number }[]) {
-  if (points.length === 1) {
-    map.setCenter(points[0])
-    map.setZoom(14)
-    return
-  }
-  const b = new google.maps.LatLngBounds()
-  for (const p of points) b.extend(p)
-  map.fitBounds(b, 64)
 }
 
 function Tile({ s }: { s: Swatch }) {
