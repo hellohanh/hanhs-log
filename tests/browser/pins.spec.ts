@@ -133,6 +133,19 @@ test('pin helpers: badge, average, look, and the drawing', async () => {
     expect(new Set(c.subs.map(s => s.key)).size).toBe(c.subs.length)
     for (const s of c.subs) if (s.leaves) expect(new Set(s.leaves.map(l => l.key)).size).toBe(s.leaves.length)
   }
+  // Every icon named in the catalogue is shipped: a Material Symbol in materialIcons.ts or one of
+  // Hanh's drawings in src/assets/pin-icons (otherwise the pin silently falls back to location_on).
+  const { MATERIAL_ICONS } = await import('../../src/lib/materialIcons')
+  const { readdirSync } = await import('node:fs')
+  const custom = new Set(readdirSync('src/assets/pin-icons').map(f => f.replace(/\.svg$/, '')))
+  const missing: string[] = []
+  for (const c of CATEGORIES) for (const s of c.subs) for (const i of [s.icon, ...(s.leaves ?? []).map(l => l.icon)])
+    if (!MATERIAL_ICONS[i] && !custom.has(i)) missing.push(`${c.key}/${s.key}: ${i}`)
+  expect(missing).toEqual([])
+  // Q5: every cuisine except Fusion has its dish list.
+  const food = CATEGORIES.find(c => c.key === 'food')!
+  expect(food.subs.filter(s => !s.leaves).map(s => s.label)).toEqual(['Fusion'])
+  expect(pinLook({ category: 'food', subcategory: 'japanese', subsubcategory: 'sushi-sashimi' })).toMatchObject({ color: '#C23B22', icon: 'set_meal' })
 })
 
 test('pin drawing: teardrop, MICHELIN flower and stars chip, status badge', async ({ page }) => {
