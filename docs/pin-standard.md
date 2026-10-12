@@ -150,8 +150,34 @@ Every level is collapsed by default and opens with its arrow.
 | Laotian | Larb `nutrition` · Khao piak sen `ramen_dining` · Tam mak hoong `nutrition` · Sai oua `pig` · Khao jee `banh_mi` |
 | Singaporean | Hainanese chicken rice `chicken` · Chili crab `crab_2` · Laksa `ramen_dining` · Bak kut teh `pig` · Kaya toast `breakfast_dining` |
 
-Still to do (Q5): dishes for East Asian, South Asian, European, Americas, and Café /
-Bakery / Bar / Fusion.
+### The rest (Q5 → E70, session 8; top 5 each, approved by Hanh)
+Italic names are Hanh's own drawings; the rest are Material Symbols (checked against 0.48.0, L16).
+
+| Cuisine | Dishes (icon) |
+|---|---|
+| Japanese | Sushi / sashimi `set_meal` · Ramen `ramen_dining` · Udon / soba `ramen_dining` · Tempura *shrimp* · Yakitori / izakaya `kebab_dining` |
+| Korean | Korean BBQ *cow* · Bibimbap `rice_bowl` · Korean fried chicken *fried_chicken* · Jjigae / stew `soup_kitchen` · Tteokbokki `skillet` |
+| Chinese | Dumplings `takeout_dining` · Hot pot `local_fire_department` · Hand-pulled noodles `ramen_dining` · Peking duck *duck* · Sichuan `soup_kitchen` |
+| Taiwanese | Beef noodle soup `ramen_dining` · Xiao long bao `takeout_dining` · Lu rou fan `rice_bowl` · Night-market fried chicken *fried_chicken* · Bubble tea `glass_cup` |
+| Cantonese / Hong Kong | Dim sum `takeout_dining` · Roast meats / char siu *pig* · Wonton noodles `ramen_dining` · Congee `rice_bowl` · Cha chaan teng `breakfast_dining` |
+| Indian | Curry `soup_kitchen` · Biryani `rice_bowl` · Tandoori *chicken* · Dosa `skillet` · Thali `dinner_dining` |
+| Italian | Pizza *pizza* · Pasta `dinner_dining` · Risotto `rice_bowl` · Bistecca / steak *steak* · Gelato *ice_cream* |
+| French | Bistro / brasserie `flatware` · Steak frites *steak* · Crêpes `skillet` · Oysters / seafood *crab* · Duck confit *duck* |
+| Spanish | Tapas `tapas` · Paella `skillet` · Jamón *pig* · Seafood *shrimp* · Churros `bakery_dining` |
+| Greek | Gyros / souvlaki `kebab_dining` · Moussaka `stockpot` · Greek salad `nutrition` · Grilled fish *fish_striped* · Lamb *sheep* |
+| Mediterranean | Shawarma / kebab `kebab_dining` · Mezze / hummus `tapas` · Falafel `lunch_dining` · Grilled meats `outdoor_grill` · Lamb *sheep* |
+| American | Burger *burger* · Steakhouse *steak* · BBQ *ribs* · Pizza *pizza* · Diner / breakfast *breakfast_plate* |
+| Southern / soul food | Fried chicken *fried_chicken* · Catfish *catfish* · Biscuits & gravy *breakfast_plate* · Mac & cheese *mac_and_cheese* · Pie / cobbler *pie* |
+| Cajun / Creole | Gumbo `soup_kitchen` · Crawfish boil *crab_2* · Po'boy *sandwich* · Jambalaya `rice_bowl` · Beignets `donut_small` |
+| Tex-Mex | Tacos *taco* · Fajitas `skillet` · Enchiladas `dinner_dining` · Queso / nachos *nachos* · Burritos *burrito* |
+| Mexican | Tacos *taco* · Mole `stockpot` · Tamales *corn* · Pozole `soup_kitchen` · Mariscos *shrimp* |
+| Café / coffee | Coffee `coffee` · Vietnamese coffee `local_cafe` · Tea `emoji_food_beverage` · Bubble tea `glass_cup` · Brunch `brunch_dining` |
+| Bakery / dessert | Bakery / pastry `bakery_dining` · Cake `cake` · Ice cream *ice_cream* · Donuts `donut_small` · Cookies *cookies* |
+| Bar / drinks | Cocktails `local_bar` · Wine `wine_bar` · Beer / brewery `sports_bar` · Spirits / sake `liquor` · Club / nightlife `nightlife` |
+| Fusion | No dish list: the cuisine is the last level |
+
+The same dish can sit under two cuisines (Tacos: Tex-Mex and Mexican; Pizza: Italian and
+American; Bubble tea: Taiwanese and Café), because the cuisine is the food's origin.
 
 ## The add-pin form (built in session 4)
 
@@ -165,7 +191,7 @@ Bakery / Bar / Fusion.
   aren't in Material Symbols and were swapped for the closest match: Viewpoint
   uses `mountain_flag` (not `terrain`), Souvenirs / gifts uses `redeem` (not
   `card_giftcard`). Café, Bakery and Bar use `coffee`, `bakery_dining` and
-  `local_bar`; cuisines without dishes yet use `restaurant`.
+  `local_bar`; Fusion (no dish list) uses `restaurant`.
 
 ## Old Wanderlog food pins (E33)
 
