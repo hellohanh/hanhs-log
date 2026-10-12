@@ -47,6 +47,8 @@ export interface FakeDb {
   eateries: FakeRow[]
   eateryReviews: FakeRow[]
   eateryPhotos: FakeRow[]
+  savorPeople: FakePerson[]
+  savorToken: string
   /** People per trip id. Trips missing here answer "not allowed". */
   people: Record<string, FakePerson[]>
   myName: string | null
@@ -106,7 +108,7 @@ const deny = (route: Route, message: string) =>
  */
 export async function fakeSupabase(
   page: Page,
-  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[] } = {}
+  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[]; savorPeople?: FakePerson[] } = {}
 ): Promise<FakeDb> {
   const me = opts.signedInAs === undefined ? ME : opts.signedInAs
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00'))
@@ -127,6 +129,8 @@ export async function fakeSupabase(
     eateries: structuredClone(opts.eateries ?? []),
     eateryReviews: structuredClone(opts.eateryReviews ?? []),
     eateryPhotos: structuredClone(opts.eateryPhotos ?? []),
+    savorPeople: structuredClone(opts.savorPeople ?? [{ user_id: ME, display_name: 'Hanh', is_owner: true, joined_at: null }]),
+    savorToken: 'savor-tok',
     calls: []
   }
   let currentUser = me
@@ -319,6 +323,24 @@ export async function fakeSupabase(
       }
     }
     if (path === '/rest/v1/rpc/claim_savorlog') return route.fulfill({ json: 'owner' })
+    if (path === '/rest/v1/rpc/savorlog_invite') return route.fulfill({ json: db.savorToken })
+    if (path === '/rest/v1/rpc/reset_savorlog_invite') {
+      db.savorToken = 'savor-reset'
+      return route.fulfill({ json: db.savorToken })
+    }
+    if (path === '/rest/v1/rpc/savorlog_people') {
+      return route.fulfill({ json: db.savorPeople.map(p => ({ ...p, is_me: p.user_id === currentUser })) })
+    }
+    if (path === '/rest/v1/rpc/join_savorlog_via_invite') {
+      if (!db.savorPeople.some(p => p.user_id === currentUser)) {
+        db.savorPeople.push({ user_id: currentUser!, display_name: null, is_owner: false, joined_at: '2026-10-11T12:00:00Z' })
+      }
+      return route.fulfill({ status: 204, body: '' })
+    }
+    if (path === '/rest/v1/rpc/remove_savorlog_member') {
+      db.savorPeople = db.savorPeople.filter(p => p.user_id !== args._user)
+      return route.fulfill({ status: 204, body: '' })
+    }
     if (path === '/rest/v1/rpc/request_eatery_deletion') {
       db.eateries = db.eateries.map(e => (e.id === args._id ? { ...e, deleted_at: '2026-10-11T12:00:00Z' } : e))
       return route.fulfill({ status: 204, body: '' })

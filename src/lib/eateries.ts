@@ -96,6 +96,35 @@ export async function claimSavorlog(): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+// ---- the Savorlog circle's invite (migration 0009) ----
+
+export function savorInviteUrl(token: string): string {
+  return `${window.location.origin}${import.meta.env.BASE_URL}savor/join/${token}`
+}
+export async function savorlogInvite(): Promise<string> {
+  const { data, error } = await client().rpc('savorlog_invite')
+  if (error) throw new Error(error.message)
+  return data as string
+}
+export async function joinSavorlog(token: string): Promise<void> {
+  const { error } = await client().rpc('join_savorlog_via_invite', { _token: token })
+  if (error) throw new Error(error.message)
+}
+export async function savorlogPeople(): Promise<import('./trips').Person[]> {
+  const { data, error } = await client().rpc('savorlog_people')
+  if (error) throw new Error(error.message)
+  return (data ?? []) as import('./trips').Person[]
+}
+export async function removeSavorlogMember(userId: string): Promise<void> {
+  const { error } = await client().rpc('remove_savorlog_member', { _user: userId })
+  if (error) throw new Error(error.message)
+}
+export async function resetSavorlogInvite(): Promise<string> {
+  const { data, error } = await client().rpc('reset_savorlog_invite')
+  if (error) throw new Error(error.message)
+  return data as string
+}
+
 // ---- photos (migration 0008 + the "eatery-photos" Storage bucket) ----
 
 export interface EateryPhoto {
