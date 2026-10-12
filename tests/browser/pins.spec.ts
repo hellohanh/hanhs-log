@@ -15,31 +15,27 @@ const SAVED_PINS = [
   { id: 'pin-ben-thanh', trip_id: 'trip-saigon', google_place_id: 'g-ben-thanh', name: 'Bến Thành Market', address: null, lat: 10.772, lng: 106.698, category: 'shopping', subcategory: 'market', subsubcategory: null, michelin: null, michelin_year: null, street_food: false, fine_dining: false, note: null }
 ]
 
-test('add a pin: search Google, pick the category by hand, VIS needs a verdict, half stars, MICHELIN', async ({ page }) => {
+test('add a non-food pin: pick the category by hand, VIS needs a verdict, half stars', async ({ page }) => {
   const db = await fakeSupabase(page)
   await fakePlaces(page, [PHO, MARKET])
   await page.goto('./wander/trip/trip-saigon')
   const places = page.getByRole('complementary', { name: 'Places' })
   await expect(places.getByText('No places on this trip yet.')).toBeVisible()
 
-  await places.getByRole('searchbox', { name: 'Search Google for a place to add' }).fill('pho hoa')
+  await places.getByRole('searchbox', { name: 'Search Google for a place to add' }).fill('ben thanh')
   await places.getByRole('button', { name: 'Search' }).click()
-  await places.getByRole('button', { name: /Phở Hòa Pasteur/ }).click()
+  await places.getByRole('button', { name: /Bến Thành Market/ }).click()
 
   const card = places.getByRole('form', { name: 'Add a place' })
-  await expect(card.getByLabel('Name')).toHaveValue('Phở Hòa Pasteur')
-  await expect(card.getByText('260C Pasteur, Quận 3')).toBeVisible()
+  await expect(card.getByLabel('Name')).toHaveValue('Bến Thành Market')
   // Category first: nothing is guessed.
   await card.getByRole('button', { name: 'Add pin' }).click()
   await expect(card.getByRole('alert')).toHaveText('Pick a category.')
-  // MICHELIN is only offered for food and drink.
+  // MICHELIN is only offered for food and drink (which now lives in Savorlog).
   await card.getByLabel('Category').selectOption('shopping')
   await expect(card.getByRole('radiogroup', { name: 'MICHELIN' })).toHaveCount(0)
-  await card.getByLabel('Category').selectOption('food')
-  await card.getByLabel('Cuisine').selectOption('vietnamese')
-  await card.getByLabel('Dish').selectOption('pho')
 
-  // WTG is the default; VIS can't be saved without ✓, – or ✗.
+  // WTG is the default; VIS can't be saved without ✓, – or ✗; half-star rating.
   await expect(card.getByRole('radio', { name: 'WTG' })).toHaveAttribute('aria-checked', 'true')
   await card.getByRole('radio', { name: 'VIS' }).click()
   await card.getByRole('button', { name: 'Add pin' }).click()
@@ -47,27 +43,16 @@ test('add a pin: search Google, pick the category by hand, VIS needs a verdict, 
   await card.getByRole('radio', { name: /Revisit/ }).click()
   await card.getByRole('button', { name: '4.5 stars' }).click()
   await expect(card.getByRole('slider', { name: 'Your rating' })).toHaveAttribute('aria-valuetext', '4.5 of 5')
-
-  await card.getByRole('radio', { name: 'Mentioned' }).click()
-  await expect(card.getByLabel('Year')).toHaveValue('2026')
-  await card.getByLabel('Street food').check()
   await card.getByRole('button', { name: 'Add pin' }).click()
 
-  // Back to the tree: Nom-Nom appears (collapsed), no Shopping branch.
-  await expect(places.getByRole('button', { name: /^Nom-Nom,/ })).toBeVisible()
-  await expect(places.getByRole('button', { name: /^Shopping,/ })).toHaveCount(0) // categories only with pins
-  // Expand down to the pin and check its green (revisit) status.
-  await places.getByRole('button', { name: /^Nom-Nom,/ }).click()
-  await places.getByRole('button', { name: /^Vietnamese,/ }).click()
-  await places.getByRole('button', { name: /^Phở,/ }).click()
-  await expect(places.getByText('Phở Hòa Pasteur')).toBeVisible()
+  // Back to the tree: Shopping appears (collapsed); expand to the pin.
+  await expect(places.getByRole('button', { name: /^Shopping,/ })).toBeVisible()
+  await places.getByRole('button', { name: /^Shopping,/ }).click()
+  await expect(places.getByText('Bến Thành Market')).toBeVisible()
   await expect(places.getByRole('img', { name: 'Visited: revisit' })).toBeVisible()
 
   const pin = JSON.parse(db.calls.find(c => c.method === 'POST' && c.path === '/rest/v1/pins')!.body!)
-  expect(pin).toMatchObject({
-    trip_id: 'trip-saigon', google_place_id: 'g-pho', name: 'Phở Hòa Pasteur', lat: 10.789, lng: 106.689,
-    category: 'food', subcategory: 'vietnamese', subsubcategory: 'pho', michelin: 'mentioned', michelin_year: 2026, street_food: true, fine_dining: false
-  })
+  expect(pin).toMatchObject({ trip_id: 'trip-saigon', google_place_id: 'g-ben-thanh', name: 'Bến Thành Market', category: 'shopping' })
   const review = JSON.parse(db.calls.find(c => c.method === 'POST' && c.path === '/rest/v1/pin_reviews')!.body!)
   expect(review).toEqual({ pin_id: pin.id, user_id: ME, status: 'vis', verdict: 'revisit', rating: 4.5 })
 })
@@ -118,7 +103,7 @@ test('the tree: collapses by category, MICHELIN chip, Show all pins on by defaul
   // Searching for a place that's already pinned opens it.
   await places.getByRole('searchbox').fill('ben thanh')
   await places.getByRole('button', { name: 'Search' }).click()
-  await expect(places.getByText('Already pinned · open it')).toBeVisible()
+  await expect(places.getByText('Already added · open it')).toBeVisible()
   await places.getByRole('button', { name: /Bến Thành Market/ }).first().click()
   await expect(places.getByRole('form', { name: 'Edit place' }).getByLabel('Name')).toHaveValue('Bến Thành Market')
 

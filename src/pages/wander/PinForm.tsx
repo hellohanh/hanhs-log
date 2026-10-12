@@ -33,6 +33,7 @@ export default function PinForm({
   reviews,
   openDay,
   onAddToDay,
+  onFood,
   onCancel,
   onSaved
 }: {
@@ -44,6 +45,8 @@ export default function PinForm({
   reviews: Review[]
   openDay: { id: string; label: string } | null
   onAddToDay: (pinId: string) => void
+  /** Picking the Nom-Nom category hands off to the Savorlog add panel (M5). */
+  onFood?: () => void
   onCancel: () => void
   onSaved: (pinId: string) => void
 }) {
@@ -155,7 +158,18 @@ export default function PinForm({
 
       <fieldset className={styles.group}>
         <legend>Category</legend>
-        <select aria-label="Category" value={category} onChange={e => { setCategory(e.target.value); setSub(''); setLeaf('') }}>
+        <select
+          aria-label="Category"
+          value={category}
+          onChange={e => {
+            // Dining lives in Savorlog now: picking Nom-Nom hands off to its
+            // add panel instead of making a trip pin (M5).
+            if (e.target.value === 'food' && onFood) return onFood()
+            setCategory(e.target.value)
+            setSub('')
+            setLeaf('')
+          }}
+        >
           <option value="">Pick a category</option>
           {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
         </select>

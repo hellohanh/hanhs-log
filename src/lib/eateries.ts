@@ -50,6 +50,13 @@ export async function fetchCatalogue(): Promise<Eatery[]> {
   return ((data ?? []) as Eatery[]).sort((a, b) => a.name.localeCompare(b.name))
 }
 
+/** The catalogue eateries a trip shows: within 20 km of one of its cities (E60). */
+export async function fetchTripEateries(tripId: string): Promise<Eatery[]> {
+  const { data, error } = await client().rpc('trip_eateries', { _trip: tripId })
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as Eatery[]).sort((a, b) => a.name.localeCompare(b.name))
+}
+
 export async function fetchEateryReviews(ids: string[]): Promise<EateryReview[]> {
   if (ids.length === 0) return []
   const { data, error } = await client()
