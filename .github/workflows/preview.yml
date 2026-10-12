@@ -10,6 +10,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write   # pages-guard: see/remove GitHub's Pages runs
+  pages: write     # pages-guard: ask for a fresh Pages build after a hiccup
 
 concurrency: preview-${{ github.ref }}
 
@@ -111,9 +113,17 @@ jobs:
           # in a web page.
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           VITE_GOOGLE_MAP_ID: ${{ secrets.VITE_GOOGLE_MAP_ID }}
+      - name: Wait for any running Pages job (scripts/pages-guard.sh)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/pages-guard.sh idle
       - uses: rossjrw/pr-preview-action@v1
         with:
           source-dir: ./dist/
           preview-branch: gh-pages
           umbrella-dir: pr-preview
           qr-code: true
+      - name: Check GitHub published it (scripts/pages-guard.sh)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/pages-guard.sh after
