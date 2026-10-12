@@ -25,12 +25,12 @@ jobs:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pg17
       - name: Dump, check and encrypt
         id: backup
         run: scripts/backup-db.sh "nightly-$(date -u +%Y-%m-%d)"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: steps.backup.outputs.empty != 'true'
         with:
           name: nightly-backup-${{ github.run_id }}
