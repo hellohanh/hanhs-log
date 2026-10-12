@@ -4,16 +4,17 @@ One app for trip planning (**Wanderlog**) and eateries (**Savorlog**), sharing o
 login and one database (its own Supabase project; the old Wanderlog site and
 database are separate and untouched). Live at https://hellohanh.github.io/hanhs-log/
 
-## Current state (Session 5, OCT 10 2026)
+## Current state (Session 6, OCT 11 2026)
 
 | Milestone | Status |
 |---|---|
 | M1 Foundation: design tokens, light and dark mode, header, routes, email sign-in, add to home screen | ✅ live |
 | M2 Splash: scroll-driven paper plane that turns into the jet and lands, search and section panels, city search page | ✅ live (desktop); phone layout parked |
-| M3 Wanderlog trips and map inside Hanh's Log | 🚧 steps 1–4 live (trips, sharing, the map, pins, places on itinerary days); connectors + day route and the pinned list next |
-| M4 Savorlog (Nom-Nom: cuisine → dish) | planned; pin standard designed |
-| M5 Savorlog pins on trips, by city (20 km) | planned |
-| M6 Wanderlog itinerary | planned |
+| M3 Wanderlog trips and map inside Hanh's Log | ✅ live (trips, sharing, the map, pins, places on itinerary days, connectors + day route, the pinned-list tree) |
+| M4 Savorlog (Nom-Nom: cuisine → dish) | ✅ live (shared catalogue, location gate, add/edit + photos, family invite) |
+| M5 Savorlog eateries on trips, by city (20 km) | next |
+| Old Wanderlog pin import (after Savorlog, before switch-over) | planned |
+| M6 Wanderlog itinerary polish | planned |
 | M7 Switch over from the old Wanderlog | planned |
 
 ## What's built
@@ -32,6 +33,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 - **Places panel** (left of the map): a Google search box adds a place; the add/edit card sets the category by hand (category › sub › sub-sub), each person's **WTG / VIS** status (visited gets a verdict — revisit, 2nd chance, don't go back — and an optional half-star rating), **MICHELIN** (mentioned / 1–3 stars + year, food and drink only) and Street food / Fine dining. The list groups pins by category (a category shows only when it has pins). **Show all pins** and a **MICHELIN** chip fade the map's pins.
 - **Pins on the map**: teardrops carrying the pin's icon, colour and a status badge (orange WTG, or green ✓ / yellow – / red ✗ for visited); MICHELIN places are the red flower pin with a stars chip.
 - **Itinerary panel**: on the map's right edge (closed by default; 320 or 640 px, remembered): day tabs for the trip's dates plus extra days, day notes, travel legs (flight, train, bus, own transport), activity blocks, and **places scheduled onto the day** as time blocks. Add a place by dragging a Places row onto a day tab or timeline slot, the Add popup's **Place** picker, a **+** on a list row, or the card's **Add to day**. **OTD Pins** fades the map down to just the day's places. Click a time to add; drag an item's edges or middle to change its time. Connectors and the day's route come next.
+- **Savorlog (`/savor`)**: one shared eatery catalogue, filed cuisine-country → main dish, held by a single family **circle** and belonging to no trip. Opening it asks **where** first — a country (framed to its mainland) or a city (zoom 13); the catalogue tree and the map then show only that place's eateries. A Google **search-to-add** opens the add/edit card: cuisine → dish, **price $–$$$$**, MICHELIN, Street food / Fine dining, your WTG/VIS + rating, a note, and up to **3 photos** (uploads → a Google place photo → a "Photo coming soon" placeholder). **Remove** sends an eatery to a pending-deletion queue the owner confirms. A **Family** button shares a signed-in-family-only invite (`/savor/join/<code>`) with owner-only reset/remove. The same eatery shows on any trip within 20 km of its cities (wired in M5).
 - **Invite links (`/wander/join/<code>`)**: signed-in people join straight away; others tap Join trip (no email) and are asked for a first name.
 - **City search (`/search?city=…`)**: one results page per city; trips and eateries fill in later.
 - **Sign in (`/signin`)**: email link through Hanh's Log's own Supabase project.
@@ -44,22 +46,24 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
   - every preview build runs a read-only connection check (website project, sign-in settings, database).
 
 ## What's next
-1. **Itinerary connectors + day route**: connectors between a day's stops (walk, drive/Grab, transit, bike) with Google times, and the day's route drawn on the map and in the route popup. Mock up for approval first.
-2. **Step 5**: the collapsed three-level pinned list (category › sub › sub-sub) in the Places panel.
-3. **M4 Savorlog**, then **M5**.
-4. **Old Wanderlog pin import** from Hanh's export, sorted city by city (after Savorlog, before the switch-over).
-5. **M7** switch-over.
+1. **M5 — Savorlog on trips**: show the catalogue's eateries on a Wanderlog trip's map + Places by city (the `trip_eateries` function is ready), and route **adding a food place on a trip** into the shared catalogue instead of a trip pin (the "one store" change, E60). Likely also lets an eatery be scheduled onto an itinerary day. Non-food pins stay trip pins.
+2. **Old Wanderlog pin import** from Hanh's export, sorted city by city (after Savorlog, before the switch-over).
+3. **M6** itinerary polish, then **M7** switch-over.
 
 Also open: **Q5** (dishes for the remaining cuisines), **Q6** (five American icon names), **Q7** (no lobster icon), **Q1** (splash phone layout, parked), **Q8** (Google-dark pins/labels need a Google Cloud style, parked). And the **tilt** needs a **Vector** `VITE_GOOGLE_MAP_ID` in the same Google Cloud project as the Maps key (a Console change, not code).
 
+**Two one-time setup steps on Hanh's side** (not code): run the Database-migrations workflow + approve to apply **0007/0008/0009**; and make the public **`eatery-photos`** Storage bucket (docs/database.md) so eatery photo uploads work.
+
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E57, Q1–Q8, L1–L38), README.md, SESSION_LEDGER.md and docs/pin-standard.md
+> Read SKILL.md (E1–E68, Q1–Q10, L1–L40), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project and
-> started from a clean slate (live Wanderlog is never touched). M3 steps 1–4 are live (map, pins,
-> places on itinerary days). Start with the itinerary **connectors between stops and the day's
-> route** (map + popup): mock up for approval first. Ask me decisions as tappable multiple-choice
-> questions, and always show the merge link when something's ready to merge.
+> started from a clean slate (live Wanderlog is never touched). M3 and M4 are live: trips + map +
+> itinerary, and all of Savorlog (catalogue, location gate, add/edit + photos, family invite).
+> Start **M5 — Savorlog on trips**: surface catalogue eateries on a trip's map/Places by city and
+> route trip food-adds into the catalogue; settle M5's scope with me first. Ask decisions as
+> tappable multiple-choice questions, never infer, and always show the merge link when something's
+> ready to merge.
 
 ## Working agreement
 - Every change goes on a branch and through a pull request; never push to main.
@@ -81,7 +85,7 @@ Also open: **Q5** (dishes for the remaining cuisines), **Q6** (five American ico
    Check it on your phone and laptop.
 3. Click **Merge** (use "Create a merge commit"). The live site updates in about two minutes.
 
-Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S005 OCT 10 2026).
+Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S006 OCT 11 2026).
 
 ## Database
 The database is shared with Wanderlog, so it has its own rules, nightly

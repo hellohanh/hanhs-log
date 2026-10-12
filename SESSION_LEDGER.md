@@ -206,3 +206,43 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 **Stop Protocol completed:** zip `S005 OCT 10 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** the itinerary's connectors between stops (walk/drive/Grab/transit/bike with Google times) and the day's route on the map + route popup; then step 5 (the collapsed three-level pinned list tree). Then M4 Savorlog, M5, the old-pin import (after Savorlog), M7 switch-over.
+
+---
+
+## Session 6 — 2026-10-11
+
+**Goal:**
+- Finish M3 (the itinerary's connectors + day route, and the pinned-list tree).
+- Build all of M4 Savorlog: the shared eatery catalogue, its page, add/edit, and the family invite.
+
+**Decisions made:**
+- E58–E68 recorded in SKILL.md, including:
+  - connectors between a day's stops and the day's route drawn on the map (E58, E59);
+  - Savorlog = one shared, trip-independent eatery catalogue held by a single family circle, surfaced on a trip within 20 km of its cities; non-food pins stay trip-scoped; "one store", catalogue starts empty (E60);
+  - anyone who can see an eatery can add/edit it; two-stage delete (a pending-deletion queue the owner confirms); all three trip cities get coordinates (E61–E63);
+  - the Savorlog page (country → dish tree + map), a required location gate (country→mainland / city→zoom 13), the add/edit card with price $–$$$$ and photos (uploads → Google photo → placeholder), and the signed-in-family-only invite (E64–E68).
+- Q9 (price scale) and Q10 (photos) resolved → E67.
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #42: Connectors between stops — migration `0006_stop_connectors`.
+- #43: Day route on the map (retired OTD Pins).
+- #44: Pinned list as a collapsible tree (M3 step 5) + formal title-case on save.
+- #45: Savorlog 4b data model — migration `0007_eateries` (catalogue, one circle, 20 km surfacing, two-stage delete, RLS).
+- #46: Savorlog 4c — the catalogue page + the required location gate.
+- #47: Savorlog 4d — add/edit eatery; migration `0008_eatery_photos` (metadata); price, photos, review, Remove→queue.
+- #48: Savorlog 4e — the family invite; migration `0009_savorlog`.
+- #49: Landed 4d+4e on `main` (the stacked PRs #47/#48 had merged into intermediate branches, not main).
+
+**Design work:** inline mockups for the dashed-C connectors (heavily iterated), the day-route overlay, the Savorlog page (two directions + an interactive version), the location gate, and the add/edit eatery card with the photo fallback states.
+
+**Lessons:** L39 (non-ASCII `\b` in Playwright name regexes; diacritic-stripping test stubs) and L40 (keep Supabase Storage buckets as one-time dashboard setup; migrate only the metadata table) recorded in SKILL.md.
+
+**Process note:** stacked PRs merge into their base branch, not `main` — a chain targeting intermediate branches needs a final PR to `main` (that was #49). Go straight to a single land-on-main PR next time.
+
+**Still manual on Hanh's side (not code):** run the Database-migrations workflow + approve to apply **0007, 0008, 0009**; make the public **`eatery-photos`** Storage bucket (docs/database.md) so eatery photo uploads work.
+
+**Open questions:** Q1 (phone layout, parked), Q5 (remaining cuisines' dishes), Q6 (five American icon names), Q7 (no lobster icon), Q8 (Google-dark pins/labels, parked).
+
+**Stop Protocol completed:** zip `S006 OCT 11 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** M5 — Savorlog on trips (surface catalogue eateries on a trip's map/Places by city; route trip food-adds into the catalogue). Then the old-Wanderlog pin import, M6 itinerary polish, M7 switch-over.
