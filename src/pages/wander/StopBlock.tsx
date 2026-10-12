@@ -2,39 +2,39 @@ import { useState, type FormEvent } from 'react'
 import { hhmm, toMin } from '../../lib/itineraryDays'
 export { STOP_MIN, nextStopStart } from '../../lib/itineraryDays'
 import { HOUR_PX } from '../../lib/itineraryLayout'
-import type { Stop } from '../../lib/itinerary'
-import type { Pin } from '../../lib/pins'
+import type { Stop, StopItem } from '../../lib/itinerary'
 import { pinLook } from '../../lib/pinCatalog'
 import { BADGE, badgeSvg, iconSvg, type Badge } from '../../lib/pinDraw'
 import { useTimeBlockDrag } from './ActivityBlock'
 import styles from './Itinerary.module.css'
 
-// A place dropped onto a day: a time block on the timeline carrying its pin
-// (icon, colour and status badge). Drag the middle to move, the handles to
-// resize, or click to open (session 4). The pin itself is edited in Places.
+// A place dropped onto a day: a time block on the timeline carrying its icon,
+// colour and status badge. The place is a trip pin or a Savorlog eatery (both
+// flattened to a StopItem). Drag the middle to move, the handles to resize, or
+// click to open (session 4). The place itself is edited in Places.
 
 export function StopBlock({
   stop,
-  pin,
+  item,
   badge,
   pos,
   onChange,
   onOpen
 }: {
   stop: Stop
-  pin: Pin
+  item: StopItem
   badge: Badge
   pos: { left: string; width: string }
   onChange: (start: string, end: string) => void
   onOpen: () => void
 }) {
   const { shown, dragging, handlers } = useTimeBlockDrag(stop.start_time, stop.end_time, onChange, onOpen)
-  const look = pinLook(pin)
+  const look = pinLook(item)
   const top = (shown.start / 60) * HOUR_PX
   const height = Math.max(18, ((shown.end - shown.start) / 60) * HOUR_PX)
   const short = height < 44
-  const stars = pin.michelin && pin.michelin !== 'mentioned' ? ` · ${'★'.repeat(Number(pin.michelin))}` : ''
-  const label = `${pin.name}, ${hhmm(shown.start)} to ${hhmm(shown.end)}`
+  const stars = item.michelin && item.michelin !== 'mentioned' ? ` · ${'★'.repeat(Number(item.michelin))}` : ''
+  const label = `${item.name}, ${hhmm(shown.start)} to ${hhmm(shown.end)}`
   return (
     <div
       className={`${styles.act} ${styles.stop} ${short ? styles.actShort : ''} ${dragging ? styles.actDragging : ''}`}
@@ -55,7 +55,7 @@ export function StopBlock({
       <span className={`${styles.handle} ${styles.handleTop}`} {...handlers('top')} aria-hidden="true" title="Drag to change the start" />
       <span className={styles.stopName}>
         <span className={styles.stopIcon} style={{ background: look.color }} dangerouslySetInnerHTML={{ __html: iconSvg(look.icon, 11) }} aria-hidden="true" />
-        <b>{pin.name}</b>
+        <b>{item.name}</b>
         <span className={styles.stopBadge} title={BADGE[badge].label} dangerouslySetInnerHTML={{ __html: badgeSvg(badge, 11) }} aria-hidden="true" />
       </span>
       <span className={styles.actTime}>{hhmm(shown.start)} – {hhmm(shown.end)}{stars}</span>
@@ -64,16 +64,16 @@ export function StopBlock({
   )
 }
 
-/** Edit a scheduled place: its times, or take it off the day. The pin itself is edited in Places. */
+/** Edit a scheduled place: its times, or take it off the day. The place itself is edited in Places. */
 export function StopEdit({
   stop,
-  pin,
+  item,
   onSubmit,
   onCancel,
   onDelete
 }: {
   stop: Stop
-  pin: Pin
+  item: StopItem
   onSubmit: (start: string, end: string) => Promise<void>
   onCancel: () => void
   onDelete: () => Promise<void>
@@ -97,7 +97,7 @@ export function StopEdit({
   }
   return (
     <form className={styles.addForm} onSubmit={submit} noValidate>
-      <p className={styles.muted0}>Scheduled from your pin. Edit the place itself in Places.</p>
+      <p className={styles.muted0}>Scheduled onto this day. Edit the place itself in Places.</p>
       <div className={styles.legRow}>
         <label className={styles.lf}>Start<input type="time" step={300} value={start} onChange={e => setStart(e.target.value)} /></label>
         <label className={styles.lf}>End<input type="time" step={300} value={end} onChange={e => setEnd(e.target.value)} /></label>
@@ -105,7 +105,7 @@ export function StopEdit({
       {error && <p className={styles.legError} role="alert">{error}</p>}
       {confirm ? (
         <div className={styles.confirm} role="alert">
-          <span>Take {pin.name} off this day?</span>
+          <span>Take {item.name} off this day?</span>
           <button type="button" className="btn" onClick={onDelete}>Remove</button>
           <button type="button" className="btn btn-quiet" onClick={() => setConfirm(false)}>Keep</button>
         </div>

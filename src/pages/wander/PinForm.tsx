@@ -44,7 +44,7 @@ export default function PinForm({
   pin?: Pin
   reviews: Review[]
   openDay: { id: string; label: string } | null
-  onAddToDay: (pinId: string) => void
+  onAddToDay: (id: string, kind: 'pin') => void
   /** Picking the Nom-Nom category hands off to the Savorlog add panel (M5). */
   onFood?: () => void
   onCancel: () => void
@@ -149,7 +149,7 @@ export default function PinForm({
           type="button"
           className={styles.addToDay}
           disabled={!openDay}
-          onClick={() => openDay && onAddToDay(pin.id)}
+          onClick={() => openDay && onAddToDay(pin.id, 'pin')}
           title={openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}
         >
           + {openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}

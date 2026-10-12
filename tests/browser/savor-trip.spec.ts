@@ -53,3 +53,27 @@ test('picking Nom-Nom while adding on a trip opens the full Savorlog add panel',
   expect(db.eateries[0]).toMatchObject({ name: 'Phở Lệ', cuisine: 'vietnamese', price: 2 })
   expect(db.pins.filter(p => (p as { category?: string }).category === 'food')).toHaveLength(0)
 })
+
+test('a catalogue eatery can be scheduled onto an itinerary day (M5.4)', async ({ page }) => {
+  const db = await fakeSupabase(page, { eateries: [EATERY] })
+  await page.goto('./wander/trip/trip-saigon')
+  // Open the itinerary and pick the first day so "Add to day" is enabled.
+  await page.getByRole('button', { name: 'Open the itinerary', exact: true }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  await panel.getByRole('tab').first().click()
+
+  // Expand the Nom-Nom tree and add the eatery to the open day.
+  const places = page.getByRole('complementary', { name: 'Places' })
+  await places.getByRole('button', { name: /Vietnamese/ }).click()
+  await places.getByRole('button', { name: /^Phở/ }).click()
+  const add = places.getByRole('button', { name: /Add Phở Hòa Pasteur to/ })
+  await expect(add).toBeEnabled()
+  await add.click()
+
+  // It shows as a time block on the day, and the stop carries the eatery (not a pin).
+  await expect(panel.getByRole('button', { name: /Phở Hòa Pasteur, .* to / })).toBeVisible()
+  await expect.poll(() => db.stops.length).toBe(1)
+  const st = db.stops[0] as unknown as { pin_id: string | null; eatery_id: string | null }
+  expect(st.eatery_id).toBe('e1')
+  expect(st.pin_id ?? null).toBeNull()
+})

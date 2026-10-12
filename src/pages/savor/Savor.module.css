@@ -75,7 +75,11 @@
 .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cnt { color: var(--muted); font-weight: 600; font-size: 13px; }
 .dish { font-weight: 700; color: var(--muted); font-size: 13px; }
-.rowLi { display: flex; }
+.rowLi { display: flex; align-items: center; }
+/* "Add to day" on a trip's Nom-Nom row (M5), mirrors the pinned list's + */
+.addDay { flex: none; width: 28px; height: 28px; border: 1px solid var(--rule); border-radius: var(--pill); background: var(--surface); color: var(--accent); font-size: 18px; line-height: 1; cursor: pointer; }
+.addDay:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.addDay:disabled { color: var(--muted); border-style: dashed; cursor: default; opacity: 0.6; }
 .row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 .row:hover { background: var(--ground); }
 .status { width: 12px; height: 12px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center; }
