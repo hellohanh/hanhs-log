@@ -246,3 +246,34 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 **Stop Protocol completed:** zip `S006 OCT 11 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** M5 — Savorlog on trips (surface catalogue eateries on a trip's map/Places by city; route trip food-adds into the catalogue). Then the old-Wanderlog pin import, M6 itinerary polish, M7 switch-over.
+
+---
+
+## Session 7 — 2026-10-11 to 2026-10-12
+
+**Goal:**
+- Build all of **M5 — Savorlog on trips**: show the catalogue's eateries on a Wanderlog trip by city, route trip food-adds into the shared catalogue, and let an eatery be scheduled onto an itinerary day.
+
+**Decisions settled (all under E69, plan recorded in session 6):**
+- Picking the **Nom-Nom** category in a trip's add card hands off to the full Savorlog add panel, saving to the shared catalogue, not a trip pin.
+- A trip **shows** the catalogue's eateries within 20 km of its cities (`trip_eateries`) alongside its non-food pins; opening one uses the Savorlog edit card.
+- An itinerary stop can be a trip **pin or** a Savorlog **eatery** (exactly one); a scheduled eatery must be within 20 km of a trip city.
+- Pins and eateries are flattened to one `StopItem` so the whole stop UI (timeline block, edit/retime/remove, drag-and-drop, Add-popup Place picker, connectors, Day route) handles both.
+- **Deferred:** M5.2b — a migration forbidding *new* food pins in `pins` — left to land with its own test rework.
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #51: **M5.1 schema** — migration `0010_eatery_stops` (`itinerary_stops` references a pin **or** an eatery; 20 km rule for eatery stops; trigger `stop_pin_matches_day()` rewritten).
+- #52: **M5.2 add-switch + M5.3 show-on-trip** — `PinForm.onFood` hands dining off to `SavorForm`; the trip Places panel's "Nom-Nom · from Savorlog" section (`fetchTripEateries`) and eateries drawn on the trip map; shared `EateryTree`; the map pin overlay extracted to `mapPinLayer.ts` (shared by `TripMap` and `SavorMap`).
+- #53: **M5.4 schedule eateries on days** — `StopItem` / `StopKind` / `stopRef` / `parseStopRef` / `stopTarget` in `lib/itinerary.ts`; `ItineraryPanel`, `StopBlock`/`StopEdit`, the Add popup picker, drag-and-drop, connectors and the Day route all resolve a pin or an eatery; `EateryTree` rows draggable + an "Add to day" + on a trip.
+
+**Tests:** `tests/browser/savor-trip.spec.ts` extended (trip shows eateries; Nom-Nom add-switch saves to the catalogue, not a pin; an eatery schedules onto a day carrying `eatery_id`, not `pin_id`). No new `tests/db` test this session — migration 0010 shipped in #51 with its own test; #52/#53 are front-end only. Suite green at phone / laptop / 150% zoom / monitor.
+
+**Lessons:** none new (M5.4 landed clean; the stale-`dist` and non-ASCII-regex pitfalls were already L35/L39 from session 6).
+
+**Still manual on Hanh's side (not code):** run the Database-migrations workflow + approve to apply **0007, 0008, 0009, 0010**; make the public **`eatery-photos`** Storage bucket (docs/database.md) so eatery photo uploads work.
+
+**Open questions:** Q1 (phone layout, parked), Q5 (remaining cuisines' dishes), Q6 (five American icon names), Q7 (no lobster icon), Q8 (Google-dark pins/labels, parked).
+
+**Stop Protocol completed:** zip `S007 OCT 11 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** the **old Wanderlog pin import** (E55) — Hanh provides the export; sort the pins in city by city. Then M5.2b (migration 0011 forbidding new food pins), M6 itinerary polish, M7 switch-over.
