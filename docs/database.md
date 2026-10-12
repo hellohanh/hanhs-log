@@ -69,6 +69,27 @@ Hanh's Log migrations have run. It never reads row data.
    `pg_restore --no-owner --no-privileges -d "<that database's URL>" backup.dump`
    (one ignorable warning: `schema "public" already exists`).
 
+## One-time setup: the eatery-photos Storage bucket (M4)
+
+Savorlog eatery photos (migration 0008's `eatery_photos` table holds only the
+metadata) store their image files in a Supabase **Storage** bucket. Buckets
+aren't schema, so they're set up once in the dashboard rather than in a
+migration (which also keeps the local `tests/db` harness, plain Postgres with
+no `storage` schema, able to run):
+
+1. Supabase dashboard → **Storage** → **New bucket**.
+2. Name it exactly `eatery-photos`; tick **Public bucket** (restaurant photos
+   aren't sensitive, and public read lets the app show them by URL).
+3. Create it, then under the bucket's **Policies** add, for role
+   `authenticated`: **INSERT** and **DELETE** (and SELECT is covered by the
+   public bucket). The real guard on who may add/remove a photo is the
+   `eatery_photos` row's own row-level security (it checks you can see the
+   eatery); the bucket just holds the bytes.
+
+Until this bucket exists, uploading a photo fails with a clear error; the rest
+of Savorlog (including the Google-photo and "Photo coming soon" fallbacks)
+works without it.
+
 ## One-time setup (secrets and approval)
 
 In GitHub: **Settings → Secrets and variables → Actions → New repository secret**
