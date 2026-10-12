@@ -2,20 +2,20 @@ import { useState, type FormEvent } from 'react'
 import { flowerSvg } from '../../lib/pinDraw'
 import { searchPlaces, type FoundPlace, type Pin, type Review } from '../../lib/pins'
 import type { Person } from '../../lib/trips'
+import { type Eatery, type EateryReview } from '../../lib/eateries'
 import PinForm from './PinForm'
 import PinTree from './PinTree'
+import SavorForm from '../savor/SavorForm'
+import EateryTree from '../savor/EateryTree'
 import styles from './Places.module.css'
 
-// The Places panel (left of the map; approved mockups, session 4):
-// - a Google search box to find a place to pin (the only way to add one);
-// - "Show all pins": on by default, every visit; off fades all the trip's
-//   pins on the map to 10% (the list never fades);
-// - a MICHELIN chip (only when a pin has MICHELIN) that fades the others;
-// - the pins, grouped by category, a category showing only when it has pins
-//   (the full three-level tree is step 5);
-// - the add / edit card in place of the list.
+// The Places panel (left of the map). Pins are the trip's non-food places;
+// dining lives in Savorlog, so the Nom-Nom section shows the catalogue's
+// eateries within 20 km of the trip's cities (M5), and picking Nom-Nom while
+// adding hands off to the full Savorlog add panel.
 
 export type Editing = { mode: 'add'; place: FoundPlace } | { mode: 'edit'; pinId: string } | null
+export type EateryEditing = { mode: 'add'; place: FoundPlace } | { mode: 'edit'; id: string } | null
 
 export default function PlacesPanel({
   tripId,
@@ -23,6 +23,8 @@ export default function PlacesPanel({
   people,
   pins,
   reviews,
+  eateries,
+  eateryReviews,
   loadError,
   showAll,
   onShowAll,
@@ -30,7 +32,10 @@ export default function PlacesPanel({
   onMichelinOnly,
   editing,
   onEditing,
+  eateryEdit,
+  onEateryEdit,
   onSaved,
+  onEateriesSaved,
   onFocus,
   near,
   openDay,
@@ -41,6 +46,8 @@ export default function PlacesPanel({
   people: Person[]
   pins: Pin[]
   reviews: Review[]
+  eateries: Eatery[]
+  eateryReviews: EateryReview[]
   loadError: string
   showAll: boolean
   onShowAll: (on: boolean) => void
@@ -48,7 +55,10 @@ export default function PlacesPanel({
   onMichelinOnly: (on: boolean) => void
   editing: Editing
   onEditing: (e: Editing) => void
+  eateryEdit: EateryEditing
+  onEateryEdit: (e: EateryEditing) => void
   onSaved: (focusPinId?: string) => void
+  onEateriesSaved: () => void
   onFocus: (at: { lat: number; lng: number }) => void
   near?: { lat: number; lng: number }
   /** The itinerary's open day, for "Add to day" and drag; null when it's closed. */
@@ -60,8 +70,8 @@ export default function PlacesPanel({
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
 
-  const hasMichelin = pins.some(p => p.michelin)
-  const michelinCount = pins.filter(p => p.michelin).length
+  const hasMichelin = pins.some(p => p.michelin) || eateries.some(e => e.michelin)
+  const michelinCount = pins.filter(p => p.michelin).length + eateries.filter(e => e.michelin).length
 
   async function search(e: FormEvent) {
     e.preventDefault()
@@ -79,13 +89,38 @@ export default function PlacesPanel({
   }
 
   function pick(place: FoundPlace) {
-    const already = pins.find(p => p.google_place_id === place.id)
     setFound(null)
     setQuery('')
-    if (already) {
-      onFocus(already)
-      onEditing({ mode: 'edit', pinId: already.id })
-    } else onEditing({ mode: 'add', place })
+    const eatery = eateries.find(x => x.google_place_id === place.id)
+    if (eatery) return onEateryEdit({ mode: 'edit', id: eatery.id })
+    const pin = pins.find(p => p.google_place_id === place.id)
+    if (pin) {
+      onFocus(pin)
+      return onEditing({ mode: 'edit', pinId: pin.id })
+    }
+    onEditing({ mode: 'add', place })
+  }
+
+  // Adding or editing an eatery (the Savorlog add panel, reused whole).
+  if (eateryEdit) {
+    const eatery = eateryEdit.mode === 'edit' ? eateries.find(e => e.id === eateryEdit.id) : undefined
+    if (eateryEdit.mode === 'edit' && !eatery) return null
+    return (
+      <aside className={styles.side} aria-label="Places">
+        <SavorForm
+          key={eateryEdit.mode === 'edit' ? eateryEdit.id : eateryEdit.place.id}
+          userId={userId}
+          place={eateryEdit.mode === 'add' ? eateryEdit.place : undefined}
+          eatery={eatery}
+          reviews={eatery ? eateryReviews.filter(r => r.eatery_id === eatery.id) : []}
+          onCancel={() => onEateryEdit(null)}
+          onSaved={() => {
+            onEateryEdit(null)
+            onEateriesSaved()
+          }}
+        />
+      </aside>
+    )
   }
 
   if (editing) {
@@ -103,6 +138,7 @@ export default function PlacesPanel({
           reviews={pin ? reviews.filter(r => r.pin_id === pin.id) : []}
           openDay={openDay}
           onAddToDay={onAddToDay}
+          onFood={editing.mode === 'add' ? () => { const place = editing.place; onEditing(null); onEateryEdit({ mode: 'add', place }) } : undefined}
           onCancel={() => onEditing(null)}
           onSaved={id => {
             if (editing.mode === 'add') onFocus(editing.place)
@@ -114,11 +150,12 @@ export default function PlacesPanel({
     )
   }
 
+  const total = pins.length + eateries.length
   return (
     <aside className={styles.side} aria-label="Places">
       <div className={styles.head}>
         <strong>Places</strong>
-        <span className={styles.count}>{pins.length > 0 ? pins.length : ''}</span>
+        <span className={styles.count}>{total > 0 ? total : ''}</span>
       </div>
 
       <form className={styles.search} role="search" onSubmit={search}>
@@ -140,13 +177,13 @@ export default function PlacesPanel({
         <ul className={styles.results} aria-label="Search results">
           {found.length === 0 && <li className={styles.muted}>Nothing found. Try other words.</li>}
           {found.map(f => {
-            const already = pins.some(p => p.google_place_id === f.id)
+            const already = pins.some(p => p.google_place_id === f.id) || eateries.some(e => e.google_place_id === f.id)
             return (
               <li key={f.id}>
                 <button type="button" className={styles.result} onClick={() => pick(f)}>
                   <b>{f.name}</b>
                   {f.address && <span>{f.address}</span>}
-                  {already && <em>Already pinned · open it</em>}
+                  {already && <em>Already added · open it</em>}
                 </button>
               </li>
             )
@@ -154,7 +191,7 @@ export default function PlacesPanel({
         </ul>
       )}
 
-      {pins.length > 0 && (
+      {total > 0 && (
         <div className={styles.filters}>
           <label className={styles.showAll}>
             <input type="checkbox" checked={showAll} onChange={e => onShowAll(e.target.checked)} /> Show all pins
@@ -169,7 +206,7 @@ export default function PlacesPanel({
       )}
 
       {loadError && <p className={styles.error} role="alert">Couldn't load the pins: {loadError}</p>}
-      {pins.length === 0 && !loadError && !found && (
+      {total === 0 && !loadError && !found && (
         <p className={styles.muted}>No places on this trip yet. Search above to add one.</p>
       )}
 
@@ -184,6 +221,24 @@ export default function PlacesPanel({
               onEditing({ mode: 'edit', pinId: p.id })
             }}
             onAddToDay={onAddToDay}
+          />
+        </div>
+      )}
+
+      {eateries.length > 0 && (
+        <div className={styles.list}>
+          <div className={styles.cat}>
+            <span className={styles.catDot} style={{ background: '#D85A30' }} />
+            <strong style={{ fontSize: 14 }}>Nom-Nom</strong>
+            <span className={styles.fromSavor}>from Savorlog</span>
+          </div>
+          <EateryTree
+            eateries={eateries}
+            reviews={eateryReviews}
+            onOpen={e => {
+              onFocus(e)
+              onEateryEdit({ mode: 'edit', id: e.id })
+            }}
           />
         </div>
       )}

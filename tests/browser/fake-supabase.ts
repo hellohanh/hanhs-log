@@ -323,6 +323,7 @@ export async function fakeSupabase(
       }
     }
     if (path === '/rest/v1/rpc/claim_savorlog') return route.fulfill({ json: 'owner' })
+    if (path === '/rest/v1/rpc/trip_eateries') return route.fulfill({ json: db.eateries.filter(e => !e.deleted_at) })
     if (path === '/rest/v1/rpc/savorlog_invite') return route.fulfill({ json: db.savorToken })
     if (path === '/rest/v1/rpc/reset_savorlog_invite') {
       db.savorToken = 'savor-reset'

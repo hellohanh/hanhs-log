@@ -20,7 +20,8 @@ import {
 import ShareDialog from './ShareDialog'
 import NamePrompt from './NamePrompt'
 import TripMap, { type CityState, type MapPin } from './TripMap'
-import PlacesPanel, { type Editing } from './PlacesPanel'
+import PlacesPanel, { type Editing, type EateryEditing } from './PlacesPanel'
+import { fetchTripEateries, fetchEateryReviews, asReviews, type Eatery, type EateryReview } from '../../lib/eateries'
 import { fetchPins, fetchReviews, pinBadge, pinFaded, type Pin, type Review } from '../../lib/pins'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml } from '../../lib/pinDraw'
@@ -120,6 +121,25 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   useEffect(() => {
     loadPins()
   }, [loadPins])
+
+  // The catalogue eateries this trip shows (within 20 km of its cities, E60),
+  // and the Savorlog add/edit panel reached from the Places panel (M5).
+  const [eateries, setEateries] = useState<Eatery[]>([])
+  const [eateryReviews, setEateryReviews] = useState<EateryReview[]>([])
+  const [eateryEdit, setEateryEdit] = useState<EateryEditing>(null)
+  const loadEateries = useCallback(async () => {
+    try {
+      const es = await fetchTripEateries(tripId)
+      setEateries(es)
+      setEateryReviews(await fetchEateryReviews(es.map(e => e.id)))
+    } catch {
+      setEateries([])
+      setEateryReviews([])
+    }
+  }, [tripId])
+  useEffect(() => {
+    loadEateries()
+  }, [loadEateries])
   // OTD Pins (itinerary open, toggle on) overrides Show all pins and the
   // MICHELIN filter: the day's pins stay bright, the rest fade (Hanh, session 4).
   const otdActive = panel.open && otdPinIds !== null
@@ -144,6 +164,28 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
       }),
     [pins, reviews, showAll, michelinOnly, pinEdit, otdActive, otdSet]
   )
+  // The trip's catalogue eateries as map pins (same drawing as pins).
+  const eateryMapPins = useMemo<MapPin[]>(
+    () =>
+      eateries.map(e => {
+        const look = pinLook({ category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
+        const box = pinBox(e)
+        const editingThis = eateryEdit?.mode === 'edit' && eateryEdit.id === e.id
+        const faded = pinFaded({ id: e.id, michelin: e.michelin }, { editing: editingThis, otdPins: otdActive ? otdSet : null, showAll, michelinOnly })
+        return {
+          id: e.id,
+          lat: e.lat,
+          lng: e.lng,
+          title: `${e.name} (${look.label})`,
+          html: pinHtml({ color: look.color, icon: look.icon, michelin: e.michelin, badge: pinBadge(asReviews(eateryReviews, e.id)) }),
+          width: box.width,
+          height: box.height,
+          faded
+        }
+      }),
+    [eateries, eateryReviews, showAll, michelinOnly, eateryEdit, otdActive, otdSet]
+  )
+  const allMapPins = useMemo(() => [...mapPins, ...eateryMapPins], [mapPins, eateryMapPins])
 
   const loadPeople = useCallback(() => fetchPeople(tripId).then(setPeople, () => setPeople([])), [tripId])
 
@@ -225,6 +267,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           people={people}
           pins={pins}
           reviews={reviews}
+          eateries={eateries}
+          eateryReviews={eateryReviews}
           loadError={pinsError}
           showAll={showAll}
           onShowAll={setShowAll}
@@ -232,7 +276,10 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           onMichelinOnly={setMichelinOnly}
           editing={pinEdit}
           onEditing={setPinEdit}
+          eateryEdit={eateryEdit}
+          onEateryEdit={setEateryEdit}
           onSaved={() => loadPins()}
+          onEateriesSaved={() => loadEateries()}
           onFocus={at => setFocus({ lat: at.lat, lng: at.lng })}
           near={city.state === 'ready' ? { lat: city.city.lat, lng: city.city.lng } : undefined}
           openDay={panel.open ? openDay : null}
@@ -242,10 +289,13 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           <TripMap
             city={city}
             rightInset={panel.open ? (panel.wide ? 2 : 1) * PANEL_WIDTH : 0}
-            pins={mapPins}
+            pins={allMapPins}
             route={panel.open ? dayRoute : null}
             focus={focus}
-            onPinClick={id => setPinEdit({ mode: 'edit', pinId: id })}
+            onPinClick={id => {
+              if (eateries.some(e => e.id === id)) setEateryEdit({ mode: 'edit', id })
+              else setPinEdit({ mode: 'edit', pinId: id })
+            }}
           />
           {panel.open ? (
             <ItineraryPanel
