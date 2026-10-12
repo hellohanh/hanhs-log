@@ -3,6 +3,7 @@ import { flowerSvg } from '../../lib/pinDraw'
 import { searchPlaces, type FoundPlace, type Pin, type Review } from '../../lib/pins'
 import type { Person } from '../../lib/trips'
 import { type Eatery, type EateryReview } from '../../lib/eateries'
+import type { StopKind } from '../../lib/itinerary'
 import PinForm from './PinForm'
 import PinTree from './PinTree'
 import SavorForm from '../savor/SavorForm'
@@ -63,7 +64,7 @@ export default function PlacesPanel({
   near?: { lat: number; lng: number }
   /** The itinerary's open day, for "Add to day" and drag; null when it's closed. */
   openDay: { id: string; label: string } | null
-  onAddToDay: (pinId: string) => void
+  onAddToDay: (id: string, kind: StopKind) => void
 }) {
   const [query, setQuery] = useState('')
   const [found, setFound] = useState<FoundPlace[] | null>(null)
@@ -235,10 +236,12 @@ export default function PlacesPanel({
           <EateryTree
             eateries={eateries}
             reviews={eateryReviews}
+            openDay={openDay}
             onOpen={e => {
               onFocus(e)
               onEateryEdit({ mode: 'edit', id: e.id })
             }}
+            onAddToDay={onAddToDay}
           />
         </div>
       )}

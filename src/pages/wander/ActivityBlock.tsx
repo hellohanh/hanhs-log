@@ -1,9 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import type { Activity } from '../../lib/itinerary'
+import type { Activity, StopItem, StopKind } from '../../lib/itinerary'
 import { dragTimes, hhmm, toMin } from '../../lib/itineraryDays'
 import { HOUR_PX } from '../../lib/itineraryLayout'
 import { pinLook } from '../../lib/pinCatalog'
-import type { Pin } from '../../lib/pins'
 import styles from './Itinerary.module.css'
 
 // Activity blocks and the "Add at …" popup (approved inline mockup,
@@ -46,7 +45,7 @@ export function AddPopup({
   endPx,
   start,
   end,
-  pins,
+  items,
   onAddActivity,
   onTravel,
   onAddPlace,
@@ -56,10 +55,10 @@ export function AddPopup({
   endPx: number
   start: number
   end: number
-  pins: Pin[]
+  items: StopItem[]
   onAddActivity: (title: string, start: string, end: string) => Promise<void>
   onTravel: (start: string, end: string) => void
-  onAddPlace: (pinId: string, start: string, end: string) => Promise<void>
+  onAddPlace: (id: string, kind: StopKind, start: string, end: string) => Promise<void>
   onCancel: () => void
 }) {
   const [kind, setKind] = useState<AddKind>('activity')
@@ -74,10 +73,10 @@ export function AddPopup({
       <div role="radiogroup" aria-label="What to add" className={styles.kinds}>
         <Kind k="activity" label="Activity" sub="free text" kind={kind} setKind={setKind} />
         <Kind k="travel" label="Travel" sub="flight, bus…" kind={kind} setKind={setKind} />
-        <Kind k="place" label="Place" sub="a trip pin" kind={kind} setKind={setKind} />
+        <Kind k="place" label="Place" sub="pin or eatery" kind={kind} setKind={setKind} />
       </div>
       {kind === 'place' ? (
-        <PinPicker pins={pins} onPick={pinId => onAddPlace(pinId, hhmm(start), hhmm(end))} onCancel={onCancel} />
+        <PinPicker items={items} onPick={(id, k) => onAddPlace(id, k, hhmm(start), hhmm(end))} onCancel={onCancel} />
       ) : (
         <ActivityFields
           key={kind}
@@ -95,24 +94,24 @@ export function AddPopup({
   )
 }
 
-/** Pick one of the trip's pins to schedule (grouped by category). */
-function PinPicker({ pins, onPick, onCancel }: { pins: Pin[]; onPick: (pinId: string) => void | Promise<void>; onCancel: () => void }) {
+/** Pick one of the trip's places — a pin or a catalogue eatery — to schedule. */
+function PinPicker({ items, onPick, onCancel }: { items: StopItem[]; onPick: (id: string, kind: StopKind) => void | Promise<void>; onCancel: () => void }) {
   const [q, setQ] = useState('')
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase()
-    return t ? pins.filter(p => p.name.toLowerCase().includes(t)) : pins
-  }, [pins, q])
-  if (pins.length === 0) return <p className={styles.muted0}>No pins yet — add places in the Places panel first.</p>
+    return t ? items.filter(p => p.name.toLowerCase().includes(t)) : items
+  }, [items, q])
+  if (items.length === 0) return <p className={styles.muted0}>No places yet — add pins or eateries in the Places panel first.</p>
   return (
     <div className={styles.pickWrap}>
-      <input className={styles.pickSearch} value={q} onChange={e => setQ(e.target.value)} placeholder="Find a pin" aria-label="Find a pin" autoFocus />
+      <input className={styles.pickSearch} value={q} onChange={e => setQ(e.target.value)} placeholder="Find a place" aria-label="Find a place" autoFocus />
       <ul className={styles.pickList}>
         {shown.map(p => {
           const look = pinLook(p)
           const star = p.michelin && p.michelin !== 'mentioned' ? ` ★${p.michelin}` : p.michelin === 'mentioned' ? ' ◈' : ''
           return (
             <li key={p.id}>
-              <button type="button" className={styles.pickItem} onClick={() => onPick(p.id)}>
+              <button type="button" className={styles.pickItem} onClick={() => onPick(p.id, p.kind)}>
                 <span className={styles.pickDot} style={{ background: look.color }} aria-hidden="true" />
                 <span className={styles.pickName}>{p.name}</span>
                 <small>{look.parts[0]}{star}</small>
@@ -120,7 +119,7 @@ function PinPicker({ pins, onPick, onCancel }: { pins: Pin[]; onPick: (pinId: st
             </li>
           )
         })}
-        {shown.length === 0 && <li className={styles.muted0}>No pin matches “{q}”.</li>}
+        {shown.length === 0 && <li className={styles.muted0}>No place matches “{q}”.</li>}
       </ul>
       <div className={styles.legButtons}><button type="button" className="btn btn-quiet" onClick={onCancel}>Cancel</button></div>
     </div>

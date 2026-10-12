@@ -1,21 +1,28 @@
 import { useState } from 'react'
 import { buildCountryTree } from '../../lib/savorTree'
 import { asReviews, priceLabel, type Eatery, type EateryReview } from '../../lib/eateries'
+import { stopRef } from '../../lib/itinerary'
 import { badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
 import { pinBadge } from '../../lib/pinRules'
 import styles from './Savor.module.css'
 
 // The catalogue as a country → dish collapsible tree (E65), shared by the
 // Savorlog page and — for the eateries a trip shows by city — the Wanderlog
-// Places panel (M5). Collapsed every visit; opening a row calls onOpen.
+// Places panel (M5). Collapsed every visit; opening a row calls onOpen. On a
+// trip (openDay/onAddToDay given) a row is draggable onto the itinerary and
+// carries a "+" to add it to the open day, like the pinned list's pins.
 export default function EateryTree({
   eateries,
   reviews,
-  onOpen
+  openDay,
+  onOpen,
+  onAddToDay
 }: {
   eateries: Eatery[]
   reviews: EateryReview[]
+  openDay?: { id: string; label: string } | null
   onOpen: (e: Eatery) => void
+  onAddToDay?: (id: string, kind: 'eatery') => void
 }) {
   const tree = buildCountryTree(eateries)
   const [open, setOpen] = useState<Set<string>>(new Set())
@@ -26,11 +33,18 @@ export default function EateryTree({
       return n
     })
 
+  const canSchedule = !!onAddToDay
   const row = (e: Eatery) => {
     const badge = pinBadge(asReviews(reviews, e.id))
     return (
       <li key={e.id} className={styles.rowLi}>
-        <button type="button" className={styles.row} onClick={() => onOpen(e)}>
+        <button
+          type="button"
+          className={styles.row}
+          draggable={canSchedule}
+          onDragStart={canSchedule ? ev => { ev.dataTransfer.setData('text/plain', stopRef('eatery', e.id)); ev.dataTransfer.effectAllowed = 'copy' } : undefined}
+          onClick={() => onOpen(e)}
+        >
           <span className={styles.status} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" dangerouslySetInnerHTML={{ __html: badgeSvg(badge, 12) }} />
           <span className={styles.name}>{e.name}</span>
           {e.michelin && (
@@ -40,6 +54,18 @@ export default function EateryTree({
           )}
           {e.price != null && <span className={styles.price}>{priceLabel(e.price)}</span>}
         </button>
+        {canSchedule && (
+          <button
+            type="button"
+            className={styles.addDay}
+            disabled={!openDay}
+            onClick={() => openDay && onAddToDay!(e.id, 'eatery')}
+            aria-label={openDay ? `Add ${e.name} to ${openDay.label}` : 'Add to a day — open the itinerary first'}
+            title={openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}
+          >
+            +
+          </button>
+        )}
       </li>
     )
   }

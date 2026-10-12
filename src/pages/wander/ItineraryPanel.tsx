@@ -18,15 +18,21 @@ import {
   clearConnector,
   fetchConnectors,
   saveConnector,
+  parseStopRef,
+  stopTarget,
+  stopTargetId,
   type Activity,
   type ConnMode,
   type Connector,
   type ItineraryDay,
   type LegFields,
   type Stop,
+  type StopItem,
+  type StopKind,
   type TravelLeg
 } from '../../lib/itinerary'
 import { pinBadge, type Pin, type Review } from '../../lib/pins'
+import { asReviews, type Eatery, type EateryReview } from '../../lib/eateries'
 import { computeLeg, type LegTime, type RouteSeg } from '../../lib/directions'
 import { StopBlock, StopEdit, STOP_MIN, nextStopStart } from './StopBlock'
 import { StopConnectors, legKey, pairKey } from './StopConnectors'
@@ -64,6 +70,8 @@ export default function ItineraryPanel({
   wide,
   pins,
   reviews,
+  eateries,
+  eateryReviews,
   addRequest,
   onWide,
   onClose,
@@ -77,8 +85,10 @@ export default function ItineraryPanel({
   wide: boolean
   pins: Pin[]
   reviews: Review[]
-  /** A pin the Places panel asked to add to the open day (new object each time). */
-  addRequest: { pinId: string; n: number } | null
+  eateries: Eatery[]
+  eateryReviews: EateryReview[]
+  /** A place (pin or eatery) the Places panel asked to add to the open day (new object each time). */
+  addRequest: { id: string; kind: StopKind; n: number } | null
   onWide: () => void
   onClose: () => void
   /** The day shown now (for the "Add to day" button), or null. */
@@ -131,7 +141,24 @@ export default function ItineraryPanel({
     load()
   }, [load])
 
-  const pinById = useMemo(() => new Map(pins.map(p => [p.id, p])), [pins])
+  // A stop points at a trip pin or a catalogue eatery; both flatten to a
+  // StopItem so the timeline, connectors and day route handle them alike (M5).
+  const itemById = useMemo(() => {
+    const m = new Map<string, StopItem>()
+    for (const p of pins) {
+      m.set(p.id, { id: p.id, kind: 'pin', name: p.name, lat: p.lat, lng: p.lng, michelin: p.michelin, category: p.category, subcategory: p.subcategory, subsubcategory: p.subsubcategory })
+    }
+    for (const e of eateries) {
+      m.set(e.id, { id: e.id, kind: 'eatery', name: e.name, lat: e.lat, lng: e.lng, michelin: e.michelin, category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
+    }
+    return m
+  }, [pins, eateries])
+  const itemOf = useCallback((s: Stop) => itemById.get(stopTargetId(s)), [itemById])
+  // A stop's reviews, for the status badge (pins and eateries keep their own).
+  const reviewsOf = useCallback(
+    (s: Stop): Review[] => (s.pin_id ? reviews.filter(r => r.pin_id === s.pin_id) : asReviews(eateryReviews, s.eatery_id as string)),
+    [reviews, eateryReviews]
+  )
 
   async function reloadStops() {
     if (days) setStops(await fetchStops(days.map(d => d.id)))
@@ -140,14 +167,14 @@ export default function ItineraryPanel({
     if (days) setConnectors(await fetchConnectors(days.map(d => d.id)))
   }
 
-  // Add a pin to a day: at a given minute (timeline drop / Add popup) or the
-  // next free slot (day tab drop, the "+" button). 60-minute block.
+  // Add a place (pin or eatery) to a day: at a given minute (timeline drop /
+  // Add popup) or the next free slot (day tab drop, the "+" button). 60-min block.
   const addStop = useCallback(
-    async (dayId: string, pinId: string, startMin?: number) => {
+    async (dayId: string, id: string, kind: StopKind, startMin?: number) => {
       const s = startMin ?? nextStopStart(stops.filter(st => st.day_id === dayId))
       const e = Math.min(24 * 60 - 1, s + STOP_MIN)
       try {
-        await saveStop({ day_id: dayId, pin_id: pinId, start_time: hhmm(s), end_time: hhmm(e) })
+        await saveStop({ day_id: dayId, ...stopTarget(kind, id), start_time: hhmm(s), end_time: hhmm(e) })
         if (days) setStops(await fetchStops(days.map(d => d.id)))
       } catch (err) {
         setError((err as Error).message)
@@ -156,13 +183,13 @@ export default function ItineraryPanel({
     [stops, days]
   )
 
-  // The Places panel asked to add a pin to the open day. Start caught up so a
+  // The Places panel asked to add a place to the open day. Start caught up so a
   // request from a previous open session isn't re-run when the panel reopens.
   const lastReq = useRef(addRequest?.n ?? 0)
   useEffect(() => {
     if (addRequest && addRequest.n !== lastReq.current && selected) {
       lastReq.current = addRequest.n
-      addStop(selected, addRequest.pinId)
+      addStop(selected, addRequest.id, addRequest.kind)
     }
   }, [addRequest, selected, addStop])
 
@@ -218,8 +245,8 @@ export default function ItineraryPanel({
       const to = orderedStops[i + 1]
       const mode = modeOf.get(pairKey(from.id, to.id))
       if (!mode) continue
-      const fp = pinById.get(from.pin_id)
-      const tp = pinById.get(to.pin_id)
+      const fp = itemOf(from)
+      const tp = itemOf(to)
       if (!fp || !tp) continue
       const k = legKey(from.id, to.id, mode)
       if (wantLeg.current.has(k)) continue
@@ -231,7 +258,7 @@ export default function ItineraryPanel({
     return () => {
       live = false
     }
-  }, [dayConnectors, orderedStops, pinById])
+  }, [dayConnectors, orderedStops, itemOf])
 
   // Tell the trip page which day is open, which pins to keep bright, and the
   // day route to draw (Day route on → this day's pins + route; off → cleared).
@@ -242,7 +269,7 @@ export default function ItineraryPanel({
     } else onOpenDay(null)
   }, [day, dayIndex, onOpenDay])
   useEffect(() => {
-    onOtdPins(showRoute && day ? dayStops.map(s => s.pin_id) : null)
+    onOtdPins(showRoute && day ? dayStops.map(stopTargetId) : null)
   }, [showRoute, day, dayStops, onOtdPins])
   useEffect(() => {
     if (!showRoute || !day) return onDayRoute(null)
@@ -251,24 +278,25 @@ export default function ItineraryPanel({
     for (let i = 0; i < orderedStops.length - 1; i++) {
       const from = orderedStops[i]
       const to = orderedStops[i + 1]
-      const fp = pinById.get(from.pin_id)
-      const tp = pinById.get(to.pin_id)
+      const fp = itemOf(from)
+      const tp = itemOf(to)
       if (!fp || !tp) continue
       const mode = modeOf.get(pairKey(from.id, to.id)) ?? null
       const leg = mode ? legTimes[legKey(from.id, to.id, mode)] : null
       segs.push({ from: { lat: fp.lat, lng: fp.lng }, to: { lat: tp.lat, lng: tp.lng }, mode, path: leg?.path ?? null })
     }
     onDayRoute(segs)
-  }, [showRoute, day, orderedStops, dayConnectors, legTimes, pinById, onDayRoute])
+  }, [showRoute, day, orderedStops, dayConnectors, legTimes, itemOf, onDayRoute])
   useEffect(() => () => { onOpenDay(null); onOtdPins(null); onDayRoute(null) }, [onOpenDay, onOtdPins, onDayRoute])
 
   async function reloadActs() {
     if (days) setActs(await fetchActivities(days.map(d => d.id)))
   }
 
-  // Read the pin id a drag carries (set by the Places panel's rows).
-  const draggedPin = (e: React.DragEvent) => e.dataTransfer.getData('text/plain')
-  const hasPin = (e: React.DragEvent) => e.dataTransfer.types.includes('text/plain')
+  // Read the place ref a drag carries (set by the Places panel's rows): a pin
+  // id, or an "eatery:<id>" token. hasPlace just checks a ref is being dragged.
+  const draggedRef = (e: React.DragEvent) => e.dataTransfer.getData('text/plain')
+  const hasPlace = (e: React.DragEvent) => e.dataTransfer.types.includes('text/plain')
 
   async function changeActivity(a: Activity, startT: string, endT: string) {
     // Show the new time straight away; put it back if saving fails.
@@ -337,14 +365,14 @@ export default function ItineraryPanel({
                     setEditStop(null)
                     setConfirmDay(false)
                   }}
-                  onDragOver={e => { if (hasPin(e)) { e.preventDefault(); setDropTarget(d.id) } }}
+                  onDragOver={e => { if (hasPlace(e)) { e.preventDefault(); setDropTarget(d.id) } }}
                   onDragLeave={() => setDropTarget(t => (t === d.id ? null : t))}
                   onDrop={e => {
-                    if (!hasPin(e)) return
+                    if (!hasPlace(e)) return
                     e.preventDefault()
                     setDropTarget(null)
-                    const pinId = draggedPin(e)
-                    if (pinId) addStop(d.id, pinId)
+                    const ref = draggedRef(e)
+                    if (ref) { const { id, kind } = parseStopRef(ref); addStop(d.id, id, kind) }
                   }}
                 >
                   {t.top}
@@ -438,16 +466,17 @@ export default function ItineraryPanel({
                       const start = minuteAt(y, HOUR_PX, ADD_SNAP_MIN)
                       setAdding({ start, end: Math.min(24 * 60 - 1, start + NEW_BLOCK_MIN) })
                     }}
-                    onDragOver={e => { if (hasPin(e)) { e.preventDefault(); setDropTarget('timeline') } }}
+                    onDragOver={e => { if (hasPlace(e)) { e.preventDefault(); setDropTarget('timeline') } }}
                     onDragLeave={e => { if (e.currentTarget === e.target) setDropTarget(t => (t === 'timeline' ? null : t)) }}
                     onDrop={e => {
-                      if (!hasPin(e)) return
+                      if (!hasPlace(e)) return
                       e.preventDefault()
                       setDropTarget(null)
-                      const pinId = draggedPin(e)
-                      if (!pinId) return
+                      const ref = draggedRef(e)
+                      if (!ref) return
+                      const { id, kind } = parseStopRef(ref)
                       const y = e.clientY - e.currentTarget.getBoundingClientRect().top
-                      addStop(day.id, pinId, minuteAt(y, HOUR_PX, ADD_SNAP_MIN))
+                      addStop(day.id, id, kind, minuteAt(y, HOUR_PX, ADD_SNAP_MIN))
                     }}
                   >
                     {Array.from({ length: 24 }, (_, h) => (
@@ -494,14 +523,14 @@ export default function ItineraryPanel({
                       }}
                     />
                     {dayStops.map(s => {
-                      const pin = pinById.get(s.pin_id)
-                      if (!pin) return null
+                      const item = itemOf(s)
+                      if (!item) return null
                       return (
                         <StopBlock
                           key={s.id}
                           stop={s}
-                          pin={pin}
-                          badge={pinBadge(reviews.filter(r => r.pin_id === s.pin_id))}
+                          item={item}
+                          badge={pinBadge(reviewsOf(s))}
                           pos={blockPositionStyle(layout.get(`s-${s.id}`), GUTTER)}
                           onChange={(st, en) => changeStop(s, st, en)}
                           onOpen={() => {
@@ -524,7 +553,7 @@ export default function ItineraryPanel({
                           endPx={(adding.end / 60) * HOUR_PX}
                           start={adding.start}
                           end={adding.end}
-                          pins={pins}
+                          items={[...itemById.values()]}
                           onCancel={() => setAdding(null)}
                           onTravel={(st, en) => {
                             setAdding(null)
@@ -535,8 +564,8 @@ export default function ItineraryPanel({
                             setAdding(null)
                             await reloadActs()
                           }}
-                          onAddPlace={async (pinId, st, en) => {
-                            await saveStop({ day_id: day.id, pin_id: pinId, start_time: st, end_time: en })
+                          onAddPlace={async (id, kind, st, en) => {
+                            await saveStop({ day_id: day.id, ...stopTarget(kind, id), start_time: st, end_time: en })
                             setAdding(null)
                             await reloadStops()
                           }}
@@ -567,16 +596,16 @@ export default function ItineraryPanel({
                         />
                       </EditPop>
                     )}
-                    {editStop && pinById.get(editStop.pin_id) && (
-                      <EditPop startPx={(toMin(editStop.start_time) / 60) * HOUR_PX} endPx={(toMin(editStop.end_time) / 60) * HOUR_PX} label={pinById.get(editStop.pin_id)!.name}>
+                    {editStop && itemOf(editStop) && (
+                      <EditPop startPx={(toMin(editStop.start_time) / 60) * HOUR_PX} endPx={(toMin(editStop.end_time) / 60) * HOUR_PX} label={itemOf(editStop)!.name}>
                         <div className={styles.addHead}>
-                          <strong>{pinById.get(editStop.pin_id)!.name}</strong>
+                          <strong>{itemOf(editStop)!.name}</strong>
                           <button type="button" className={styles.ib} aria-label="Close" onClick={() => setEditStop(null)}>×</button>
                         </div>
                         <StopEdit
                           key={editStop.id}
                           stop={editStop}
-                          pin={pinById.get(editStop.pin_id)!}
+                          item={itemOf(editStop)!}
                           onSubmit={async (st, en) => {
                             await saveStop({ start_time: st, end_time: en }, editStop.id)
                             setEditStop(null)

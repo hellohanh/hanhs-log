@@ -105,7 +105,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   // Itinerary ↔ Places: the open day (for "Add to day"), a request to schedule
   // a pin on it, and OTD Pins (the day's pin ids to keep bright on the map).
   const [openDay, setOpenDay] = useState<{ id: string; label: string } | null>(null)
-  const [addReq, setAddReq] = useState<{ pinId: string; n: number } | null>(null)
+  const [addReq, setAddReq] = useState<{ id: string; kind: import('../../lib/itinerary').StopKind; n: number } | null>(null)
   const [otdPinIds, setOtdPinIds] = useState<string[] | null>(null)
   const [dayRoute, setDayRoute] = useState<import('../../lib/directions').RouteSeg[] | null>(null)
   const loadPins = useCallback(async () => {
@@ -283,7 +283,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           onFocus={at => setFocus({ lat: at.lat, lng: at.lng })}
           near={city.state === 'ready' ? { lat: city.city.lat, lng: city.city.lng } : undefined}
           openDay={panel.open ? openDay : null}
-          onAddToDay={pinId => setAddReq(r => ({ pinId, n: (r?.n ?? 0) + 1 }))}
+          onAddToDay={(id, kind) => setAddReq(r => ({ id, kind, n: (r?.n ?? 0) + 1 }))}
         />
         <div className={styles.mapArea}>
           <TripMap
@@ -305,6 +305,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               wide={panel.wide}
               pins={pins}
               reviews={reviews}
+              eateries={eateries}
+              eateryReviews={eateryReviews}
               addRequest={addReq}
               onWide={() => setPanel(p => ({ ...p, wide: !p.wide }))}
               onClose={() => setPanel(p => ({ ...p, open: false }))}

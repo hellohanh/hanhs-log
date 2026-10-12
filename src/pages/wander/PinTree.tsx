@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { buildPinTree, type PinNode } from '../../lib/pinCatalog'
 import { flowerSvg, BADGE } from '../../lib/pinDraw'
 import { pinBadge, type Pin, type Review } from '../../lib/pins'
+import type { StopKind } from '../../lib/itinerary'
 import styles from './Places.module.css'
 
 // The pinned list as a collapsible tree (E30, built session 6): category ›
@@ -22,7 +23,7 @@ export default function PinTree({
   reviews: Review[]
   openDay: { id: string; label: string } | null
   onOpen: (pin: Pin) => void
-  onAddToDay: (pinId: string) => void
+  onAddToDay: (id: string, kind: StopKind) => void
 }) {
   const tree = buildPinTree(pins)
   const [open, setOpen] = useState<Set<string>>(new Set())
@@ -87,7 +88,7 @@ export default function PinTree({
           type="button"
           className={styles.addDay}
           disabled={!openDay}
-          onClick={() => openDay && onAddToDay(p.id)}
+          onClick={() => openDay && onAddToDay(p.id, 'pin')}
           aria-label={openDay ? `Add ${p.name} to ${openDay.label}` : 'Add to a day — open the itinerary first'}
           title={openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}
         >
