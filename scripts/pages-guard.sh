@@ -11,7 +11,9 @@
 #   scripts/pages-guard.sh idle   before publishing: wait until no Pages job is running
 #   scripts/pages-guard.sh after  after publishing: wait for the Pages job of the
 #                                 gh-pages head; if it failed, ask GitHub for a fresh
-#                                 Pages build, delete the failed run, and check again
+#                                 Pages build, delete the failed run, and check again;
+#                                 a job GitHub cancelled because a newer publish
+#                                 replaced it counts as published once the newer one succeeds
 #
 # Needs GH_TOKEN (the workflow's github.token) with actions: write, pages: write.
 set -uo pipefail
@@ -68,6 +70,21 @@ case "$mode" in
     if [ "$conclusion" = "success" ]; then
       echo "::notice title=Pages::Published: GitHub's Pages job for ${sha:0:7} succeeded."
       exit 0
+    fi
+    # Superseded (session 9, run 38472370835): when the other publisher pushes
+    # seconds later, GitHub cancels this job in favour of the newer one. The
+    # newer gh-pages commit already contains ours, so its success is ours too.
+    head=$(git ls-remote "https://x-access-token:${GH_TOKEN}@github.com/$repo.git" refs/heads/gh-pages | cut -f1)
+    if [ "$conclusion" = "cancelled" ] && [ -n "$head" ] && [ "$head" != "$sha" ]; then
+      echo "GitHub cancelled the Pages job for ${sha:0:7}: a newer publish (${head:0:7}) replaced it. Waiting for that one."
+      if res=$(wait_for "$head" 0); then
+        read -r id2 conclusion2 <<< "$res"
+        if [ "$conclusion2" = "success" ]; then
+          gh api -X DELETE "repos/$repo/actions/runs/$id" >/dev/null 2>&1 || true
+          echo "::notice title=Pages::Published: the newer Pages job for ${head:0:7} (which includes ${sha:0:7}) succeeded; the cancelled run was removed."
+          exit 0
+        fi
+      fi
     fi
     echo "GitHub's Pages job $id for ${sha:0:7} ended '$conclusion'; asking for a fresh build."
     gh api -X POST "repos/$repo/pages/builds" >/dev/null || true
