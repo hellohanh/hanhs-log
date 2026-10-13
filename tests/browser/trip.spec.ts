@@ -243,6 +243,7 @@ test('itinerary panel: extra days, day notes and a flight with its duration acro
   // A flight Tokyo → Saigon: picking the airports fills their time zones.
   await panel.getByRole('button', { name: /Add travel/ }).click()
   const form = panel.getByRole('form', { name: 'Add travel' })
+  await form.getByLabel('Title (optional)').fill("Buda Gang's Outbound Last Leg")
   await form.getByLabel('Airline').fill('Vietnam Airlines')
   await form.getByLabel('Flight number').fill('VN 300')
   await form.getByRole('group', { name: 'From' }).getByLabel('Airport').fill('Tokyo / NRT')
@@ -252,8 +253,10 @@ test('itinerary panel: extra days, day notes and a flight with its duration acro
   await expect(form.getByRole('group', { name: 'From' }).getByLabel('Time zone')).toHaveValue('Asia/Tokyo')
   await expect(form.getByText('Takes 6h 15m')).toBeVisible()
   await form.getByRole('button', { name: 'Save' }).click()
-  await expect(panel.getByRole('button', { name: /Vietnam Airlines VN 300/ })).toBeVisible()
-  expect(db.legs[0]).toMatchObject({ mode: 'flight', from_timezone: 'Asia/Tokyo', to_timezone: 'Asia/Ho_Chi_Minh', from_date: '2026-12-18' })
+  // The block leads with the title, then the airline + number under it (session 9).
+  const block = panel.getByRole('button', { name: /^Buda Gang's Outbound Last Leg.*Vietnam Airlines VN 300/ })
+  await expect(block).toBeVisible()
+  expect(db.legs[0]).toMatchObject({ mode: 'flight', title: "Buda Gang's Outbound Last Leg", from_timezone: 'Asia/Tokyo', to_timezone: 'Asia/Ho_Chi_Minh', from_date: '2026-12-18' })
 })
 
 test('itinerary helpers: day order and labels', async () => {

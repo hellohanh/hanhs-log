@@ -685,13 +685,17 @@ function LegCard({
   const cfg = LEG_MODE_CONFIG[leg.mode]
   const d = legDurationParts(leg)
   const plus = legDayOffset(leg)
-  const name = [leg.carrier, leg.reference].filter(Boolean).join(' ') || leg.title || cfg.label
+  // Title first (session 9, like old Wanderlog), then airline + number under it.
+  const carrierLine = [leg.carrier, leg.reference].filter(Boolean).join(' ')
+  const name = leg.title || carrierLine || cfg.label
+  const subLine = leg.title && carrierLine ? carrierLine : null
   return (
     <button type="button" className={styles.leg} style={{ top, height: Math.max(height, 56), borderLeftColor: cfg.color, ...pos }} onClick={e => { e.stopPropagation(); onClick() }}>
       <span className={styles.legTop}>
         <Badge leg={leg} />
         <b>{name}</b>
       </span>
+      {subLine && <span className={styles.legMeta}>{subLine}</span>}
       <span className={styles.legRoute}>
         {leg.from_location} {leg.from_time?.slice(0, 5)} → {leg.to_location} {leg.to_time?.slice(0, 5)}
         {plus ? <sup> +{plus}</sup> : null}

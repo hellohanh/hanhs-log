@@ -116,6 +116,10 @@ export default function TravelForm({
           </button>
         ))}
       </div>
+      <label className={styles.lf}>
+        Title (optional)
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder={isFlight ? "Buda Gang's outbound, 1st leg" : 'Bus to Vũng Tàu'} />
+      </label>
       <div className={styles.legRow}>
         <label className={styles.lf}>
           {isFlight ? 'Airline' : 'Company'}
@@ -126,12 +130,6 @@ export default function TravelForm({
           <input value={reference} onChange={e => setReference(e.target.value)} placeholder={isFlight ? 'VN 300' : 'Optional'} />
         </label>
       </div>
-      {!isFlight && (
-        <label className={styles.lf}>
-          Title (optional)
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Bus to Vũng Tàu" />
-        </label>
-      )}
       <fieldset className={styles.legSide}>
         <legend>From</legend>
         <label className={styles.lf}>
