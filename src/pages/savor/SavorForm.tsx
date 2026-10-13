@@ -11,6 +11,8 @@ import {
 import styles from './Savor.module.css'
 import NameFields from '../../components/NameFields'
 import { joinName, splitName } from '../../lib/placeName'
+import type { ImportPrefill } from '../../lib/pinImport'
+import ImportButtons, { type ImportActions } from '../../components/ImportButtons'
 
 // The add / edit eatery card (approved mockup, 4d): the place from Google, its
 // cuisine → dish picked by hand, price ($–$$$$), MICHELIN and street-food /
@@ -33,7 +35,9 @@ export default function SavorForm({
   eatery,
   reviews,
   onCancel,
-  onSaved
+  onSaved,
+  prefill,
+  importActions
 }: {
   userId: string
   place?: FoundPlace
@@ -41,18 +45,25 @@ export default function SavorForm({
   reviews: EateryReview[]
   onCancel: () => void
   onSaved: (id: string) => void
+  /** Values Claude prepared for an old Wanderlog pin (E71); ignored when editing. */
+  prefill?: ImportPrefill
+  /** The import queue's Skip for good / Back / Save and next (E71). */
+  importActions?: ImportActions
 }) {
+  const pre = eatery ? undefined : prefill
   const mine = reviews.find(r => r.user_id === userId)
-  const [names, setNames] = useState(() => splitName(eatery?.name ?? place?.name))
+  const [names, setNames] = useState(() =>
+    pre ? { en: pre.name_en ?? '', local: pre.name_local ?? '' } : splitName(eatery?.name ?? place?.name)
+  )
   const name = joinName(names.en, names.local)
-  const [cuisine, setCuisine] = useState(eatery?.cuisine ?? '')
-  const [dish, setDish] = useState(eatery?.dish ?? '')
+  const [cuisine, setCuisine] = useState(eatery?.cuisine ?? pre?.sub ?? '')
+  const [dish, setDish] = useState(eatery?.dish ?? pre?.leaf ?? '')
   const [price, setPrice] = useState<number | null>(eatery?.price ?? null)
-  const [michelin, setMichelin] = useState<Michelin>(eatery?.michelin ?? null)
-  const [year, setYear] = useState(eatery?.michelin_year ? String(eatery.michelin_year) : String(new Date().getFullYear()))
-  const [streetFood, setStreetFood] = useState(eatery?.street_food ?? false)
-  const [fineDining, setFineDining] = useState(eatery?.fine_dining ?? false)
-  const [note, setNote] = useState(eatery?.note ?? '')
+  const [michelin, setMichelin] = useState<Michelin>(eatery?.michelin ?? pre?.michelin ?? null)
+  const [year, setYear] = useState(String(eatery?.michelin_year ?? pre?.michelin_year ?? new Date().getFullYear()))
+  const [streetFood, setStreetFood] = useState(eatery?.street_food ?? pre?.street_food ?? false)
+  const [fineDining, setFineDining] = useState(eatery?.fine_dining ?? pre?.fine_dining ?? false)
+  const [note, setNote] = useState(eatery?.note ?? pre?.note ?? '')
   const [review, setReview] = useState({ status: mine?.status ?? ('wtg' as 'wtg' | 'vis'), verdict: mine?.verdict ?? null, rating: mine?.rating ?? null })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -210,7 +221,9 @@ export default function SavorForm({
       </label>
 
       {error && <p className={styles.error} role="alert">{error}</p>}
-      {confirm ? (
+      {importActions ? (
+        <ImportButtons actions={importActions} busy={busy} classes={{ buttons: styles.buttons, del: styles.del, confirm: styles.confirm }} />
+      ) : confirm ? (
         <div className={styles.confirm} role="alert">
           <span>Remove this eatery? It goes to the owner's pending-deletion list.</span>
           <button type="button" className="btn" onClick={remove} disabled={busy}>Remove</button>

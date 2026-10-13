@@ -212,14 +212,15 @@ function TripCard({
 }
 
 // New trip opens as a popup over the list (approved mockup, session 4).
-function NewTripDialog({
+// Also used by the import queue's "New trip" (E71).
+export function NewTripDialog({
   userId,
   onCancel,
   onCreated
 }: {
   userId: string
   onCancel: () => void
-  onCreated: (name: string) => void
+  onCreated: (name: string, id: string) => void
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCancel()
@@ -239,7 +240,7 @@ function NewTripDialog({
             const id = await createTrip(trip, userId, map)
             // No match shown before saving: look the city up now (best effort).
             if (!map) ensureTripCity(id, trip).catch(() => undefined)
-            onCreated(trip.name)
+            onCreated(trip.name, id)
           }}
         />
       </div>
