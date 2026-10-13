@@ -17,6 +17,8 @@
 .h1 { font-size: 48px; }
 
 .newBtn { gap: 8px; font-weight: 700; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.left { font-weight: 400; color: var(--muted); }
 
 .h2 {
   margin: 48px 0 16px;

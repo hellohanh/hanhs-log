@@ -15,6 +15,7 @@ const pages = [
   { name: 'wanderlog', path: './wander' },
   { name: 'wanderlog-trip', path: './wander/trip/test-trip' },
   { name: 'wanderlog-join', path: './wander/join/test-token' },
+  { name: 'wanderlog-import', path: './wander/import' },
   { name: 'savorlog', path: './savor' },
   { name: 'savorlog-join', path: './savor/join/test-token' },
   { name: 'signin', path: './signin' },

@@ -14,6 +14,7 @@ import {
   type TripSummary
 } from '../../lib/trips'
 import { ensureTripCity } from '../../lib/city'
+import { amSavorlogOwner, fetchImport } from '../../lib/pinImport'
 import TripForm from './TripForm'
 import styles from './TripList.module.css'
 
@@ -69,7 +70,21 @@ function SignedInList({ userId }: { userId: string }) {
   const [creating, setCreating] = useState(false)
   const [notice, setNotice] = useState('')
   const [people, setPeople] = useState<Record<string, number>>({})
+  // The import button shows only to the Savorlog owner (E71), with places left.
+  const [importLeft, setImportLeft] = useState<number | null>(null)
   const today = todayISO()
+
+  useEffect(() => {
+    let alive = true
+    amSavorlogOwner()
+      .then(async owner => {
+        if (!owner || !alive) return
+        const items = await fetchImport().catch(() => [])
+        if (alive) setImportLeft(items.length ? items.filter(i => i.status === 'pending').length : -1)
+      })
+      .catch(() => undefined)
+    return () => { alive = false }
+  }, [])
 
   const reload = useCallback(async () => {
     try {
@@ -105,12 +120,20 @@ function SignedInList({ userId }: { userId: string }) {
     <Shell
       action={
         !creating && (
-          <button type="button" className={`btn ${styles.newBtn}`} onClick={() => setCreating(true)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            New trip
-          </button>
+          <span className={styles.actions}>
+            {importLeft !== null && (
+              <Link to="/wander/import" className={`btn btn-quiet ${styles.newBtn}`}>
+                Import old pins
+                {importLeft >= 0 && <span className={styles.left}>{importLeft} left</span>}
+              </Link>
+            )}
+            <button type="button" className={`btn ${styles.newBtn}`} onClick={() => setCreating(true)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              New trip
+            </button>
+          </span>
         )
       }
     >

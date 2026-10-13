@@ -47,6 +47,8 @@ export interface FakeDb {
   eateries: FakeRow[]
   eateryReviews: FakeRow[]
   eateryPhotos: FakeRow[]
+  /** The old-pin import queue (E71). */
+  importItems: FakeRow[]
   savorPeople: FakePerson[]
   savorToken: string
   /** People per trip id. Trips missing here answer "not allowed". */
@@ -108,7 +110,7 @@ const deny = (route: Route, message: string) =>
  */
 export async function fakeSupabase(
   page: Page,
-  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[]; savorPeople?: FakePerson[] } = {}
+  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[]; importItems?: FakeRow[]; savorPeople?: FakePerson[] } = {}
 ): Promise<FakeDb> {
   const me = opts.signedInAs === undefined ? ME : opts.signedInAs
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00'))
@@ -129,6 +131,7 @@ export async function fakeSupabase(
     eateries: structuredClone(opts.eateries ?? []),
     eateryReviews: structuredClone(opts.eateryReviews ?? []),
     eateryPhotos: structuredClone(opts.eateryPhotos ?? []),
+    importItems: structuredClone(opts.importItems ?? []),
     savorPeople: structuredClone(opts.savorPeople ?? [{ user_id: ME, display_name: 'Hanh', is_owner: true, joined_at: null }]),
     savorToken: 'savor-tok',
     calls: []
@@ -357,6 +360,22 @@ export async function fakeSupabase(
       }
       if (req.method() === 'DELETE') {
         db.eateryPhotos = db.eateryPhotos.filter(p => p.id !== idEq)
+        return route.fulfill({ status: 204, body: '' })
+      }
+    }
+
+    // The old-pin import queue (0011): loaded once (duplicates ignored), then ticked off.
+    if (path === '/rest/v1/pin_import_items') {
+      if (req.method() === 'GET') return route.fulfill({ json: db.importItems })
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) {
+          if (db.importItems.some(x => x.google_place_id === r.google_place_id)) continue
+          db.importItems.push({ id: `imp-${db.importItems.length + 1}`, status: 'pending', saved_pin_id: null, saved_eatery_id: null, ...r })
+        }
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'PATCH') {
+        db.importItems = db.importItems.map(x => (x.id === idEq ? { ...x, ...args } : x))
         return route.fulfill({ status: 204, body: '' })
       }
     }
