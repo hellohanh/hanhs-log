@@ -45,7 +45,7 @@
 .old p { margin: 4px 0 0; }
 .old a { color: var(--accent); }
 .oldNote { white-space: pre-wrap; }
-.why { font-style: italic; }
+.why { color: var(--muted); }
 .navRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .linkBtn { align-self: flex-start; border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 14px; cursor: pointer; }
 
