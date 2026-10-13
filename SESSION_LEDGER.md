@@ -277,3 +277,34 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 **Stop Protocol completed:** zip `S007 OCT 11 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** the **old Wanderlog pin import** (E55) — Hanh provides the export; sort the pins in city by city. Then M5.2b (migration 0011 forbidding new food pins), M6 itinerary polish, M7 switch-over.
+
+---
+
+## Session 8 — 2026-10-12
+
+**Goal:**
+- Get caught up from the S007 zip; clear the one-time setup; settle Q5 before the old-pin import.
+
+**Decisions made:**
+- **Q5 → E70**: top-5 dishes for every remaining cuisine (Japanese, Korean, Chinese, Taiwanese, Cantonese / HK, Indian, Italian, French, Spanish, Greek, Mediterranean, American, Southern / soul food, Cajun / Creole, Tex-Mex, Mexican) and Café, Bakery / dessert, Bar / drinks, approved as drafted; **Fusion has no dish list**.
+- Hanh doesn't want red build runs left as "harmless": fix them (L41, L42).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #54: Session 7 Stop Protocol docs.
+- #55: **Q5 / E70** — the dish lists in `pinCatalog.ts`, 18 Material Symbols added to `materialIcons.ts`, a test that every catalogue icon is shipped; docs/pin-standard.md.
+- #56: **Pages publish guard** — `scripts/pages-guard.sh` in Deploy site and PR preview (wait for any running Pages job; confirm GitHub published; on a hiccup request a fresh build and delete the failed run). L41.
+- #57: **Node 24** — checkout / setup-node / upload-artifact v4 → v6; `rossjrw/pr-preview-action` replaced by our own publish/remove steps (`JamesIves/github-pages-deploy-action@v4`) and `scripts/preview-comment.sh` (same link and hidden marker, QR kept, posted after Pages publishes). L42.
+
+**Done outside code:**
+- Confirmed migrations 0001–0010 were already applied (approved runs after #45, #49, #51; the preview connection check lists them).
+- Hanh created the public `eatery-photos` bucket: INSERT, DELETE, SELECT policies for `authenticated`, definition `bucket_id = 'eatery-photos'` (not `true`).
+- Deleted two red Actions runs: #159 (GitHub's Pages job, "Multiple artifacts named github-pages"; re-runs can never pass) and a session-1 Checks run (Oct 9). Actions has 0 failed runs.
+- Explained ownership: Savorlog's owner is the first signed-in visitor of `/savor` (Family → Owner + Reset link); Wanderlog ownership is per trip ("You own this" badge; Share & people → Owner).
+
+**Lessons:** L41 (overlapping gh-pages publishes; the guard), L42 (Node 24 actions; check `runs.using` before bumping).
+
+**Open questions:** Q1 (phone layout, parked), Q6 (American icon names: chicken bucket, curly fries, chili bowl, side bowl), Q7 (no lobster icon), Q8 (Google-dark pins/labels, parked).
+
+**Stop Protocol completed:** zip `S008 OCT 12 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** the **old Wanderlog pin import** (E55) — first ask Hanh how: sort with Claude from the export, Hanh adds them in the app, or a bulk importer. Then M5.2b (migration 0011), Q6/Q7, M6, M7. After Oct 19, 2026 check a run on Ubuntu 26.

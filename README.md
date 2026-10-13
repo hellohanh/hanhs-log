@@ -4,7 +4,7 @@ One app for trip planning (**Wanderlog**) and eateries (**Savorlog**), sharing o
 login and one database (its own Supabase project; the old Wanderlog site and
 database are separate and untouched). Live at https://hellohanh.github.io/hanhs-log/
 
-## Current state (Session 7, OCT 11 2026)
+## Current state (Session 8, OCT 12 2026)
 
 | Milestone | Status |
 |---|---|
@@ -38,33 +38,36 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 - **City search (`/search?city=…`)**: one results page per city; trips and eateries fill in later.
 - **Sign in (`/signin`)**: email link through Hanh's Log's own Supabase project.
 - **Fonts**: Segoe UI inside Wanderlog and Savorlog; Newsreader and Public Sans on the splash and header.
-- **Pin standard**: every category, colour and icon for Wanderlog and Savorlog pins is in [docs/pin-standard.md](docs/pin-standard.md); Hanh's own icons are in `src/assets/pin-icons/`.
+- **Pin standard**: every category, colour and icon for Wanderlog and Savorlog pins is in [docs/pin-standard.md](docs/pin-standard.md); Hanh's own icons are in `src/assets/pin-icons/`. Every Nom-Nom cuisine has its dish list (top 5 each, Vietnamese 28; Fusion has none, E70).
 - **Safety net**:
   - every pull request gets a preview link, a build check, migration rules, two-person security tests and browser tests at phone, laptop, 150% zoom and monitor sizes;
   - database changes run only through the approval-gated migrations workflow, after a backup;
   - backups run nightly, encrypted;
-  - every preview build runs a read-only connection check (website project, sign-in settings, database).
+  - every preview build runs a read-only connection check (website project, sign-in settings, database);
+  - publishes to the site never overlap: each waits for any running GitHub Pages job, then confirms GitHub published it and retries a hiccup by itself (L41);
+  - all workflow actions run on Node 24 (L42).
 
 ## What's next
 1. **Old Wanderlog pin import** from Hanh's export, sorted city by city (after Savorlog, before the switch-over, E55).
 2. **M5.2b** — a migration (`0011`) forbidding new food pins in the `pins` table going forward (existing ones left alone), landed with its test rework. The only deferred piece of M5.
 3. **M6** itinerary polish, then **M7** switch-over.
 
-Also open: **Q5** (dishes for the remaining cuisines), **Q6** (five American icon names), **Q7** (no lobster icon), **Q1** (splash phone layout, parked), **Q8** (Google-dark pins/labels need a Google Cloud style, parked). And the **tilt** needs a **Vector** `VITE_GOOGLE_MAP_ID` in the same Google Cloud project as the Maps key (a Console change, not code).
+Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl, side bowl), **Q7** (no lobster icon), **Q1** (splash phone layout, parked), **Q8** (Google-dark pins/labels need a Google Cloud style, parked). And the **tilt** needs a **Vector** `VITE_GOOGLE_MAP_ID` in the same Google Cloud project as the Maps key (a Console change, not code).
 
-**Two one-time setup steps on Hanh's side** (not code): run the Database-migrations workflow + approve to apply **0007/0008/0009/0010**; and make the public **`eatery-photos`** Storage bucket (docs/database.md) so eatery photo uploads work.
+**One-time setup is done** (session 8): migrations 0001–0010 are applied, and the public `eatery-photos` bucket exists with INSERT/DELETE (and SELECT) policies for `authenticated`, limited to `bucket_id = 'eatery-photos'`. Savorlog's owner is the first signed-in person to open `/savor` (check: Family → your name says Owner, and Reset link shows). After GitHub moves `ubuntu-latest` to Ubuntu 26 (Oct 19, 2026), check a run is still green.
 
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E69, Q1–Q10, L1–L40), README.md, SESSION_LEDGER.md and docs/pin-standard.md
+> Read SKILL.md (E1–E70, Q1–Q10, L1–L42), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project and
 > started from a clean slate (live Wanderlog is never touched). M3, M4 and M5 are live: trips +
 > map + itinerary, all of Savorlog (catalogue, location gate, add/edit + photos, family invite),
 > and Savorlog on trips (catalogue eateries by city, food-adds into the catalogue, eateries
-> schedulable on days). Start the **old Wanderlog pin import** (E55): I'll give you the export;
-> sort the pins in city by city with me. The only deferred M5 piece is **M5.2b** (migration 0011
+> schedulable on days), and every Nom-Nom cuisine has its dish list (E70). Start the **old Wanderlog pin
+> import** (E55): first ask me how (sort with you from my export / I add them myself / a bulk importer). The only deferred M5 piece is **M5.2b** (migration 0011
 > forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
-> infer, and always show the merge link when something's ready to merge.
+> infer, always show the merge link when something's ready to merge, and don't leave red build
+> runs: fix them.
 
 ## Working agreement
 - Every change goes on a branch and through a pull request; never push to main.
@@ -86,7 +89,7 @@ Also open: **Q5** (dishes for the remaining cuisines), **Q6** (five American ico
    Check it on your phone and laptop.
 3. Click **Merge** (use "Create a merge commit"). The live site updates in about two minutes.
 
-Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S007 OCT 11 2026).
+Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S008 OCT 12 2026).
 
 ## Database
 The database is shared with Wanderlog, so it has its own rules, nightly
