@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { categoryOf, pinLook, titleCase } from '../../lib/pinCatalog'
+import { categoryOf, pinLook } from '../../lib/pinCatalog'
 import { BADGE, flowerSvg, pinHtml, type Michelin } from '../../lib/pinDraw'
 import { pinBadge, averageRating, type Verdict, type Review } from '../../lib/pinRules'
 import type { FoundPlace } from '../../lib/pins'
@@ -9,6 +9,8 @@ import {
   type Eatery, type EateryFields, type EateryReview, type EateryPhoto
 } from '../../lib/eateries'
 import styles from './Savor.module.css'
+import NameFields from '../../components/NameFields'
+import { joinName, splitName } from '../../lib/placeName'
 
 // The add / edit eatery card (approved mockup, 4d): the place from Google, its
 // cuisine → dish picked by hand, price ($–$$$$), MICHELIN and street-food /
@@ -41,7 +43,8 @@ export default function SavorForm({
   onSaved: (id: string) => void
 }) {
   const mine = reviews.find(r => r.user_id === userId)
-  const [name, setName] = useState(eatery?.name ?? place?.name ?? '')
+  const [names, setNames] = useState(() => splitName(eatery?.name ?? place?.name))
+  const name = joinName(names.en, names.local)
   const [cuisine, setCuisine] = useState(eatery?.cuisine ?? '')
   const [dish, setDish] = useState(eatery?.dish ?? '')
   const [price, setPrice] = useState<number | null>(eatery?.price ?? null)
@@ -73,7 +76,7 @@ export default function SavorForm({
     if (michelin && (!Number.isInteger(y) || y < 1900 || y > 2100)) return setError('Give the MICHELIN year, like 2026.')
     const fields: EateryFields = {
       google_place_id: eatery?.google_place_id ?? place?.id ?? null,
-      name: titleCase(name.trim()),
+      name,
       address,
       lat: eatery?.lat ?? place!.lat,
       lng: eatery?.lng ?? place!.lng,
@@ -122,10 +125,7 @@ export default function SavorForm({
         <button type="button" className={styles.x} aria-label="Close" onClick={onCancel}>×</button>
       </div>
 
-      <label className={styles.field}>
-        Name
-        <input value={name} onChange={e => setName(e.target.value)} maxLength={200} />
-      </label>
+      <NameFields value={names} onChange={setNames} fieldClass={styles.field} hintClass={styles.path} />
       {address && <p className={styles.path}>{address}</p>}
 
       <fieldset className={styles.group}>

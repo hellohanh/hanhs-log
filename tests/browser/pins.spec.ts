@@ -27,7 +27,7 @@ test('add a non-food pin: pick the category by hand, VIS needs a verdict, half s
   await places.getByRole('button', { name: /Bến Thành Market/ }).click()
 
   const card = places.getByRole('form', { name: 'Add a place' })
-  await expect(card.getByLabel('Name')).toHaveValue('Bến Thành Market')
+  await expect(card.getByLabel('Local title')).toHaveValue('Bến Thành Market')
   // Category first: nothing is guessed.
   await card.getByRole('button', { name: 'Add pin' }).click()
   await expect(card.getByRole('alert')).toHaveText('Pick a category.')
@@ -105,7 +105,7 @@ test('the tree: collapses by category, MICHELIN chip, Show all pins on by defaul
   await places.getByRole('button', { name: 'Search' }).click()
   await expect(places.getByText('Already added · open it')).toBeVisible()
   await places.getByRole('button', { name: /Bến Thành Market/ }).first().click()
-  await expect(places.getByRole('form', { name: 'Edit place' }).getByLabel('Name')).toHaveValue('Bến Thành Market')
+  await expect(places.getByRole('form', { name: 'Edit place' }).getByLabel('Local title')).toHaveValue('Bến Thành Market')
 
   // Delete asks first; the Shopping branch then disappears.
   await places.getByRole('button', { name: 'Delete' }).click()
@@ -205,4 +205,19 @@ test('pin tree + title case helpers', async () => {
   expect(titleCase('ANAN SAIGON')).toBe('Anan Saigon')
   expect(titleCase('bánh mì huỳnh hoa')).toBe('Bánh Mì Huỳnh Hoa')
   expect(titleCase("l'usine")).toBe("L'Usine")
+})
+
+test('place names: English : Local (E72)', async () => {
+  const { joinName, splitName } = await import('../../src/lib/placeName')
+  expect(joinName('Notre Dame Cathedral of Saigon', 'Nhà Thờ Đức Bà')).toBe('Notre Dame Cathedral of Saigon : Nhà Thờ Đức Bà')
+  expect(joinName('', 'phở hòa pasteur')).toBe('Phở Hòa Pasteur') // local only, title-cased
+  expect(joinName('The Reverie Saigon', ' ')).toBe('The Reverie Saigon') // English only
+  expect(joinName('Meiji Shrine', '明治神宮 (meiji jingū)')).toBe('Meiji Shrine : 明治神宮 (Meiji Jingū)')
+  expect(joinName('', '')).toBe('')
+  expect(joinName('THE CAFE APARTMENT', '')).toBe('The Cafe Apartment') // first word stays capital
+  expect(joinName('Café de la Paix', 'Hội An')).toBe('Café de la Paix : Hội An') // "an" is a Vietnamese name word
+  expect(splitName('Meiji Shrine : 明治神宮 (Meiji Jingū)')).toEqual({ en: 'Meiji Shrine', local: '明治神宮 (Meiji Jingū)' })
+  expect(splitName('Bến Thành Market')).toEqual({ en: '', local: 'Bến Thành Market' }) // accents → Local
+  expect(splitName('Saigon Centre')).toEqual({ en: 'Saigon Centre', local: '' }) // plain → English
+  expect(splitName(null)).toEqual({ en: '', local: '' })
 })

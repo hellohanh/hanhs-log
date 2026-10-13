@@ -199,11 +199,16 @@ export interface CategoryPath {
  * "Phở Hòa Pasteur" / "Anan Saigon". Lower-cases everything, then capitalises
  * the first letter after the start or a separator (space, - / ' ( . & dash).
  * Keeps diacritics; the name field stays editable for the odd acronym.
+ * Small English / French joining words stay lower-case after the first word
+ * (session 9): "Notre Dame Cathedral of Saigon". "a", "an" and "du" are left
+ * out on purpose — they're also Vietnamese name words (Hội An, Phở A Long).
  */
+const SMALL_WORDS = new Set(['of', 'the', 'and', 'in', 'on', 'at', 'by', 'for', 'to', 'de', 'la'])
 export function titleCase(s: string): string {
   return s
     .toLocaleLowerCase()
     .replace(/(^|[\s\-/'(.&–—])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toLocaleUpperCase())
+    .replace(/(?<=\s)(\p{L}+)(?=\s)/gu, w => (SMALL_WORDS.has(w.toLocaleLowerCase()) ? w.toLocaleLowerCase() : w))
 }
 
 export interface PinNode<T> {
