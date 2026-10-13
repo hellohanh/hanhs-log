@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { CATEGORIES, categoryOf, pinLook, titleCase } from '../../lib/pinCatalog'
+import { CATEGORIES, categoryOf, pinLook } from '../../lib/pinCatalog'
 import { BADGE, flowerSvg, pinHtml, type Michelin } from '../../lib/pinDraw'
 import { averageRating, deletePin, pinBadge, saveMyReview, savePin, type FoundPlace, type MyReview, type Pin, type PinFields, type Review, type Verdict } from '../../lib/pins'
 import type { Person } from '../../lib/trips'
 import styles from './Places.module.css'
+import NameFields from '../../components/NameFields'
+import { joinName, splitName } from '../../lib/placeName'
 
 // The add / edit card (approved inline mockups, session 4): the place from
 // Google, its category picked by hand, your WTG / VIS (VIS needs a verdict;
@@ -51,7 +53,8 @@ export default function PinForm({
   onSaved: (pinId: string) => void
 }) {
   const mine = reviews.find(r => r.user_id === userId)
-  const [name, setName] = useState(pin?.name ?? place?.name ?? '')
+  const [names, setNames] = useState(() => splitName(pin?.name ?? place?.name))
+  const name = joinName(names.en, names.local)
   const [category, setCategory] = useState(pin?.category ?? '')
   const [sub, setSub] = useState(pin?.subcategory ?? '')
   const [leaf, setLeaf] = useState(pin?.subsubcategory ?? '')
@@ -88,7 +91,7 @@ export default function PinForm({
     const fields: PinFields = {
       trip_id: tripId,
       google_place_id: pin?.google_place_id ?? place?.id ?? null,
-      name: titleCase(name.trim()),
+      name,
       address,
       lat: pin?.lat ?? place!.lat,
       lng: pin?.lng ?? place!.lng,
@@ -138,10 +141,7 @@ export default function PinForm({
         <button type="button" className={styles.x} aria-label="Close" onClick={onCancel}>×</button>
       </div>
 
-      <label className={styles.field}>
-        Name
-        <input value={name} onChange={e => setName(e.target.value)} maxLength={200} />
-      </label>
+      <NameFields value={names} onChange={setNames} fieldClass={styles.field} hintClass={styles.address} />
       {address && <p className={styles.address}>{address}</p>}
 
       {pin && (
