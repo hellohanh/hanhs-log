@@ -6,6 +6,8 @@ import type { Person } from '../../lib/trips'
 import styles from './Places.module.css'
 import NameFields from '../../components/NameFields'
 import { joinName, splitName } from '../../lib/placeName'
+import type { ImportPrefill } from '../../lib/pinImport'
+import ImportButtons, { type ImportActions } from '../../components/ImportButtons'
 
 // The add / edit card (approved inline mockups, session 4): the place from
 // Google, its category picked by hand, your WTG / VIS (VIS needs a verdict;
@@ -37,7 +39,9 @@ export default function PinForm({
   onAddToDay,
   onFood,
   onCancel,
-  onSaved
+  onSaved,
+  prefill,
+  importActions
 }: {
   tripId: string
   userId: string
@@ -51,19 +55,25 @@ export default function PinForm({
   onFood?: () => void
   onCancel: () => void
   onSaved: (pinId: string) => void
+  /** Values Claude prepared for an old Wanderlog pin (E71). */
+  prefill?: ImportPrefill
+  /** The import queue's Skip for good / Back / Save and next (E71). */
+  importActions?: ImportActions
 }) {
   const mine = reviews.find(r => r.user_id === userId)
-  const [names, setNames] = useState(() => splitName(pin?.name ?? place?.name))
+  const [names, setNames] = useState(() =>
+    prefill && !pin ? { en: prefill.name_en ?? '', local: prefill.name_local ?? '' } : splitName(pin?.name ?? place?.name)
+  )
   const name = joinName(names.en, names.local)
-  const [category, setCategory] = useState(pin?.category ?? '')
-  const [sub, setSub] = useState(pin?.subcategory ?? '')
-  const [leaf, setLeaf] = useState(pin?.subsubcategory ?? '')
+  const [category, setCategory] = useState(pin?.category ?? prefill?.category ?? '')
+  const [sub, setSub] = useState(pin?.subcategory ?? prefill?.sub ?? '')
+  const [leaf, setLeaf] = useState(pin?.subsubcategory ?? prefill?.leaf ?? '')
   const [review, setReview] = useState<MyReview>({ status: mine?.status ?? 'wtg', verdict: mine?.verdict ?? null, rating: mine?.rating ?? null })
-  const [michelin, setMichelin] = useState<Michelin>(pin?.michelin ?? null)
-  const [year, setYear] = useState(pin?.michelin_year ? String(pin.michelin_year) : String(new Date().getFullYear()))
-  const [streetFood, setStreetFood] = useState(pin?.street_food ?? false)
-  const [fineDining, setFineDining] = useState(pin?.fine_dining ?? false)
-  const [note, setNote] = useState(pin?.note ?? '')
+  const [michelin, setMichelin] = useState<Michelin>(pin?.michelin ?? prefill?.michelin ?? null)
+  const [year, setYear] = useState(String(pin?.michelin_year ?? prefill?.michelin_year ?? new Date().getFullYear()))
+  const [streetFood, setStreetFood] = useState(pin?.street_food ?? prefill?.street_food ?? false)
+  const [fineDining, setFineDining] = useState(pin?.fine_dining ?? prefill?.fine_dining ?? false)
+  const [note, setNote] = useState(pin?.note ?? prefill?.note ?? '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(false)
@@ -281,7 +291,9 @@ export default function PinForm({
       </label>
 
       {error && <p className={styles.error} role="alert">{error}</p>}
-      {confirm ? (
+      {importActions ? (
+        <ImportButtons actions={importActions} busy={busy} classes={{ buttons: styles.buttons, del: styles.del, confirm: styles.confirm }} />
+      ) : confirm ? (
         <div className={styles.confirm} role="alert">
           <span>Delete this place for everyone on the trip?</span>
           <button type="button" className="btn" onClick={remove} disabled={busy}>Delete</button>
