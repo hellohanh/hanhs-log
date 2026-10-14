@@ -44,6 +44,10 @@
 /* Pins on Google dark: can't be hidden, so shown as unavailable. */
 .chipOff,
 .chipOff[aria-pressed='true'] { color: var(--muted); border: 1px solid var(--rule); padding: 0; opacity: 0.6; cursor: not-allowed; }
+/* GPins chip (session 9): text instead of an icon — a pill reading GPins ON / GPins OFF. */
+.chipText { width: auto; padding: 0 16px; font-size: 14px; font-weight: 700; white-space: nowrap; }
+.chipText[aria-pressed='true'] { padding: 0 15px; }
+.chipOff.chipText { padding: 0 16px; }
 
 .panel {
   position: absolute;
@@ -146,3 +150,11 @@
 .tripPin { position: absolute; cursor: pointer; transition: opacity 0.2s; }
 .tripPin:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 @media (prefers-reduced-motion: reduce) { .tripPin { transition: none; } }
+
+/* Map check in the Map look panel (session 9). */
+.check { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); }
+.check button { align-self: flex-start; min-height: 32px; padding: 0 14px; border: 1px solid var(--rule); border-radius: var(--pill); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.check button:disabled { opacity: 0.6; cursor: default; }
+.check table { border-collapse: collapse; width: 100%; color: var(--ink); }
+.check th, .check td { padding: 3px 6px; border-bottom: 1px solid var(--rule); text-align: left; white-space: nowrap; }
+.check p { margin: 0; }

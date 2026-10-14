@@ -188,9 +188,34 @@ test('pins toggle: hides only Google\'s place pins, and which map each look need
   const night = JSON.stringify(lookOptions(by('night'), false).styles)
   expect(night).toContain('#242f3e')
   expect(night).toContain('"featureType":"poi","elementType":"labels"')
-  // Google dark's pins can't be hidden (yet).
+  // Without the no-pins Map ID, Google dark's pins can't be hidden.
   expect(canHidePins(by('google-dark'))).toBe(false)
   expect(lookOptions(by('google-dark'), false)).toMatchObject({ styles: null, tiltable: true })
+})
+
+test('GPins OFF keeps tilt on Google looks with the no-pins Map ID (session 9)', async () => {
+  const { MAP_LOOKS, lookOptions, canHidePins, mapKind } = await import('../../src/lib/mapStyles')
+  const { checkCases } = await import('../../src/lib/mapCheck')
+  const by = (k: string) => MAP_LOOKS.find(l => l.key === k)!
+  const ids = { base: 'base-id', noPins: 'nopins-id' }
+  // Google standard and Google dark: tilt map with GPins ON and OFF.
+  for (const k of ['standard', 'google-dark']) {
+    expect(canHidePins(by(k), true)).toBe(true)
+    const on = lookOptions(by(k), true, true)
+    const off = lookOptions(by(k), false, true)
+    expect(on).toMatchObject({ styles: null, tiltable: true, noPins: false })
+    expect(off).toMatchObject({ styles: null, tiltable: true, noPins: true })
+    expect(mapKind(by(k), on, ids).mapId).toBe('base-id')
+    expect(mapKind(by(k), off, ids).mapId).toBe('nopins-id')
+  }
+  expect(mapKind(by('google-dark'), lookOptions(by('google-dark'), false, true), ids).kind).toBe('tilt-dark-nopins')
+  // Hand-made looks stay on the flat map either way.
+  expect(mapKind(by('paper'), lookOptions(by('paper'), false, true), ids).kind).toBe('flat')
+  // No base Map ID at all: flat everywhere.
+  expect(mapKind(by('standard'), lookOptions(by('standard'), true, false), {}).kind).toBe('flat')
+  // The Map check: all 11 looks with GPins ON, plus Google's 4 own looks with GPins OFF.
+  expect(checkCases(true)).toHaveLength(15)
+  expect(checkCases(false)).toHaveLength(14) // Google dark can't turn GPins OFF without the Map ID
 })
 
 test('Districts chip: shows only while an HCMC district is in view', async () => {

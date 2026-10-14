@@ -203,8 +203,14 @@ const PINS_OFF: Style = [
   { featureType: 'poi.park', elementType: 'labels.text', stylers: [{ visibility: 'on' }] }
 ]
 
-/** Google dark's pins can't be hidden without a Google Cloud style. */
-export const canHidePins = (l: MapLook) => !l.dark
+/**
+ * GPins OFF on Google's own looks (session 9): a second Map ID whose Google
+ * Cloud map style hides the place pins (VITE_GOOGLE_MAP_ID_NOPINS) keeps the
+ * tilt-capable map, so tilt and rotate keep working and Google dark can hide
+ * its pins too. Without that Map ID, hiding pins falls back to the flat map
+ * (and Google dark can't hide them).
+ */
+export const canHidePins = (l: MapLook, noPinsMapId = false) => !l.dark || noPinsMapId
 
 export interface LookOptions {
   mapTypeId: MapLook['mapTypeId']
@@ -212,17 +218,31 @@ export interface LookOptions {
   styles: Style | null
   /** True when this needs no hand-made styling, so the tilt map can show it. */
   tiltable: boolean
+  /** True when the tilt map should use the no-pins Map ID. */
+  noPins: boolean
 }
 
 /**
  * What the map needs for a look with Google's place pins shown or hidden.
- * Hiding them needs a style, which only the flat map honours, so tilt and
- * rotate aren't available while pins are hidden (except on Google dark,
- * where pins can't be hidden at all yet).
+ * Hand-made looks hide pins with a style rule (flat map). Google's own looks
+ * hide them with the no-pins Map ID when there is one (tilt map stays);
+ * otherwise with the style rule on the flat map, as before.
  */
-export function lookOptions(l: MapLook, pins: boolean): LookOptions {
-  if (pins || !canHidePins(l)) return { mapTypeId: l.mapTypeId, styles: l.styles ?? null, tiltable: !l.styles }
-  return { mapTypeId: l.mapTypeId, styles: [...(l.styles ?? []), ...PINS_OFF], tiltable: false }
+export function lookOptions(l: MapLook, pins: boolean, noPinsMapId = false): LookOptions {
+  if (pins || !canHidePins(l, noPinsMapId)) return { mapTypeId: l.mapTypeId, styles: l.styles ?? null, tiltable: !l.styles, noPins: false }
+  if (!l.styles && noPinsMapId) return { mapTypeId: l.mapTypeId, styles: null, tiltable: true, noPins: true }
+  return { mapTypeId: l.mapTypeId, styles: [...(l.styles ?? []), ...PINS_OFF], tiltable: false, noPins: false }
+}
+
+/**
+ * Which map to build for a look: the flat map, or the tilt map with the base
+ * or no-pins Map ID, light or dark. A map's ID, rendering and colour scheme
+ * are fixed when it's made (L25), so a new kind means a new map.
+ */
+export function mapKind(l: MapLook, opts: LookOptions, ids: { base?: string; noPins?: string }): { kind: string; mapId?: string } {
+  const id = opts.noPins ? ids.noPins : ids.base
+  if (!opts.tiltable || !id) return { kind: 'flat' }
+  return { kind: `${l.dark ? 'tilt-dark' : 'tilt'}${opts.noPins ? '-nopins' : ''}`, mapId: id }
 }
 
 const PINS_KEY = 'hanhs-log-map-pins'

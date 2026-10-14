@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
-import { MAP_LOOKS, canHidePins, lookOptions, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
+import { MAP_LOOKS, canHidePins, lookOptions, mapKind, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from '../wander/CameraControl'
+import MapCheck from '../../components/MapCheck'
 import { makePinLayer, type MapPin, type PinLayer } from '../wander/mapPinLayer'
 import type { Bounds } from '../../lib/countryBounds'
 import styles from '../wander/TripMap.module.css'
@@ -43,10 +44,11 @@ export default function SavorMap({
   const [open, setOpen] = useState(false)
   const mapId = import.meta.env.VITE_GOOGLE_MAP_ID
   const [showPins, setShowPins] = useState(readPins)
-  const opts = useMemo(() => lookOptions(look, showPins), [look, showPins])
-  const pinsLocked = !canHidePins(look)
-  const tiltable = Boolean(mapId) && opts.tiltable
-  const kind = tiltable ? (look.dark ? 'tilt-dark' : 'tilt') : 'flat'
+  const noPinsId = import.meta.env.VITE_GOOGLE_MAP_ID_NOPINS
+  const opts = useMemo(() => lookOptions(look, showPins, Boolean(noPinsId)), [look, showPins, noPinsId])
+  const pinsLocked = !canHidePins(look, Boolean(noPinsId))
+  const { kind, mapId: activeMapId } = mapKind(look, opts, { base: mapId, noPins: noPinsId })
+  const tiltable = kind !== 'flat'
 
   // The camera control's Reset returns to the chosen place's centre.
   const home = useMemo(
@@ -68,9 +70,9 @@ export default function SavorMap({
           ...(kind === 'flat'
             ? { renderingType: g.maps.RenderingType.RASTER }
             : {
-                mapId,
+                mapId: activeMapId,
                 renderingType: g.maps.RenderingType.VECTOR,
-                colorScheme: kind === 'tilt-dark' ? g.maps.ColorScheme.DARK : g.maps.ColorScheme.LIGHT,
+                colorScheme: kind.startsWith('tilt-dark') ? g.maps.ColorScheme.DARK : g.maps.ColorScheme.LIGHT,
                 tiltInteractionEnabled: true,
                 headingInteractionEnabled: true
               }),
@@ -89,7 +91,7 @@ export default function SavorMap({
     return () => {
       cancelled = true
     }
-  }, [kind, mapId])
+  }, [kind, activeMapId])
 
   // Apply the current look (hand-made colours only work on the flat map).
   useEffect(() => {
@@ -174,18 +176,18 @@ export default function SavorMap({
           </button>
           <button
             type="button"
-            className={`${styles.chip} ${pinsLocked ? styles.chipOff : ''}`}
+            className={`${styles.chip} ${styles.chipText} ${pinsLocked ? styles.chipOff : ''}`}
             aria-pressed={pinsLocked ? true : showPins}
             aria-disabled={pinsLocked || undefined}
-            aria-label={pinsLocked ? "Pins: Google's place pins can't be hidden on Google dark" : showPins ? "Pins: showing Google's place pins. Click to hide them" : "No pins: Google's place pins hidden. Click to show them"}
-            title={pinsLocked ? "Pins can't be hidden on Google dark" : showPins ? "Pins: hide Google's place pins" : 'No pins: show them'}
+            aria-label={pinsLocked ? "GPins ON: Google's place pins can't be hidden on Google dark yet" : showPins ? "GPins ON: showing Google's place pins. Click to hide them" : "GPins OFF: Google's place pins hidden. Click to show them"}
+            title={pinsLocked ? "Google's place pins can't be hidden on Google dark yet" : showPins ? "Hide Google's place pins (shops, restaurants, landmarks)" : "Show Google's place pins"}
             onClick={() => {
               if (pinsLocked) return
               savePins(!showPins)
               setShowPins(!showPins)
             }}
           >
-            <PinIcon off={!showPins && !pinsLocked} />
+            {pinsLocked || showPins ? 'GPins ON' : 'GPins OFF'}
           </button>
         </div>
       )}
@@ -207,6 +209,30 @@ export default function SavorMap({
               </button>
             ))}
           </div>
+          <MapCheck
+            className={styles.check}
+            env={() => {
+              if (!map) return null
+              const before = { look, pins: showPins, center: map.getCenter()!.toJSON(), zoom: map.getZoom() ?? home.zoom }
+              return {
+                ids: { base: mapId, noPins: noPinsId },
+                home,
+                getMap: () => mapRef.current,
+                apply: (key, on) => {
+                  setPicks(p => ({ ...p, [mode]: MAP_LOOKS.find(l => l.key === key)! }))
+                  setShowPins(on)
+                },
+                restore: () => {
+                  setPicks(p => ({ ...p, [mode]: before.look }))
+                  setShowPins(before.pins)
+                  setTimeout(() => {
+                    mapRef.current?.setCenter(before.center)
+                    mapRef.current?.setZoom(before.zoom)
+                  }, 900)
+                }
+              }
+            }}
+          />
           <div className={styles.panelFoot}>
             <span>Remembered on this device.</span>
             <button type="button" onClick={() => pick(null)}>Use the default</button>
@@ -235,13 +261,6 @@ function MapIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
       <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" /><path d="M9 4v14M15 6v14" />
-    </svg>
-  )
-}
-function PinIcon({ off }: { off?: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10Z" /><circle cx="12" cy="11" r="2" />{off && <path d="M4 4l16 16" />}
     </svg>
   )
 }
