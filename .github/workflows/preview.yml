@@ -34,10 +34,11 @@ jobs:
           B: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           C: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           D: ${{ secrets.VITE_GOOGLE_MAP_ID }}
+          E: ${{ secrets.VITE_GOOGLE_MAP_ID_NOPINS }}
         run: |
           {
             echo '### Build settings'
-            for pair in "VITE_SUPABASE_URL:$A" "VITE_SUPABASE_ANON_KEY:$B" "VITE_GOOGLE_MAPS_API_KEY:$C" "VITE_GOOGLE_MAP_ID:$D"; do
+            for pair in "VITE_SUPABASE_URL:$A" "VITE_SUPABASE_ANON_KEY:$B" "VITE_GOOGLE_MAPS_API_KEY:$C" "VITE_GOOGLE_MAP_ID:$D" "VITE_GOOGLE_MAP_ID_NOPINS:$E"; do
               name="${pair%%:*}"; value="${pair#*:}"
               if [ -n "$value" ]; then echo "- $name: set ✅"; else echo "- $name: **missing** ❌"; fi
             done
@@ -51,6 +52,7 @@ jobs:
           DB: ${{ secrets.SUPABASE_DB_URL }}
           MAPSKEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           MAPID: ${{ secrets.VITE_GOOGLE_MAP_ID }}
+          E: ${{ secrets.VITE_GOOGLE_MAP_ID_NOPINS }}
         run: |
           url="${A%/}"; url="${url%/rest/v1}"
           ref=$(printf '%s' "$url" | sed -E 's#^https?://([^.]+)\.supabase\.co.*#\1#')
@@ -97,6 +99,7 @@ jobs:
             else
               echo "::warning title=Map::Map ID is set, but the Maps key was refused (HTTP $mapcode). The map and tilt won't load until the key is fixed."
             fi
+            if [ -z "$E" ]; then echo "::notice title=GPins::VITE_GOOGLE_MAP_ID_NOPINS is not set yet, so GPins OFF on Google looks uses the flat map (no tilt/rotate). Add the no-pins Map ID to keep tilt."; else echo "::notice title=GPins::No-pins Map ID is set: GPins OFF keeps tilt and rotate on Google looks."; fi
           fi
           rm -f settings.json
       - run: npm run build
@@ -113,6 +116,8 @@ jobs:
           # in a web page.
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           VITE_GOOGLE_MAP_ID: ${{ secrets.VITE_GOOGLE_MAP_ID }}
+          # GPins OFF on Google looks keeps tilt with this second, no-pins Map ID (session 9).
+          VITE_GOOGLE_MAP_ID_NOPINS: ${{ secrets.VITE_GOOGLE_MAP_ID_NOPINS }}
       - name: Wait for any running Pages job (scripts/pages-guard.sh)
         env:
           GH_TOKEN: ${{ github.token }}

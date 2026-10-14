@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
-import { MAP_LOOKS, canHidePins, lookOptions, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
+import { MAP_LOOKS, canHidePins, lookOptions, mapKind, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
 import { type City } from '../../lib/city'
 import { anyDistrictInView } from '../../lib/districts'
 import { MODE_COLOR, type RouteSeg } from '../../lib/directions'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from './CameraControl'
+import MapCheck from '../../components/MapCheck'
 import { makePinLayer, type MapPin, type PinLayer } from './mapPinLayer'
 import styles from './TripMap.module.css'
 
@@ -64,12 +65,11 @@ export default function TripMap({
   const home = city.state === 'ready' ? { center: { lat: city.city.lat, lng: city.city.lng }, zoom: OPENING_ZOOM } : WORLD
   const mapId = import.meta.env.VITE_GOOGLE_MAP_ID
   const [pins, setPins] = useState(readPins)
-  const opts = useMemo(() => lookOptions(look, pins), [look, pins])
-  const pinsLocked = !canHidePins(look)
-  const tiltable = Boolean(mapId) && opts.tiltable
-  // Which kind of map this look needs. A map's ID, rendering and colour
-  // scheme can't change after it's made, so a new kind means a new map.
-  const kind = tiltable ? (look.dark ? 'tilt-dark' : 'tilt') : 'flat'
+  const noPinsId = import.meta.env.VITE_GOOGLE_MAP_ID_NOPINS
+  const opts = useMemo(() => lookOptions(look, pins, Boolean(noPinsId)), [look, pins, noPinsId])
+  const pinsLocked = !canHidePins(look, Boolean(noPinsId))
+  const { kind, mapId: activeMapId } = mapKind(look, opts, { base: mapId, noPins: noPinsId })
+  const tiltable = kind !== 'flat'
 
   // Create the map, and again whenever the kind changes (keeping the view).
   useEffect(() => {
@@ -87,9 +87,9 @@ export default function TripMap({
           ...(kind === 'flat'
             ? { renderingType: g.maps.RenderingType.RASTER }
             : {
-                mapId,
+                mapId: activeMapId,
                 renderingType: g.maps.RenderingType.VECTOR,
-                colorScheme: kind === 'tilt-dark' ? g.maps.ColorScheme.DARK : g.maps.ColorScheme.LIGHT,
+                colorScheme: kind.startsWith('tilt-dark') ? g.maps.ColorScheme.DARK : g.maps.ColorScheme.LIGHT,
                 tiltInteractionEnabled: true,
                 headingInteractionEnabled: true
               }),
@@ -108,7 +108,7 @@ export default function TripMap({
     return () => {
       cancelled = true
     }
-  }, [kind, mapId])
+  }, [kind, activeMapId])
 
   // Apply the current look (hand-made colours only work on the flat map).
   useEffect(() => {
@@ -255,18 +255,18 @@ export default function TripMap({
           </button>
           <button
             type="button"
-            className={`${styles.chip} ${pinsLocked ? styles.chipOff : ''}`}
+            className={`${styles.chip} ${styles.chipText} ${pinsLocked ? styles.chipOff : ''}`}
             aria-pressed={pinsLocked ? true : pins}
             aria-disabled={pinsLocked || undefined}
-            aria-label={pinsLocked ? "Pins: Google's place pins can't be hidden on Google dark" : pins ? "Pins: showing Google's place pins. Click to hide them" : "No pins: Google's place pins hidden. Click to show them"}
-            title={pinsLocked ? "Pins can't be hidden on Google dark" : pins ? "Pins: hide Google's place pins (shops, restaurants, landmarks)" : "No pins: show Google's place pins"}
+            aria-label={pinsLocked ? "GPins ON: Google's place pins can't be hidden on Google dark yet" : pins ? "GPins ON: showing Google's place pins. Click to hide them" : "GPins OFF: Google's place pins hidden. Click to show them"}
+            title={pinsLocked ? "Google's place pins can't be hidden on Google dark yet" : pins ? "Hide Google's place pins (shops, restaurants, landmarks)" : "Show Google's place pins"}
             onClick={() => {
               if (pinsLocked) return
               savePins(!pins)
               setPins(!pins)
             }}
           >
-            <PinIcon off={!pins && !pinsLocked} />
+            {pinsLocked || pins ? 'GPins ON' : 'GPins OFF'}
           </button>
           {districtsInView && (
             <button
@@ -308,6 +308,30 @@ export default function TripMap({
               </button>
             ))}
           </div>
+          <MapCheck
+            className={styles.check}
+            env={() => {
+              if (!map) return null
+              const before = { look, pins: pins, center: map.getCenter()!.toJSON(), zoom: map.getZoom() ?? home.zoom }
+              return {
+                ids: { base: mapId, noPins: noPinsId },
+                home,
+                getMap: () => mapRef.current,
+                apply: (key, on) => {
+                  setPicks(p => ({ ...p, [mode]: MAP_LOOKS.find(l => l.key === key)! }))
+                  setPins(on)
+                },
+                restore: () => {
+                  setPicks(p => ({ ...p, [mode]: before.look }))
+                  setPins(before.pins)
+                  setTimeout(() => {
+                    mapRef.current?.setCenter(before.center)
+                    mapRef.current?.setZoom(before.zoom)
+                  }, 900)
+                }
+              }
+            }}
+          />
           <div className={styles.panelFoot}>
             <span>Remembered on this device.</span>
             <button type="button" onClick={() => pick(null)}>Use the default</button>
@@ -342,15 +366,6 @@ function MapIcon() {
   )
 }
 
-function PinIcon({ off }: { off?: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10Z" />
-      <circle cx="12" cy="11" r="2" />
-      {off && <path d="M4 4l16 16" />}
-    </svg>
-  )
-}
 
 function LayersIcon() {
   return (
