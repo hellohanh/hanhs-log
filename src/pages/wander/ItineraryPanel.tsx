@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { endLabel, MODE_EMOJI } from '../../lib/legDisplay'
 import {
   addExtraDay,
   dayTab,
@@ -697,7 +698,11 @@ function LegCard({
       </span>
       {subLine && <span className={styles.legMeta}>{subLine}</span>}
       <span className={styles.legRoute}>
-        {leg.from_location} {leg.from_time?.slice(0, 5)} → {leg.to_location} {leg.to_time?.slice(0, 5)}
+        {endLabel(leg.from_location, leg.from_date, leg.from_time, leg.from_timezone)}
+        <span className={styles.legSep} aria-label="to">
+          •••<span className={MODE_EMOJI[leg.mode].flip ? styles.flip : undefined} aria-hidden="true">{MODE_EMOJI[leg.mode].emoji}</span>•••
+        </span>
+        {endLabel(leg.to_location, leg.to_date, leg.to_time, leg.to_timezone)}
         {plus ? <sup> +{plus}</sup> : null}
       </span>
       {d && <span className={styles.legMeta}>{d.hours}h {d.minutes}m</span>}
