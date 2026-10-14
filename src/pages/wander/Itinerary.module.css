@@ -56,6 +56,8 @@
 .day b { display: block; font-size: 14px; color: var(--ink); }
 .day[aria-selected='true'] { border: 2px solid var(--accent); padding: 5px 9px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
 .addDay, .addDay b { color: var(--accent); }
+/* The city lines on a date that repeats across the date line (session 10). */
+.dayCity { display: block; font-size: 11px; line-height: 1.3; color: #c48a1a; }
 
 .tools { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--rule); font-size: 13px; color: var(--muted); flex: none; }
 .showAll { display: flex; align-items: center; gap: 6px; margin-right: auto; }
@@ -80,7 +82,7 @@
   flex: none;
 }
 .lf { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; flex: 1; }
-.lf input, .lf textarea {
+.lf input, .lf textarea, .lf select {
   min-height: 38px;
   padding: 6px 10px;
   border: 1px solid var(--rule);

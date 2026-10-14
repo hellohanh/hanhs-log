@@ -17,7 +17,12 @@ function client() {
 }
 
 export async function fetchDays(tripId: string): Promise<ItineraryDay[]> {
-  const { data, error } = await client().from('itinerary_days').select('id, trip_id, date, note, created_at').eq('trip_id', tripId)
+  const days = () => client().from('itinerary_days')
+  let { data, error } = await days().select('id, trip_id, date, repeat_after, note, created_at').eq('trip_id', tripId).returns<ItineraryDay[]>()
+  // Before migration 0013 is applied there's no repeat_after yet: load as before.
+  if (error && /repeat_after/.test(error.message)) {
+    ;({ data, error } = await days().select('id, trip_id, date, note, created_at').eq('trip_id', tripId).returns<ItineraryDay[]>())
+  }
   if (error) throw new Error(error.message)
   return sortDays((data ?? []) as ItineraryDay[])
 }
@@ -25,7 +30,7 @@ export async function fetchDays(tripId: string): Promise<ItineraryDay[]> {
 /** Adds a day for every trip date that doesn't have one yet. Returns true if any were added. */
 export async function fillTripDates(tripId: string, start: string | null, end: string | null, days: ItineraryDay[]): Promise<boolean> {
   if (!start || !end) return false
-  const have = new Set(days.map(d => d.date).filter(Boolean))
+  const have = new Set(days.filter(d => !d.repeat_after).map(d => d.date).filter(Boolean))
   const missing = eachDate(start, end).filter(d => !have.has(d))
   if (missing.length === 0) return false
   const { error } = await client().from('itinerary_days').insert(missing.map(date => ({ trip_id: tripId, date })))
@@ -36,6 +41,33 @@ export async function fillTripDates(tripId: string, start: string | null, end: s
 export async function addExtraDay(tripId: string): Promise<void> {
   const { error } = await client().from('itinerary_days').insert({ trip_id: tripId, date: null })
   if (error) throw new Error(error.message)
+}
+
+/**
+ * Keeps the repeat days (flights across the date line, migration 0013) in step
+ * with the legs: adds the ones they need, removes unneeded ones that are
+ * empty. Returns true if anything changed.
+ */
+export async function syncRepeatDays(
+  tripId: string,
+  days: ItineraryDay[],
+  wanted: { date: string; after: string }[],
+  isEmpty: (d: ItineraryDay) => boolean
+): Promise<boolean> {
+  const have = days.filter(d => d.repeat_after)
+  const add = wanted.filter(w => !have.some(d => d.date === w.date && d.repeat_after === w.after))
+  const drop = have.filter(d => !wanted.some(w => d.date === w.date && d.repeat_after === w.after) && isEmpty(d))
+  for (const w of add) {
+    const { error } = await client().from('itinerary_days').insert({ trip_id: tripId, date: w.date, repeat_after: w.after })
+    // Another device added it first: fine. Migration 0013 not applied yet: no repeat days for now.
+    if (error && /repeat_after/.test(error.message)) return false
+    if (error && error.code !== '23505') throw new Error(error.message)
+  }
+  for (const d of drop) {
+    const { error } = await client().from('itinerary_days').delete().eq('id', d.id)
+    if (error) throw new Error(error.message)
+  }
+  return add.length + drop.length > 0
 }
 
 export async function deleteDay(dayId: string): Promise<void> {
