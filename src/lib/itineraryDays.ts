@@ -26,6 +26,8 @@ export interface TravelLeg {
   to_date: string | null
   to_time: string | null
   to_timezone: string | null
+  /** Set when this leg belongs to another trip and is linked in (read only here). */
+  linkedFrom?: string
 }
 
 export interface Activity {
