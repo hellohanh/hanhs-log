@@ -4,6 +4,15 @@ Decided with Hanh in session 2 (Oct 9–10, 2026), decisions E28–E34 in SKILL.
 One pin system for both sections. The design canvas "Hanh's Log — Wanderlog M3
 mockup" holds the boards and a decisions note with the same content.
 
+## Place names (E72, session 9)
+
+Every pin and eatery is named **`English : Local`** — the English title, a spaced
+colon, then the local title. English only when the place has a real English name
+(never an invented translation); the local title keeps full accents; Japan's local
+title is the native script with romaji in brackets: `Meiji Shrine : 明治神宮 (Meiji Jingū)`.
+A place with one name keeps just that one. The add cards take the two parts in
+separate boxes.
+
 ## Pin shape (E28)
 
 - **Every pin is a teardrop**: 33 px, white, 1.5 px black outline, point at the
@@ -195,5 +204,5 @@ American; Bubble tea: Taiwanese and Café), because the cuisine is the food's or
 
 ## Old Wanderlog food pins (E33)
 
-Not copied automatically (replaces E13). They get sorted into Nom-Nom city by city
-with Hanh.
+Not copied automatically (replaces E13). They come in through the import queue
+(`/wander/import`, E71): one place at a time, city by city, in a prefilled add card.

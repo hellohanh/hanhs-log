@@ -308,3 +308,43 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 **Stop Protocol completed:** zip `S008 OCT 12 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** the **old Wanderlog pin import** (E55) — first ask Hanh how: sort with Claude from the export, Hanh adds them in the app, or a bulk importer. Then M5.2b (migration 0011), Q6/Q7, M6, M7. After Oct 19, 2026 check a run on Ubuntu 26.
+
+---
+
+## Session 9 — 2026-10-13
+
+**Goal:**
+- Get caught up from the S008 zip; start the old Wanderlog pin import (E55).
+
+**Decisions made:**
+- **E71** old-pin import queue: Claude prepares the export (real city, English : Local, category guess, MICHELIN check for every food place, merged copies); Hanh loads it once and goes city → trip → category (standard order) → prefilled add card; Save and next / Skip for good / Back; progress in the database; Savorlog owner only; pins only (no itineraries).
+- **E72** naming standard `English : Local` (Japan: native script + romaji in brackets), two name boxes; small words lower-case in title case.
+- **E73** travel legs: Title first for every mode; blocks show `CITY (CODE)`, time zones (US short name + offset, elsewhere offset), `•••🛬•••` (🚆, 🚌 and 🚗 mirrored), no logo square.
+- **E74** linked travel legs: copy icon → pick a trip; one leg on both trips, read only on the other, delete removes everywhere.
+- **E75** edit a trip from its card.
+- M5.2b (forbid new food pins) moves to migration **0013**.
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #58: Session 8 Stop Protocol docs.
+- #59: migration **0011** `pin_import_items` (+13 security checks) — applied.
+- #60: two name boxes, English : Local (E72).
+- #61: travel Title first for every mode, shown on the block.
+- #62: the import queue `/wander/import` (E71).
+- #63: Pages guard — a job cancelled for a newer publish counts as published (L43).
+- #64: travel block look (E73).
+- #65: migration **0012** `travel_leg_links` + copy-to-another-trip (E74, +14 security checks) — applied.
+- #66: ✎ Edit trip on each trip card (E75).
+
+**Done outside code:**
+- Prepared `hanhs-log-import-2026-10-13.json` from the 236-pin export: 227 places, 14 cities; 15 MICHELIN matches (★ Ănăn Saigon, Gia, Tầm Vị; 12 Mentioned); Nha Trang / Hội An / Huế / Đà Lạt aren't in the guide. Sent to Hanh (not in the repo).
+- Deleted stale Pages run #172 (re-runs can never pass, L43). Actions has 0 failed runs.
+
+**Design work:** inline mockups for the import queue, the name boxes, the travel block (time-zone style, per-mode emoji flips, plane choice), linked legs, and the edit pencil.
+
+**Lessons:** L43 (superseded Pages jobs; never re-run one), L44 (no blanket `git checkout -- .` with uncommitted work).
+
+**Open questions:** Q1 (phone layout, parked), Q6 (American icon names), Q7 (no lobster icon), Q8 (Google-dark pins/labels, parked).
+
+**Stop Protocol completed:** zip `S009 OCT 13 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** helping Hanh through the import queue; then M5.2b (migration 0013), Q6/Q7, M6, M7. After Oct 19, 2026 check a run on Ubuntu 26.
