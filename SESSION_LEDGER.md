@@ -348,3 +348,31 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 **Stop Protocol completed:** zip `S009 OCT 13 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** helping Hanh through the import queue; then M5.2b (migration 0013), Q6/Q7, M6, M7. After Oct 19, 2026 check a run on Ubuntu 26.
+
+---
+
+## Session 10 — 2026-10-14
+
+**Goal:**
+- Make every map control work on Google's looks with GPins ON and OFF; check GitHub health; fix the computer slowing down on the site.
+
+**Decisions made:** E76 (GPins chip + no-pins Map ID; Q8 resolved), E77 (Map check), E78 (package majors), E79 (splash edge baked in; replaced maps cleaned up).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #67: Session 9 Stop Protocol docs.
+- #68: GPins ON / OFF chip, no-pins Map ID path, Map check, builds report the new secret.
+- #69: React Router 7, vite 8, PWA plugin 2, React plugin 5.2, Playwright 1.64, Maps types 3.66 — `npm audit` 5 → 0.
+- #70: splash soft edge baked into `hero-feathered.webp` (2,151 → 325 ms raster per 4 s scroll); replaced Google maps removed instead of piling up.
+
+**Done outside code:**
+- Google Cloud (project chord-book-tts): styles **Hanh's Log – no pins** (Hanh's JSON) and **Hanh's Log – no pins (dark)**, Map ID **Hanh's Log no pins** `1d7efe6a09082e4f21979b9e` (Vector, both styles attached, Buildings → 3D). The secret first held the style ID (L46); corrected and the live site redeployed. Hanh confirmed GPins OFF hides pins with tilt and 3D buildings on Google standard and dark.
+- GitHub check-up: 0 failed runs, migrations 0001–0012 applied, nightly backup ran (late). Branch deletion blocked by the session proxy (L47) — left to Hanh.
+- Performance audit: every page idle-tested signed in (no loops, timers, leaks or repeated requests); the splash blur mask was the cost.
+
+**Lessons:** L45 (live SVG blur mask re-rasterises per frame), L46 (Map Style ID ≠ Map ID; default style slots; 3D not in JSON), L47 (proxy limits; pkill self-kill).
+
+**Open questions:** Q1 (phone layout, parked), Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S010 OCT 14 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** the Map check results (Terrain / Satellite), then the old-pin import, M5.2b (migration 0013), Q6/Q7, M6, M7. After Oct 19, 2026 check a run on Ubuntu 26.
