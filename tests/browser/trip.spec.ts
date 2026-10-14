@@ -256,6 +256,10 @@ test('itinerary panel: extra days, day notes and a flight with its duration acro
   // The block leads with the title, then the airline + number under it (session 9).
   const block = panel.getByRole('button', { name: /^Buda Gang's Outbound Last Leg.*Vietnam Airlines VN 300/ })
   await expect(block).toBeVisible()
+  // Route line (session 9): CITY (CODE) time zone •••🛬••• CITY (CODE) time zone.
+  await expect(block).toContainText('TOKYO (NRT) 09:30 (UTC+9)')
+  await expect(block).toContainText('•••🛬•••')
+  await expect(block).toContainText('HO CHI MINH CITY (SGN) 13:45 (UTC+7)')
   expect(db.legs[0]).toMatchObject({ mode: 'flight', title: "Buda Gang's Outbound Last Leg", from_timezone: 'Asia/Tokyo', to_timezone: 'Asia/Ho_Chi_Minh', from_date: '2026-12-18' })
 })
 
@@ -408,4 +412,18 @@ test('itinerary: blocks that share time sit side by side; touching blocks share 
   expect(lunch.width, 'a block on its own takes the full width').toBeGreaterThan(pho.width * 1.8)
   // The title stays readable in a narrow column.
   await expect(panel.getByRole('button', { name: /^Bánh mì,/ }).locator('b')).toBeVisible()
+})
+
+test('travel block route line helpers', async () => {
+  const { placeLabel, zoneLabel, endLabel, MODE_EMOJI } = await import('../../src/lib/legDisplay')
+  expect(placeLabel('Austin / AUS')).toBe('AUSTIN (AUS)')
+  expect(placeLabel('Bến Thành')).toBe('BẾN THÀNH')
+  expect(zoneLabel('2026-12-18', '06:00:00', 'America/Chicago')).toBe('CST (UTC\u22126)')
+  expect(zoneLabel('2026-07-04', '06:00:00', 'America/Chicago')).toBe('CDT (UTC\u22125)') // summer
+  expect(zoneLabel('2026-12-18', '07:46:00', 'America/Los_Angeles')).toBe('PST (UTC\u22128)')
+  expect(zoneLabel('2026-12-20', '05:55:00', 'Asia/Ho_Chi_Minh')).toBe('(UTC+7)') // no US short name abroad
+  expect(zoneLabel('2026-12-20', '05:55:00', null)).toBe('')
+  expect(endLabel('Austin / AUS', '2026-12-18', '06:00:00', 'America/Chicago')).toBe('AUSTIN (AUS) 06:00 CST (UTC\u22126)')
+  expect(MODE_EMOJI.flight.emoji).toBe('🛬')
+  expect(MODE_EMOJI.bus.flip && MODE_EMOJI.personal.flip && !MODE_EMOJI.train.flip).toBe(true)
 })
