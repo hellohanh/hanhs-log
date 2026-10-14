@@ -1,6 +1,6 @@
 /* The trip map (M3 step 3), from approved mockup v2. */
 .wrap { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; }
-.map { flex: 1; min-height: 100%; background: var(--ground); }
+.map { position: relative; flex: 1; min-height: 100%; background: var(--ground); }
 
 .notice {
   position: absolute;

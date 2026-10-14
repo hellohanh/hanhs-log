@@ -82,7 +82,13 @@ export default function TripMap({
         const view = prev ? { center: prev.getCenter()!.toJSON(), zoom: prev.getZoom() ?? OPENING_ZOOM } : WORLD
         districtsRef.current?.setVisible(false)
         districtsRef.current = null
-        const m = new g.maps.Map(box.current, {
+        // Each map gets its own fresh holder; the old map's holder is removed
+        // and its listeners cleared, so switching looks doesn't pile up
+        // invisible Google maps (and their WebGL memory) in the page (session 9).
+        const holder = document.createElement('div')
+        holder.style.cssText = 'position:absolute;inset:0'
+        box.current.appendChild(holder)
+        const m = new g.maps.Map(holder, {
           ...view,
           ...(kind === 'flat'
             ? { renderingType: g.maps.RenderingType.RASTER }
@@ -100,6 +106,10 @@ export default function TripMap({
           fullscreenControl: false,
           gestureHandling: 'greedy'
         })
+        if (prev) {
+          g.maps.event.clearInstanceListeners(prev)
+          prev.getDiv().remove()
+        }
         mapRef.current = m
         setMap(m)
       },
