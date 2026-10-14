@@ -17,7 +17,12 @@ function client() {
 }
 
 export async function fetchDays(tripId: string): Promise<ItineraryDay[]> {
-  const { data, error } = await client().from('itinerary_days').select('id, trip_id, date, repeat_after, note, created_at').eq('trip_id', tripId)
+  const days = () => client().from('itinerary_days')
+  let { data, error } = await days().select('id, trip_id, date, repeat_after, note, created_at').eq('trip_id', tripId).returns<ItineraryDay[]>()
+  // Before migration 0013 is applied there's no repeat_after yet: load as before.
+  if (error && /repeat_after/.test(error.message)) {
+    ;({ data, error } = await days().select('id, trip_id, date, note, created_at').eq('trip_id', tripId).returns<ItineraryDay[]>())
+  }
   if (error) throw new Error(error.message)
   return sortDays((data ?? []) as ItineraryDay[])
 }
@@ -54,7 +59,8 @@ export async function syncRepeatDays(
   const drop = have.filter(d => !wanted.some(w => d.date === w.date && d.repeat_after === w.after) && isEmpty(d))
   for (const w of add) {
     const { error } = await client().from('itinerary_days').insert({ trip_id: tripId, date: w.date, repeat_after: w.after })
-    // Another device added it first: that's fine.
+    // Another device added it first: fine. Migration 0013 not applied yet: no repeat days for now.
+    if (error && /repeat_after/.test(error.message)) return false
     if (error && error.code !== '23505') throw new Error(error.message)
   }
   for (const d of drop) {
