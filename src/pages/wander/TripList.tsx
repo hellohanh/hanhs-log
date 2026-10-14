@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from '../../lib/supabase'
 import {
   createTrip,
   deleteTrip,
+  updateTrip,
   fetchPeopleCounts,
   fetchTrips,
   splitTrips,
@@ -68,6 +69,8 @@ function Shell({ children, action }: { children: React.ReactNode; action?: React
 function SignedInList({ userId }: { userId: string }) {
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [creating, setCreating] = useState(false)
+  // Edit a trip straight from its card (session 9), same popup as inside the trip.
+  const [editingTrip, setEditingTrip] = useState<TripSummary | null>(null)
   const [notice, setNotice] = useState('')
   const [people, setPeople] = useState<Record<string, number>>({})
   // The import button shows only to the Savorlog owner (E71), with places left.
@@ -149,6 +152,18 @@ function SignedInList({ userId }: { userId: string }) {
         />
       )}
 
+      {editingTrip && (
+        <EditTripDialog
+          trip={editingTrip}
+          onCancel={() => setEditingTrip(null)}
+          onSaved={async name => {
+            setEditingTrip(null)
+            setNotice(`Saved "${name}".`)
+            await reload()
+          }}
+        />
+      )}
+
       <p className={styles.notice} role="status" aria-live="polite">{notice}</p>
 
       {load.state === 'loading' && <p className="lede" role="status">Loading your trips…</p>}
@@ -173,7 +188,7 @@ function SignedInList({ userId }: { userId: string }) {
           ) : (
             <ul className={styles.grid}>
               {groups.upcoming.map(t => (
-                <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} />
+                <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} onEdit={setEditingTrip} />
               ))}
             </ul>
           )}
@@ -183,7 +198,7 @@ function SignedInList({ userId }: { userId: string }) {
               <h2 className={`${styles.h2} ${styles.pastTitle}`}>Past</h2>
               <ul className={`${styles.grid} ${styles.past}`}>
                 {groups.past.map(t => (
-                  <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} />
+                  <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} onEdit={setEditingTrip} />
                 ))}
               </ul>
             </>
@@ -199,13 +214,15 @@ function TripCard({
   today,
   mine,
   people,
-  onDelete
+  onDelete,
+  onEdit
 }: {
   trip: TripSummary
   today: string
   mine: boolean
   people?: number
   onDelete: (t: TripSummary) => void
+  onEdit: (t: TripSummary) => void
 }) {
   const dates = tripDates(trip.start_date, trip.end_date, today)
   const dated = !!(trip.start_date || trip.end_date)
@@ -221,6 +238,11 @@ function TripCard({
         </span>
         <span className={styles.footRight}>
           <span className={styles.badge}>{mine ? 'You own this' : 'Shared with you'}</span>
+          <button type="button" className={styles.delete} aria-label={`Edit ${trip.name}`} title="Edit trip" onClick={() => onEdit(trip)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" />
+            </svg>
+          </button>
           {mine && (
             <button type="button" className={styles.delete} aria-label={`Delete ${trip.name}`} onClick={() => onDelete(trip)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
@@ -264,6 +286,34 @@ export function NewTripDialog({
             // No match shown before saving: look the city up now (best effort).
             if (!map) ensureTripCity(id, trip).catch(() => undefined)
             onCreated(trip.name, id)
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// Edit trip from the list (session 9): the same form as Edit trip on the trip page.
+function EditTripDialog({ trip, onCancel, onSaved }: { trip: TripSummary; onCancel: () => void; onSaved: (name: string) => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCancel()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
+
+  return (
+    <div className={styles.scrim} onMouseDown={e => e.target === e.currentTarget && onCancel()}>
+      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="Edit trip">
+        <TripForm
+          title="Edit trip"
+          initial={trip}
+          submitLabel="Save"
+          busyLabel="Saving…"
+          onCancel={onCancel}
+          onSubmit={async (fields, map) => {
+            await updateTrip(trip.id, fields, map)
+            if (!map) ensureTripCity(trip.id, fields).catch(() => undefined)
+            onSaved(fields.name)
           }}
         />
       </div>

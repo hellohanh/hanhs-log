@@ -133,3 +133,22 @@ test('a database error is shown, not a blank page', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText("Couldn't load your trips")
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
 })
+
+test('edit a trip straight from its card (session 9)', async ({ page }) => {
+  const db = await fakeSupabase(page)
+  await page.goto('./wander')
+  // Every card has the pencil, shared trips included.
+  await expect(page.getByRole('button', { name: 'Edit Rome long weekend' })).toBeVisible()
+  await page.getByRole('button', { name: 'Edit Christmas in Saigon' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Edit trip' })
+  await expect(dialog.getByLabel('Trip name')).toHaveValue('Christmas in Saigon')
+  await expect(dialog.getByLabel('Primary City')).toHaveValue('Hồ Chí Minh City')
+  await dialog.getByLabel('Trip name').fill('Vietnam Trip; 1st Leg')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('Saved "Vietnam Trip; 1st Leg".')).toBeVisible()
+  await expect.poll(() => db.trips.find(t => t.id === 'trip-saigon')?.name).toBe('Vietnam Trip; 1st Leg')
+  // Escape closes without saving.
+  await page.getByRole('button', { name: 'Edit Rome long weekend' }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: 'Edit trip' })).toHaveCount(0)
+})
