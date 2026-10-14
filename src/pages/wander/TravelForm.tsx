@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import TimeSelect from '../../components/TimeSelect'
 import { AIRLINES, AIRPORTS } from '../../lib/airports'
 import type { LegFields, LegMode, TravelLeg } from '../../lib/itinerary'
 import { LEG_MODE_CONFIG, legDurationParts } from '../../lib/itineraryLayout'
@@ -138,7 +139,7 @@ export default function TravelForm({
         </label>
         <div className={styles.legRow}>
           <label className={styles.lf}>Date<input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} /></label>
-          <label className={styles.lf}>Time<input type="time" step={300} value={fromTime} onChange={e => setFromTime(e.target.value)} /></label>
+          <TimeSelect className={styles.lf} label="Time" value={fromTime} onChange={setFromTime} />
         </div>
         <label className={styles.lf}>Time zone<input value={fromZone} onChange={e => setFromZone(e.target.value)} list="hl-zones" placeholder={isFlight ? 'Filled from the airport' : 'Optional'} /></label>
       </fieldset>
@@ -150,7 +151,7 @@ export default function TravelForm({
         </label>
         <div className={styles.legRow}>
           <label className={styles.lf}>Date<input type="date" value={toDate} onChange={e => setToDate(e.target.value)} /></label>
-          <label className={styles.lf}>Time<input type="time" step={300} value={toTime} onChange={e => setToTime(e.target.value)} /></label>
+          <TimeSelect className={styles.lf} label="Time" value={toTime} onChange={setToTime} />
         </div>
         <label className={styles.lf}>Time zone<input value={toZone} onChange={e => setToZone(e.target.value)} list="hl-zones" placeholder={isFlight ? 'Filled from the airport' : 'Optional'} /></label>
       </fieldset>

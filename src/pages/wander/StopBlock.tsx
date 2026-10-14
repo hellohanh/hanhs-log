@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import TimeSelect from '../../components/TimeSelect'
 import { hhmm, toMin } from '../../lib/itineraryDays'
 export { STOP_MIN, nextStopStart } from '../../lib/itineraryDays'
 import { HOUR_PX } from '../../lib/itineraryLayout'
@@ -99,8 +100,8 @@ export function StopEdit({
     <form className={styles.addForm} onSubmit={submit} noValidate>
       <p className={styles.muted0}>Scheduled onto this day. Edit the place itself in Places.</p>
       <div className={styles.legRow}>
-        <label className={styles.lf}>Start<input type="time" step={300} value={start} onChange={e => setStart(e.target.value)} /></label>
-        <label className={styles.lf}>End<input type="time" step={300} value={end} onChange={e => setEnd(e.target.value)} /></label>
+        <TimeSelect className={styles.lf} label="Start" value={start} onChange={setStart} />
+        <TimeSelect className={styles.lf} label="End" value={end} onChange={setEnd} />
       </div>
       {error && <p className={styles.legError} role="alert">{error}</p>}
       {confirm ? (

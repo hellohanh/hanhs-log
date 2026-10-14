@@ -1,3 +1,4 @@
+import { cityOf, legsOnRepeat, repeatFor, repeatIsEmpty, repeatStartMin, shortDate, tabCities, wantedRepeats } from '../../lib/dateLine'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { endLabel, MODE_EMOJI } from '../../lib/legDisplay'
 import {
@@ -12,6 +13,7 @@ import {
   linkLeg,
   type LegLink,
   fillTripDates,
+  syncRepeatDays,
   saveDayNote,
   saveLeg,
   deleteActivity,
@@ -135,27 +137,35 @@ export default function ItineraryPanel({
 
   // This trip's own legs, plus legs linked in from other trips, placed on
   // the day matching their departure date (read only here).
-  const loadLegs = useCallback(async (list: ItineraryDay[]) => {
+  const loadLegs = useCallback(async (list: ItineraryDay[]): Promise<TravelLeg[]> => {
     const own = await fetchLegs(list.map(d => d.id))
     const ls = await fetchLegLinks(tripId).catch(() => [] as LegLink[])
     const incoming = ls.filter(k => k.direction === 'in')
     const linked = (await fetchLegsByIds(incoming.map(k => k.leg_id)).catch(() => [] as TravelLeg[])).map(l => ({
       ...l,
-      day_id: list.find(d => d.date && d.date === l.from_date)?.id ?? '',
+      day_id: list.find(d => d.date && d.date === l.from_date && !d.repeat_after)?.id ?? '',
       linkedFrom: incoming.find(k => k.leg_id === l.id)?.other_trip_name ?? 'another trip'
     }))
+    const all = [...own, ...linked]
     setLinks(ls)
-    setLegs([...own, ...linked])
+    setLegs(all)
+    return all
   }, [tripId])
 
   const load = useCallback(async () => {
     try {
       let list = await fetchDays(tripId)
       if (await fillTripDates(tripId, start, end, list)) list = await fetchDays(tripId)
+      const allLegs = await loadLegs(list)
+      const allActs = await fetchActivities(list.map(d => d.id))
+      const allStops = await fetchStops(list.map(d => d.id))
+      // Flights across the date line get their repeat day (session 10).
+      if (await syncRepeatDays(tripId, list, wantedRepeats(allLegs), d => repeatIsEmpty(d, { legs: allLegs, acts: allActs, stops: allStops }))) {
+        list = await fetchDays(tripId)
+      }
       setDays(list)
-      await loadLegs(list)
-      setActs(await fetchActivities(list.map(d => d.id)))
-      setStops(await fetchStops(list.map(d => d.id)))
+      setActs(allActs)
+      setStops(allStops)
       setConnectors(await fetchConnectors(list.map(d => d.id)))
       setSelected(s => (s && list.some(d => d.id === s) ? s : list[0]?.id ?? null))
     } catch (e) {
@@ -234,15 +244,35 @@ export default function ItineraryPanel({
     return names.length ? `Also on: ${names.join(', ')}` : null
   }
 
-  // Legs that leave on this day, and legs from an earlier day that land on it.
+  // Legs that leave on this day, and legs from an earlier day that land on
+  // it; on a repeat day, the flights across the date line it continues.
   const { own, continuing } = useMemo(() => {
     if (!day) return { own: [] as TravelLeg[], continuing: [] as TravelLeg[] }
     const own = legs.filter(l => l.day_id === day.id)
-    const continuing = day.date
-      ? legs.filter(l => l.day_id !== day.id && l.to_date === day.date && (legDayOffset(l) ?? 0) > 0)
-      : []
+    const continuing = day.repeat_after
+      ? legsOnRepeat(day, legs)
+      : day.date
+        ? legs.filter(l => l.day_id !== day.id && l.to_date === day.date && (legDayOffset(l) ?? 0) > 0 && !repeatFor(l))
+        : []
     return { own, continuing }
   }, [legs, day])
+  // Where a leg's block goes on a continuing day (a repeat day starts it at the departure moment there).
+  const contGeometry = useCallback(
+    (l: TravelLeg) => {
+      const g = continuationBlockGeometry(l)
+      if (!day?.repeat_after) return g
+      const top = (repeatStartMin(l) / 60) * HOUR_PX
+      return { top, height: Math.max(22, g.height - top) }
+    },
+    [day]
+  )
+  // The repeat day a leg continues on, for its "continues on" note.
+  const repeatNote = (l: TravelLeg): string | null => {
+    const k = repeatFor(l)
+    if (!k) return null
+    const r = days?.find(d => d.repeat_after === k.after && d.date === k.date)
+    return r ? `continues on ${shortDate(k.date)} · ${cityOf(l.to_location)} →` : null
+  }
 
   const dayActs = useMemo(() => (day ? acts.filter(a => a.day_id === day.id) : []), [acts, day])
   const dayStops = useMemo(() => (day ? stops.filter(s => s.day_id === day.id) : []), [stops, day])
@@ -254,7 +284,7 @@ export default function ItineraryPanel({
     () =>
       computeColumnLayout([
         ...own.map(l => ({ id: l.id, ...legBlockGeometry(l) })),
-        ...continuing.map(l => ({ id: `c-${l.id}`, ...continuationBlockGeometry(l) })),
+        ...continuing.map(l => ({ id: `c-${l.id}`, ...contGeometry(l) })),
         ...dayActs.map(a => ({
           id: `a-${a.id}`,
           top: (toMin(a.start_time) / 60) * HOUR_PX,
@@ -266,7 +296,7 @@ export default function ItineraryPanel({
           height: ((toMin(s.end_time) - toMin(s.start_time)) / 60) * HOUR_PX
         }))
       ]),
-    [own, continuing, dayActs, dayStops]
+    [own, continuing, dayActs, dayStops, contGeometry]
   )
 
   // Fetch each set connector's live Google route (time, distance, road path).
@@ -410,6 +440,7 @@ export default function ItineraryPanel({
                 >
                   {t.top}
                   <b>{t.main}</b>
+                  {tabCities(d, days, legs).map(c => <span key={c} className={styles.dayCity}>{c}</span>)}
                 </button>
               )
             })}
@@ -485,7 +516,7 @@ export default function ItineraryPanel({
               ) : form ? (
                 <div className={styles.formWrap}>
                   <TravelForm
-                    dayId={day.id}
+                    dayId={form.leg?.day_id ?? day.id /* an edited leg stays on its departure day */}
                     dayDate={day.date}
                     leg={form.leg}
                     preset={form.preset}
@@ -493,12 +524,12 @@ export default function ItineraryPanel({
                     onSave={async (fields: LegFields, id?: string) => {
                       await saveLeg(fields, id)
                       setForm(null)
-                      await loadLegs(days)
+                      await load() // also adds or removes a date-line repeat day
                     }}
                     onDelete={async id => {
                       await deleteLeg(id)
                       setForm(null)
-                      await loadLegs(days)
+                      await load()
                     }}
                   />
                 </div>
@@ -537,16 +568,17 @@ export default function ItineraryPanel({
                     {own.map(l => {
                       const g = legBlockGeometry(l)
                       return (
-                        <LegCard key={l.id} leg={l} top={g.top} height={g.height} note={g.crossesMidnight ? 'continues next day →' : null}
+                        <LegCard key={l.id} leg={l} top={g.top} height={g.height} note={repeatNote(l) ?? (g.crossesMidnight ? 'continues next day →' : null)}
                           pos={blockPositionStyle(layout.get(l.id), GUTTER)} alsoOn={alsoOn(l)}
                           onClick={() => (l.linkedFrom ? setViewLinked(l) : setForm({ leg: l }))}
                           onCopy={l.linkedFrom ? undefined : () => { setLinkNotice(''); setCopying(l) }} />
                       )
                     })}
                     {continuing.map(l => {
-                      const g = continuationBlockGeometry(l)
+                      const g = contGeometry(l)
                       return (
-                        <LegCard key={`c-${l.id}`} leg={l} top={g.top} height={g.height} note="← continued from the day before"
+                        <LegCard key={`c-${l.id}`} leg={l} top={g.top} height={g.height}
+                          note={day.repeat_after ? `← from ${shortDate(day.repeat_after)} · ${cityOf(l.from_location)}` : '← continued from the day before'}
                           pos={blockPositionStyle(layout.get(`c-${l.id}`), GUTTER)} alsoOn={alsoOn(l)}
                           onClick={() => (l.linkedFrom ? setViewLinked(l) : setForm({ leg: l }))} />
                       )
