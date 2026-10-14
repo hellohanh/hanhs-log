@@ -4,7 +4,7 @@ One app for trip planning (**Wanderlog**) and eateries (**Savorlog**), sharing o
 login and one database (its own Supabase project; the old Wanderlog site and
 database are separate and untouched). Live at https://hellohanh.github.io/hanhs-log/
 
-## Current state (Session 8, OCT 12 2026)
+## Current state (Session 9, OCT 13 2026)
 
 | Milestone | Status |
 |---|---|
@@ -13,7 +13,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 | M3 Wanderlog trips and map inside Hanh's Log | ✅ live (trips, sharing, the map, pins, places on itinerary days, connectors + day route, the pinned-list tree) |
 | M4 Savorlog (Nom-Nom: cuisine → dish) | ✅ live (shared catalogue, location gate, add/edit + photos, family invite) |
 | M5 Savorlog eateries on trips, by city (20 km) | ✅ live (catalogue eateries show on a trip by city, food-adds route into the catalogue, eateries schedulable on days; only "forbid new food pins" deferred) |
-| Old Wanderlog pin import (after Savorlog, before switch-over) | next |
+| Old Wanderlog pin import (after Savorlog, before switch-over) | ✅ built (`/wander/import`, E71); Hanh works through the 227 places |
 | M6 Wanderlog itinerary polish | planned |
 | M7 Switch over from the old Wanderlog | planned |
 
@@ -38,6 +38,10 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 - **City search (`/search?city=…`)**: one results page per city; trips and eateries fill in later.
 - **Sign in (`/signin`)**: email link through Hanh's Log's own Supabase project.
 - **Fonts**: Segoe UI inside Wanderlog and Savorlog; Newsreader and Public Sans on the splash and header.
+- **Import old pins (`/wander/import`)**: a button on the trip list (Savorlog owner only) opens the import queue. Load Claude's prepared file once (made from the Wanderlog export; kept out of the repo). Pick a city, the trip its non-food places go into, then each category in order; every place opens the real add card already filled in (English : Local name, category or dish, MICHELIN, badges, old note, WTG) with **Save and next**, **Skip for good** and **‹ Back**. Progress is in the database, so it carries on from any device.
+- **Place names**: every pin and eatery is `English : Local` (Japan: `明治神宮 (Meiji Jingū)`), typed in two boxes on the add cards (E72).
+- **Travel legs**: Title first on the form; blocks read `AUSTIN (AUS) 06:00 CST (UTC−6) •••🛬••• LOS ANGELES (LAX) 07:46 PST (UTC−8)` (E73). A **copy icon** links a leg to another trip (long layovers): one leg shown on both, read only on the other trip, deleting removes it everywhere (E74).
+- **Trip list**: ✎ on each card edits the trip without opening it (E75).
 - **Pin standard**: every category, colour and icon for Wanderlog and Savorlog pins is in [docs/pin-standard.md](docs/pin-standard.md); Hanh's own icons are in `src/assets/pin-icons/`. Every Nom-Nom cuisine has its dish list (top 5 each, Vietnamese 28; Fusion has none, E70).
 - **Safety net**:
   - every pull request gets a preview link, a build check, migration rules, two-person security tests and browser tests at phone, laptop, 150% zoom and monitor sizes;
@@ -48,24 +52,26 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
   - all workflow actions run on Node 24 (L42).
 
 ## What's next
-1. **Old Wanderlog pin import** from Hanh's export, sorted city by city (after Savorlog, before the switch-over, E55).
-2. **M5.2b** — a migration (`0011`) forbidding new food pins in the `pins` table going forward (existing ones left alone), landed with its test rework. The only deferred piece of M5.
+1. **Work through the old-pin import** at `/wander/import` with `hanhs-log-import-2026-10-13.json` (E71); fix anything the queue shows up.
+2. **M5.2b** — a migration (`0013`) forbidding new food pins in the `pins` table going forward (existing ones left alone), landed with its test rework. The only deferred piece of M5.
 3. **M6** itinerary polish, then **M7** switch-over.
 
 Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl, side bowl), **Q7** (no lobster icon), **Q1** (splash phone layout, parked), **Q8** (Google-dark pins/labels need a Google Cloud style, parked). And the **tilt** needs a **Vector** `VITE_GOOGLE_MAP_ID` in the same Google Cloud project as the Maps key (a Console change, not code).
 
-**One-time setup is done** (session 8): migrations 0001–0010 are applied, and the public `eatery-photos` bucket exists with INSERT/DELETE (and SELECT) policies for `authenticated`, limited to `bucket_id = 'eatery-photos'`. Savorlog's owner is the first signed-in person to open `/savor` (check: Family → your name says Owner, and Reset link shows). After GitHub moves `ubuntu-latest` to Ubuntu 26 (Oct 19, 2026), check a run is still green.
+**One-time setup is done** (sessions 8–9): migrations 0001–0012 are applied, and the public `eatery-photos` bucket exists with INSERT/DELETE (and SELECT) policies for `authenticated`, limited to `bucket_id = 'eatery-photos'`. Savorlog's owner is the first signed-in person to open `/savor` (check: Family → your name says Owner, and Reset link shows). After GitHub moves `ubuntu-latest` to Ubuntu 26 (Oct 19, 2026), check a run is still green.
 
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E70, Q1–Q10, L1–L42), README.md, SESSION_LEDGER.md and docs/pin-standard.md
+> Read SKILL.md (E1–E75, Q1–Q10, L1–L44), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project and
 > started from a clean slate (live Wanderlog is never touched). M3, M4 and M5 are live: trips +
 > map + itinerary, all of Savorlog (catalogue, location gate, add/edit + photos, family invite),
 > and Savorlog on trips (catalogue eateries by city, food-adds into the catalogue, eateries
-> schedulable on days), and every Nom-Nom cuisine has its dish list (E70). Start the **old Wanderlog pin
-> import** (E55): first ask me how (sort with you from my export / I add them myself / a bulk importer). The only deferred M5 piece is **M5.2b** (migration 0011
-> forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
+> schedulable on days), every Nom-Nom cuisine has its dish list (E70), the **old-pin import queue**
+> is built (E71, `/wander/import`, prepared file made by Claude), names follow `English : Local` (E72),
+> travel blocks have the new look (E73), legs can be linked to another trip (E74), and trips can be
+> edited from the list (E75). Help me with the import as I work through it; the only deferred M5
+> piece is **M5.2b** (now migration 0013, forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
 > infer, always show the merge link when something's ready to merge, and don't leave red build
 > runs: fix them.
 
@@ -89,7 +95,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
    Check it on your phone and laptop.
 3. Click **Merge** (use "Create a merge commit"). The live site updates in about two minutes.
 
-Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S008 OCT 12 2026).
+Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S009 OCT 13 2026).
 
 ## Database
 The database is shared with Wanderlog, so it has its own rules, nightly
