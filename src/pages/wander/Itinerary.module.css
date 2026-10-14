@@ -300,3 +300,13 @@
 .connModeOn { border: 2px solid var(--accent); padding: 4px 1px; color: var(--accent); }
 .connModeClear { width: 100%; padding: 5px; border: 0; border-radius: 8px; background: transparent; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; }
 .connModeClear:hover { background: var(--ground); }
+
+/* Copy a travel leg to another trip (linked, session 9). */
+.legCopy { position: absolute; z-index: 2; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); color: var(--muted); cursor: pointer; }
+.legCopy:hover { color: var(--accent); border-color: var(--accent); }
+.copyBox { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); font-size: 13px; }
+.copyList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.copyList button { display: flex; flex-direction: column; width: 100%; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.copyList button:hover:not(:disabled) { border-color: var(--accent); }
+.copyList button:disabled { color: var(--muted); cursor: default; }
+.copyList span { font-size: 12px; color: var(--muted); }

@@ -7,6 +7,10 @@ import {
   deleteLeg,
   fetchDays,
   fetchLegs,
+  fetchLegLinks,
+  fetchLegsByIds,
+  linkLeg,
+  type LegLink,
   fillTripDates,
   saveDayNote,
   saveLeg,
@@ -50,6 +54,7 @@ import {
   legDurationParts
 } from '../../lib/itineraryLayout'
 import TravelForm from './TravelForm'
+import { fetchTrips, placeLabel, type TripSummary } from '../../lib/trips'
 import { ActivityBlock, ActivityFields, AddPopup, usePopupStyle } from './ActivityBlock'
 import { ADD_SNAP_MIN, NEW_BLOCK_MIN, hhmm, minuteAt, toMin } from '../../lib/itineraryDays'
 import styles from './Itinerary.module.css'
@@ -101,6 +106,11 @@ export default function ItineraryPanel({
 }) {
   const [days, setDays] = useState<ItineraryDay[] | null>(null)
   const [legs, setLegs] = useState<TravelLeg[]>([])
+  // Legs linked to / from other trips (migration 0012, session 9).
+  const [links, setLinks] = useState<LegLink[]>([])
+  const [copying, setCopying] = useState<TravelLeg | null>(null)
+  const [viewLinked, setViewLinked] = useState<TravelLeg | null>(null)
+  const [linkNotice, setLinkNotice] = useState('')
   const [stops, setStops] = useState<Stop[]>([])
   const [connectors, setConnectors] = useState<Connector[]>([])
   const [selected, setSelected] = useState<string | null>(null)
@@ -123,12 +133,27 @@ export default function ItineraryPanel({
   const [dropTarget, setDropTarget] = useState<string | 'timeline' | null>(null)
   const timeline = useRef<HTMLDivElement>(null)
 
+  // This trip's own legs, plus legs linked in from other trips, placed on
+  // the day matching their departure date (read only here).
+  const loadLegs = useCallback(async (list: ItineraryDay[]) => {
+    const own = await fetchLegs(list.map(d => d.id))
+    const ls = await fetchLegLinks(tripId).catch(() => [] as LegLink[])
+    const incoming = ls.filter(k => k.direction === 'in')
+    const linked = (await fetchLegsByIds(incoming.map(k => k.leg_id)).catch(() => [] as TravelLeg[])).map(l => ({
+      ...l,
+      day_id: list.find(d => d.date && d.date === l.from_date)?.id ?? '',
+      linkedFrom: incoming.find(k => k.leg_id === l.id)?.other_trip_name ?? 'another trip'
+    }))
+    setLinks(ls)
+    setLegs([...own, ...linked])
+  }, [tripId])
+
   const load = useCallback(async () => {
     try {
       let list = await fetchDays(tripId)
       if (await fillTripDates(tripId, start, end, list)) list = await fetchDays(tripId)
       setDays(list)
-      setLegs(await fetchLegs(list.map(d => d.id)))
+      await loadLegs(list)
       setActs(await fetchActivities(list.map(d => d.id)))
       setStops(await fetchStops(list.map(d => d.id)))
       setConnectors(await fetchConnectors(list.map(d => d.id)))
@@ -136,7 +161,7 @@ export default function ItineraryPanel({
     } catch (e) {
       setError((e as Error).message)
     }
-  }, [tripId, start, end])
+  }, [tripId, start, end, loadLegs])
 
   useEffect(() => {
     load()
@@ -201,6 +226,13 @@ export default function ItineraryPanel({
   useEffect(() => {
     if (timeline.current) timeline.current.scrollTop = SCROLL_TO_HOUR * HOUR_PX
   }, [selected, days === null, form === null])
+
+  // The 🔗 line on a block: where else this leg shows (or where it comes from).
+  const alsoOn = (l: TravelLeg): string | null => {
+    if (l.linkedFrom) return `Linked from: ${l.linkedFrom}`
+    const names = links.filter(k => k.leg_id === l.id && k.direction === 'out').map(k => k.other_trip_name)
+    return names.length ? `Also on: ${names.join(', ')}` : null
+  }
 
   // Legs that leave on this day, and legs from an earlier day that land on it.
   const { own, continuing } = useMemo(() => {
@@ -431,7 +463,26 @@ export default function ItineraryPanel({
                 <button type="button" className={styles.notePreview} onClick={() => setNoteOpen(true)}>{day.note}</button>
               )}
 
-              {form ? (
+              {linkNotice && <p className={styles.muted} role="status">{linkNotice}</p>}
+              {copying ? (
+                <div className={styles.formWrap}>
+                  <CopyToTrip
+                    leg={copying}
+                    tripId={tripId}
+                    linkedTo={links.filter(k => k.leg_id === copying.id && k.direction === 'out').map(k => k.other_trip_id)}
+                    onCancel={() => setCopying(null)}
+                    onCopied={async name => {
+                      setCopying(null)
+                      setLinkNotice(`Linked to ${name}: it shows there on its own date.`)
+                      await loadLegs(days)
+                    }}
+                  />
+                </div>
+              ) : viewLinked ? (
+                <div className={styles.formWrap}>
+                  <LinkedLegCard leg={viewLinked} onClose={() => setViewLinked(null)} />
+                </div>
+              ) : form ? (
                 <div className={styles.formWrap}>
                   <TravelForm
                     dayId={day.id}
@@ -442,12 +493,12 @@ export default function ItineraryPanel({
                     onSave={async (fields: LegFields, id?: string) => {
                       await saveLeg(fields, id)
                       setForm(null)
-                      setLegs(await fetchLegs(days.map(d => d.id)))
+                      await loadLegs(days)
                     }}
                     onDelete={async id => {
                       await deleteLeg(id)
                       setForm(null)
-                      setLegs(await fetchLegs(days.map(d => d.id)))
+                      await loadLegs(days)
                     }}
                   />
                 </div>
@@ -487,14 +538,17 @@ export default function ItineraryPanel({
                       const g = legBlockGeometry(l)
                       return (
                         <LegCard key={l.id} leg={l} top={g.top} height={g.height} note={g.crossesMidnight ? 'continues next day →' : null}
-                          pos={blockPositionStyle(layout.get(l.id), GUTTER)} onClick={() => setForm({ leg: l })} />
+                          pos={blockPositionStyle(layout.get(l.id), GUTTER)} alsoOn={alsoOn(l)}
+                          onClick={() => (l.linkedFrom ? setViewLinked(l) : setForm({ leg: l }))}
+                          onCopy={l.linkedFrom ? undefined : () => { setLinkNotice(''); setCopying(l) }} />
                       )
                     })}
                     {continuing.map(l => {
                       const g = continuationBlockGeometry(l)
                       return (
                         <LegCard key={`c-${l.id}`} leg={l} top={g.top} height={g.height} note="← continued from the day before"
-                          pos={blockPositionStyle(layout.get(`c-${l.id}`), GUTTER)} onClick={() => setForm({ leg: l })} />
+                          pos={blockPositionStyle(layout.get(`c-${l.id}`), GUTTER)} alsoOn={alsoOn(l)}
+                          onClick={() => (l.linkedFrom ? setViewLinked(l) : setForm({ leg: l }))} />
                       )
                     })}
                     {dayActs.map(a => (
@@ -674,14 +728,19 @@ function LegCard({
   height,
   note,
   pos,
-  onClick
+  alsoOn,
+  onClick,
+  onCopy
 }: {
   leg: TravelLeg
   top: number
   height: number
   note: string | null
   pos: { left: string; width: string }
+  alsoOn: string | null
   onClick: () => void
+  /** The copy icon (link to another trip); absent on legs linked in. */
+  onCopy?: () => void
 }) {
   const cfg = LEG_MODE_CONFIG[leg.mode]
   const d = legDurationParts(leg)
@@ -691,6 +750,7 @@ function LegCard({
   const name = leg.title || carrierLine || cfg.label
   const subLine = leg.title && carrierLine ? carrierLine : null
   return (
+    <>
     <button type="button" className={styles.leg} style={{ top, height: Math.max(height, 56), borderLeftColor: cfg.color, ...pos }} onClick={e => { e.stopPropagation(); onClick() }}>
       <span className={styles.legTop}>
         <Badge leg={leg} />
@@ -707,7 +767,82 @@ function LegCard({
       </span>
       {d && <span className={styles.legMeta}>{d.hours}h {d.minutes}m</span>}
       {note && <span className={styles.legMeta}>{note}</span>}
+      {alsoOn && <span className={styles.legMeta}>🔗 {alsoOn}</span>}
     </button>
+    {onCopy && (
+      <button
+        type="button"
+        className={styles.legCopy}
+        style={{ top: top + 6, left: `calc(${pos.left} + ${pos.width} - 34px)` }}
+        aria-label={`Copy ${name} to another trip`}
+        title="Copy to another trip"
+        onClick={e => { e.stopPropagation(); onCopy() }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
+      </button>
+    )}
+    </>
+  )
+}
+
+/** Pick another trip to show this leg on too (linked, session 9). */
+function CopyToTrip({ leg, tripId, linkedTo, onCancel, onCopied }: { leg: TravelLeg; tripId: string; linkedTo: string[]; onCancel: () => void; onCopied: (name: string) => void }) {
+  const [trips, setTrips] = useState<TripSummary[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  useEffect(() => {
+    fetchTrips().then(t => setTrips(t.filter(x => x.id !== tripId)), e => setErr((e as Error).message))
+  }, [tripId])
+  return (
+    <div className={styles.copyBox} role="dialog" aria-label="Copy to another trip">
+      <strong>Copy to another trip</strong>
+      <span className={styles.muted0}>Linked: it shows there on {leg.from_date ?? 'its date'}, and changes here show there too.</span>
+      {!leg.from_date && <span className={styles.muted0}>Give this leg a departure date first.</span>}
+      {trips === null && !err && <span className={styles.muted0}>Loading your trips…</span>}
+      {trips?.length === 0 && <span className={styles.muted0}>No other trips yet.</span>}
+      <ul className={styles.copyList}>
+        {trips?.map(t => {
+          const done = linkedTo.includes(t.id)
+          return (
+            <li key={t.id}>
+              <button
+                type="button"
+                disabled={busy || done || !leg.from_date}
+                onClick={async () => {
+                  setBusy(true)
+                  setErr('')
+                  try {
+                    await linkLeg(leg.id, t.id)
+                    onCopied(t.name)
+                  } catch (e) {
+                    setErr(`Couldn't link: ${(e as Error).message}`)
+                    setBusy(false)
+                  }
+                }}
+              >
+                <b>{t.name}</b> <span>{placeLabel(t)}{done ? ' · already linked' : ''}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+      {err && <p className={styles.error} role="alert">{err}</p>}
+      <button type="button" className="btn btn-quiet" onClick={onCancel}>Cancel</button>
+    </div>
+  )
+}
+
+/** A leg linked in from another trip: shown read only, with where to edit it. */
+function LinkedLegCard({ leg, onClose }: { leg: TravelLeg; onClose: () => void }) {
+  const carrier = [leg.carrier, leg.reference].filter(Boolean).join(' ')
+  return (
+    <div className={styles.copyBox} role="dialog" aria-label="Linked travel">
+      <strong>{leg.title || carrier || LEG_MODE_CONFIG[leg.mode].label}</strong>
+      {leg.title && carrier && <span>{carrier}</span>}
+      <span>{endLabel(leg.from_location, leg.from_date, leg.from_time, leg.from_timezone)} ••• {endLabel(leg.to_location, leg.to_date, leg.to_time, leg.to_timezone)}</span>
+      <span className={styles.muted0}>Linked from {leg.linkedFrom}. Edit or delete it there; deleting removes it from every trip.</span>
+      <button type="button" className="btn btn-quiet" onClick={onClose}>Close</button>
+    </div>
   )
 }
 

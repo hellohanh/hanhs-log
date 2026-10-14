@@ -60,6 +60,37 @@ export async function fetchLegs(dayIds: string[]): Promise<TravelLeg[]> {
   return (data ?? []) as TravelLeg[]
 }
 
+// ---- Legs linked to other trips (migration 0012, session 9) ----
+
+/** A link touching this trip: 'out' = this trip's leg also shows on another
+ * trip; 'in' = another trip's leg shows here (read only). */
+export interface LegLink {
+  leg_id: string
+  direction: 'out' | 'in'
+  other_trip_id: string
+  other_trip_name: string
+}
+
+export async function fetchLegLinks(tripId: string): Promise<LegLink[]> {
+  const { data, error } = await client().rpc('trip_leg_links', { _trip: tripId })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as LegLink[]
+}
+
+/** Legs by id (for legs linked in from another trip). */
+export async function fetchLegsByIds(ids: string[]): Promise<TravelLeg[]> {
+  if (ids.length === 0) return []
+  const { data, error } = await client().from('travel_legs').select(LEG_COLUMNS).in('id', ids)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as TravelLeg[]
+}
+
+/** Shows a leg on another trip too (both must be yours); adds its day there if missing. */
+export async function linkLeg(legId: string, tripId: string): Promise<void> {
+  const { error } = await client().rpc('link_travel_leg', { _leg: legId, _trip: tripId })
+  if (error) throw new Error(error.message)
+}
+
 export async function saveLeg(fields: LegFields, id?: string): Promise<void> {
   const { error } = id
     ? await client().from('travel_legs').update(fields).eq('id', id)

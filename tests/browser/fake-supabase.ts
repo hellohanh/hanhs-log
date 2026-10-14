@@ -49,6 +49,8 @@ export interface FakeDb {
   eateryPhotos: FakeRow[]
   /** The old-pin import queue (E71). */
   importItems: FakeRow[]
+  /** Travel legs linked to other trips (0012). */
+  legLinks: { leg_id: string; trip_id: string }[]
   savorPeople: FakePerson[]
   savorToken: string
   /** People per trip id. Trips missing here answer "not allowed". */
@@ -132,6 +134,7 @@ export async function fakeSupabase(
     eateryReviews: structuredClone(opts.eateryReviews ?? []),
     eateryPhotos: structuredClone(opts.eateryPhotos ?? []),
     importItems: structuredClone(opts.importItems ?? []),
+    legLinks: [],
     savorPeople: structuredClone(opts.savorPeople ?? [{ user_id: ME, display_name: 'Hanh', is_owner: true, joined_at: null }]),
     savorToken: 'savor-tok',
     calls: []
@@ -283,8 +286,9 @@ export async function fakeSupabase(
     }
     if (path === '/rest/v1/travel_legs') {
       if (req.method() === 'GET') {
-        const ids = (url.searchParams.get('day_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
-        return route.fulfill({ json: db.legs.filter(l => ids.includes(l.day_id)) })
+        const list = (k: string) => (url.searchParams.get(k) ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
+        if (url.searchParams.get('id')) return route.fulfill({ json: db.legs.filter(l => list('id').includes(l.id)) })
+        return route.fulfill({ json: db.legs.filter(l => list('day_id').includes(l.day_id)) })
       }
       if (req.method() === 'POST') {
         db.legs.push({ id: `leg-${db.legs.length + 1}`, ...args })
@@ -378,6 +382,25 @@ export async function fakeSupabase(
         db.importItems = db.importItems.map(x => (x.id === idEq ? { ...x, ...args } : x))
         return route.fulfill({ status: 204, body: '' })
       }
+    }
+
+    // Travel legs linked to other trips (0012).
+    if (path === '/rest/v1/rpc/link_travel_leg') {
+      const leg = db.legs.find(l => l.id === args._leg)
+      const date = (leg?.from_date as string | null) ?? null
+      if (!leg || !date) return deny(route, 'the leg needs a departure date to be linked')
+      if (!db.days.some(d => d.trip_id === args._trip && d.date === date)) {
+        db.days.push({ id: `day-${db.days.length + 1}`, trip_id: args._trip, date, note: null, created_at: '2026-10-13T12:00:00Z' })
+      }
+      if (!db.legLinks.some(k => k.leg_id === args._leg && k.trip_id === args._trip)) db.legLinks.push({ leg_id: args._leg, trip_id: args._trip })
+      return route.fulfill({ json: db.days.find(d => d.trip_id === args._trip && d.date === date)!.id })
+    }
+    if (path === '/rest/v1/rpc/trip_leg_links') {
+      const tripOf = (legId: string) => db.days.find(d => d.id === db.legs.find(l => l.id === legId)?.day_id)?.trip_id
+      const name = (id: string | undefined) => db.trips.find(t => t.id === id)?.name ?? ''
+      const out = db.legLinks.filter(k => tripOf(k.leg_id) === args._trip).map(k => ({ leg_id: k.leg_id, direction: 'out', other_trip_id: k.trip_id, other_trip_name: name(k.trip_id) }))
+      const inn = db.legLinks.filter(k => k.trip_id === args._trip).map(k => ({ leg_id: k.leg_id, direction: 'in', other_trip_id: tripOf(k.leg_id), other_trip_name: name(tripOf(k.leg_id)) }))
+      return route.fulfill({ json: [...out, ...inn] })
     }
 
     if (path === '/rest/v1/profiles') {
