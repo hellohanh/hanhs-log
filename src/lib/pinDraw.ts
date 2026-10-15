@@ -6,9 +6,11 @@ import { MICHELIN_RED } from './pinCatalog'
 //   spot, a colour disc and a white icon (33 px wide);
 // - MICHELIN places (mentioned, Bib Gourmand or starred): 36 px, deep red
 //   disc and our own six-petal flower; 1–3 stars in a white chip above;
-// - the status badge at the top-right: blank orange for WTG, or for VIS the
-//   verdict: green with a white ✓ (revisit), yellow with a black dash
-//   (second chance), red with a white ✗ (don't go back).
+// - the status badge inside the pin, centred in the white tail just above the
+//   point (Hanh, session 10, placed with the positioner: 9 px, centre 11.5 px
+//   above the point on a 33 px pin, scaled with the pin): blank orange for
+//   WTG, or for VIS the verdict: green with a white ✓ (revisit), yellow with
+//   a black dash (second chance), red with a white ✗ (don't go back).
 // Returned as an HTML string so the map markers and the Places panel draw
 // exactly the same pin.
 
@@ -59,6 +61,10 @@ export function badgeSvg(b: Badge, size = 13): string {
   return `<svg width="${size}" height="${size}" viewBox="0 0 13 13" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.75" fill="${fill}" stroke="#FFFFFF" stroke-width="1.5"/>${mark}</svg>`
 }
 
+/** The status badge inside the pin (session 10): its size, and how far its centre sits above the point. */
+export const BADGE_SIZE = 9
+export const badgeRise = (pinWidth: number) => Math.round((11.5 * pinWidth) / 33 * 10) / 10
+
 export interface PinDrawing {
   color: string
   icon: string
@@ -96,7 +102,7 @@ export function pinHtml(p: PinDrawing): string {
     `<svg style="position:absolute;left:${left}px;top:${top}px" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">` +
     `<path d="${shape}" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/><circle cx="${r}" cy="${r}" r="${disc}" fill="${color}"/></svg>` +
     `<span style="position:absolute;left:${left + r - iconSize / 2}px;top:${top + r - iconSize / 2}px;display:flex">${icon}</span>` +
-    `<span style="position:absolute;left:${left + w - 8}px;top:${top - 5}px;display:flex">${badgeSvg(p.badge)}</span>` +
+    `<span style="position:absolute;left:${left + r - BADGE_SIZE / 2}px;top:${top + h - 1.5 - badgeRise(w) - BADGE_SIZE / 2}px;display:flex">${badgeSvg(p.badge, BADGE_SIZE)}</span>` +
     `</div>`
   )
 }
