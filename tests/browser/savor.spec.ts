@@ -135,9 +135,10 @@ test('the Family dialog lists the circle; the owner can remove a member', async 
 test('country → dish tree helper', async () => {
   const { buildCountryTree } = await import('../../src/lib/savorTree')
   const tree = buildCountryTree(EATERIES.map(e => ({ cuisine: e.cuisine, dish: e.dish, id: e.id })))
-  expect(tree.map(c => c.key)).toEqual(['vietnamese', 'japanese'])
-  expect(tree[0].loose.map(e => e.id)).toEqual(['e2'])
-  expect(tree[0].dishes.map(d => d.key)).toEqual(['pho'])
+  // A–Z (session 10): Japanese before Vietnamese.
+  expect(tree.map(c => c.key)).toEqual(['japanese', 'vietnamese'])
+  expect(tree[1].loose.map(e => e.id)).toEqual(['e2'])
+  expect(tree[1].dishes.map(d => d.key)).toEqual(['pho'])
 })
 
 test('scope resolution and membership', async () => {

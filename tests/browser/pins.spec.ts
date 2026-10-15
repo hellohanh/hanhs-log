@@ -125,7 +125,7 @@ test('pin helpers: badge, average, look, and the drawing', async () => {
   expect(averageRating([r('a', 'vis', 'revisit', 'x', 4.5), r('b', 'vis', 'no', 'x', 2), r('c', 'wtg', null, 'x')])).toBe(3.3)
   expect(averageRating([])).toBeNull()
 
-  expect(pinLook({ category: 'food', subcategory: 'vietnamese', subsubcategory: 'banh-mi' })).toMatchObject({ color: '#D85A30', icon: 'banh_mi', label: 'Nom-Nom › Vietnamese › Bánh mì' })
+  expect(pinLook({ category: 'food', subcategory: 'vietnamese', subsubcategory: 'banh-mi' })).toMatchObject({ color: '#D85A30', icon: 'banh_mi', label: 'Nom-Nom › Vietnamese › Bánh Mì' })
   expect(pinLook({ category: 'attraction', subcategory: 'worship', subsubcategory: 'temple-pagoda' })).toMatchObject({ color: '#982F69', icon: 'temple_buddhist' })
   expect(pinLook({ category: 'airport', subcategory: null, subsubcategory: null })).toMatchObject({ color: '#7F77DD', icon: 'flight' })
   // Every key is unique within its level.
@@ -189,9 +189,10 @@ test('pin tree + title case helpers', async () => {
     p('5', 'shopping', 'market', null),
     p('6', 'attraction', 'worship', 'temple-pagoda')
   ])
-  // Catalogue order: Nom-Nom (food) first, then attraction, shopping.
-  expect(tree.map(n => n.label)).toEqual(['Nom-Nom', 'Attraction', 'Shopping'])
-  const food = tree[0]
+  // A–Z at every level (session 10).
+  expect(tree.map(n => n.label)).toEqual(['Attraction', 'Nom-Nom', 'Shopping'])
+  const food = tree[1]
+  expect(food.children.map(n => n.label)).toEqual(['Japanese', 'Vietnamese'])
   expect(food.count).toBe(4)
   const viet = food.children.find(n => n.label === 'Vietnamese')!
   expect(viet.count).toBe(3)
@@ -199,7 +200,7 @@ test('pin tree + title case helpers', async () => {
   expect(viet.children[0].count).toBe(2)
   expect(viet.pins.map(x => x.id)).toEqual(['3']) // the dishless pin sits on Vietnamese
   // Only branches with pins appear.
-  expect(food.children.map(n => n.label)).toEqual(['Vietnamese', 'Japanese'])
+  expect(food.children.map(n => n.label)).toEqual(['Japanese', 'Vietnamese'])
 
   expect(titleCase('phở hòa pasteur')).toBe('Phở Hòa Pasteur')
   expect(titleCase('ANAN SAIGON')).toBe('Anan Saigon')
@@ -282,4 +283,27 @@ test('the status badge sits inside the pin, centred above the point (session 10)
   // pin's middle (x 22.5) and 11.5 px above the point (y 6 + 41.5 − 11.5 = 36).
   expect(html).toContain('left:18px;top:31.5px')
   expect(html).toContain('<svg width="9" height="9" viewBox="0 0 13 13"')
+})
+
+test('labels in Title Case, keys unchanged (session 10)', async () => {
+  const { labelCase, categoryOf } = await import('../../src/lib/pinCatalog')
+  expect(labelCase('Mall / department store')).toBe('Mall / Department Store')
+  expect(labelCase('Souvenirs / gifts')).toBe('Souvenirs / Gifts')
+  expect(labelCase('Mac & cheese')).toBe('Mac & Cheese')
+  expect(labelCase('Korean BBQ')).toBe('Korean BBQ')
+  expect(labelCase("Po'boy")).toBe("Po'boy")
+  const mall = categoryOf('shopping')!.subs.find(s => s.label === 'Mall / Department Store')!
+  expect(mall.key).toBe('mall-department-store')
+  const banhMi = categoryOf('food')!.subs.find(s => s.key === 'vietnamese')!.leaves!.find(l => l.key === 'banh-mi')!
+  expect(banhMi.label).toBe('Bánh Mì')
+})
+
+test('places sort A–Z inside a branch (session 10)', async () => {
+  const { buildPinTree } = await import('../../src/lib/pinCatalog')
+  const t = buildPinTree([
+    { id: '1', name: 'Saigon Square', category: 'shopping', subcategory: 'market', subsubcategory: null },
+    { id: '2', name: 'Bến Thành Market', category: 'shopping', subcategory: 'market', subsubcategory: null },
+    { id: '3', name: 'An Đông Market', category: 'shopping', subcategory: 'market', subsubcategory: null }
+  ])
+  expect(t[0].children[0].pins.map(p => p.name)).toEqual(['An Đông Market', 'Bến Thành Market', 'Saigon Square'])
 })
