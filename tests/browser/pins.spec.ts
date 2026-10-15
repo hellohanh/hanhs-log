@@ -221,3 +221,45 @@ test('place names: English : Local (E72)', async () => {
   expect(splitName('Saigon Centre')).toEqual({ en: 'Saigon Centre', local: '' }) // plain → English
   expect(splitName(null)).toEqual({ en: '', local: '' })
 })
+
+test('eye rules: pick, mixed, Show all (session 10)', async () => {
+  const { eyeState, togglePicks, pinFaded } = await import('../../src/lib/pinRules')
+  const none = new Set<string>()
+  // While Show all is on, an eye picks just that branch.
+  const hotel = togglePicks(none, ['h1'], true)
+  expect([...hotel]).toEqual(['h1'])
+  const both = togglePicks(hotel, ['b1', 'b2'], false)
+  expect(eyeState(['h1', 'h2'], both, false)).toBe('part')
+  expect(eyeState(['b1', 'b2'], both, false)).toBe('on')
+  expect(eyeState(['x'], both, false)).toBe('off')
+  expect(eyeState(['x'], both, true)).toBe('all')
+  // Clicking an all-on branch turns it off.
+  expect([...togglePicks(both, ['b1', 'b2'], false)]).toEqual(['h1'])
+  // Show all off: only picks show (MICHELIN-only still applies).
+  const s = { editing: false, otdPins: null, showAll: false, michelinOnly: false, picked: both }
+  expect(pinFaded({ id: 'h1', michelin: null }, s)).toBe(false)
+  expect(pinFaded({ id: 'x', michelin: null }, s)).toBe(true)
+  expect(pinFaded({ id: 'b1', michelin: null }, { ...s, michelinOnly: true })).toBe(true)
+})
+
+test('eyes on the Places rows pick what shows when Show all is off (session 10)', async ({ page }) => {
+  await fakeSupabase(page, { pins: SAVED_PINS })
+  await fakePlaces(page, [MARKET])
+  await page.goto('./wander/trip/trip-saigon')
+  const places = page.getByRole('complementary', { name: 'Places' })
+  // Show all on: an eye picks just that branch and switches Show all off.
+  await places.getByRole('button', { name: 'Show only Shopping on the map' }).click()
+  await expect(places.getByLabel('Show all pins')).not.toBeChecked()
+  await expect(places.getByRole('button', { name: 'Hide Shopping on the map' })).toHaveAttribute('aria-pressed', 'true')
+  // Add one dish: its category shows as partly on.
+  await places.getByRole('button', { name: /^Nom-Nom,/ }).click()
+  await places.getByRole('button', { name: /^Vietnamese,/ }).click()
+  await places.getByRole('button', { name: 'Show Phở on the map' }).click()
+  await expect(places.getByRole('button', { name: 'Show Nom-Nom on the map' })).toHaveAttribute('aria-pressed', 'mixed')
+  // Clicking an on eye hides it again.
+  await places.getByRole('button', { name: 'Hide Shopping on the map' }).click()
+  await expect(places.getByRole('button', { name: 'Show Shopping on the map' })).toHaveAttribute('aria-pressed', 'false')
+  // Ticking Show all clears the picks.
+  await places.getByLabel('Show all pins').check()
+  await expect(places.getByRole('button', { name: 'Show only Nom-Nom on the map' })).toBeVisible()
+})

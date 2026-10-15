@@ -14,7 +14,7 @@ import styles from './Itinerary.module.css'
 
 export const MODES: { key: ConnMode; label: string; color: string; icon: string }[] = [
   { key: 'walk', label: 'Walk', color: '#2F8A3E', icon: 'M13.5 5.5a1.6 1.6 0 1 0 0-.01M11 22l1.6-5 2.4-2m-5.2.5L7 13l1-5 3 1.2L14 11m-3-.5 1.5 4.5 2.5 3' },
-  { key: 'drive', label: 'Drive', color: '#185FA5', icon: 'M5 11l1.5-4h11L19 11M4 17h16v-5H4zM7.5 17v1.5M16.5 17v1.5M7 14.5h.01M17 14.5h.01' },
+  { key: 'drive', label: 'Drive', color: '#1A8CFF', icon: 'M5 11l1.5-4h11L19 11M4 17h16v-5H4zM7.5 17v1.5M16.5 17v1.5M7 14.5h.01M17 14.5h.01' },
   { key: 'transit', label: 'Transit', color: '#6A3FA0', icon: 'M6 4h12a2 2 0 0 1 2 2v9H4V6a2 2 0 0 1 2-2zM4 10h16M8 4v6M16 4v6M7.5 18.5h.01M16.5 18.5h.01M6 15v2.5M18 15v2.5' },
   { key: 'bike', label: 'Bike', color: '#C8781E', icon: 'M6 18.5a3 3 0 1 0 0-.01M18 18.5a3 3 0 1 0 0-.01M9 18.5h6l-2.5-6 2-3h2.5M10.5 9.5H14M8.5 12.5l2.5-3' }
 ]

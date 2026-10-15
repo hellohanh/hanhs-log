@@ -3,6 +3,8 @@ import { buildPinTree, type PinNode } from '../../lib/pinCatalog'
 import { flowerSvg, BADGE } from '../../lib/pinDraw'
 import { pinBadge, type Pin, type Review } from '../../lib/pins'
 import type { StopKind } from '../../lib/itinerary'
+import { eyeState } from '../../lib/pinRules'
+import EyeButton from '../../components/EyeButton'
 import styles from './Places.module.css'
 
 // The pinned list as a collapsible tree (E30, built session 6): category ›
@@ -17,13 +19,20 @@ export default function PinTree({
   reviews,
   openDay,
   onOpen,
-  onAddToDay
+  onAddToDay,
+  picked,
+  showAll,
+  onPick
 }: {
   pins: Pin[]
   reviews: Review[]
   openDay: { id: string; label: string } | null
   onOpen: (pin: Pin) => void
   onAddToDay: (id: string, kind: StopKind) => void
+  /** The eyes (session 10): which places show while Show all pins is off. */
+  picked: Set<string>
+  showAll: boolean
+  onPick: (ids: string[]) => void
 }) {
   const tree = buildPinTree(pins)
   const [open, setOpen] = useState<Set<string>>(new Set())
@@ -34,12 +43,15 @@ export default function PinTree({
       return next
     })
 
+  const idsOf = (n: PinNode<Pin>): string[] => [...n.pins.map(p => p.id), ...n.children.flatMap(idsOf)]
+
   const rows: React.ReactNode[] = []
   const walk = (nodes: PinNode<Pin>[], depth: number) => {
     for (const n of nodes) {
       const expanded = open.has(n.key)
+      const ids = idsOf(n)
       rows.push(
-        <li key={n.key}>
+        <li key={n.key} className={styles.nodeLi}>
           <button
             type="button"
             className={styles.node}
@@ -53,6 +65,7 @@ export default function PinTree({
             <span className={styles.name}>{n.label}</span>
             <span className={styles.count}>{n.count}</span>
           </button>
+          <EyeButton label={n.label} state={eyeState(ids, picked, showAll)} onClick={() => onPick(ids)} />
         </li>
       )
       if (expanded) {
@@ -94,6 +107,7 @@ export default function PinTree({
         >
           +
         </button>
+        <EyeButton label={p.name} state={eyeState([p.id], picked, showAll)} onClick={() => onPick([p.id])} />
       </li>
     )
   }

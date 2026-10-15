@@ -56,8 +56,8 @@ test('the gate opens first, then filters to the chosen country', async ({ page }
   await expect(page.getByText(/Showing/)).toContainText('Vietnam')
   const side = page.getByRole('complementary', { name: 'Catalogue' })
   await expect(side.getByText('2', { exact: true }).first()).toBeVisible() // Tokyo's filtered out
-  await side.getByRole('button', { name: /Vietnamese/ }).click()
-  await expect(side.getByRole('button', { name: /Anan Saigon/ })).toBeVisible()
+  await side.getByRole('button', { name: /^Vietnamese/ }).click()
+  await expect(side.getByRole('button', { name: /Anan Saigon/ }).first()).toBeVisible()
 })
 
 test('search-to-add opens the add card and saves a new eatery', async ({ page }) => {
@@ -66,7 +66,7 @@ test('search-to-add opens the add card and saves a new eatery', async ({ page })
   const side = page.getByRole('complementary', { name: 'Catalogue' })
   await side.getByRole('searchbox', { name: /Search Google/ }).fill('bun')
   await side.getByRole('button', { name: 'Search' }).click()
-  await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).click()
+  await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first().click()
 
   const form = side.getByRole('form', { name: 'Add an eatery' })
   await expect(form).toBeVisible()
@@ -75,8 +75,8 @@ test('search-to-add opens the add card and saves a new eatery', async ({ page })
   await form.getByRole('button', { name: 'Add eatery' }).click()
 
   // Wait for the reload to show the new row, then check what reached the db.
-  await side.getByRole('button', { name: /Vietnamese/ }).click()
-  await expect(side.getByRole('button', { name: /Bún Chả Hương Liên/ })).toBeVisible()
+  await side.getByRole('button', { name: /^Vietnamese/ }).click()
+  await expect(side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first()).toBeVisible()
   expect(db.eateries.some(e => e.name === 'Bún Chả Hương Liên' && e.cuisine === 'vietnamese' && e.price === 2)).toBe(true)
 })
 
@@ -84,8 +84,8 @@ test('editing an eatery shows its fields and the photo placeholder', async ({ pa
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
   const side = page.getByRole('complementary', { name: 'Catalogue' })
-  await side.getByRole('button', { name: /Vietnamese/ }).click()
-  await side.getByRole('button', { name: /Anan Saigon/ }).click()
+  await side.getByRole('button', { name: /^Vietnamese/ }).click()
+  await side.getByRole('button', { name: /Anan Saigon/ }).first().click()
 
   const form = side.getByRole('form', { name: 'Edit eatery' })
   await expect(form.getByRole('radio', { name: '4 of 4' })).toHaveAttribute('aria-checked', 'true') // price $$$$
@@ -96,12 +96,12 @@ test('removing an eatery sends it to the pending-deletion queue', async ({ page 
   const db = await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
   const side = page.getByRole('complementary', { name: 'Catalogue' })
-  await side.getByRole('button', { name: /Vietnamese/ }).click()
-  await side.getByRole('button', { name: /Anan Saigon/ }).click()
+  await side.getByRole('button', { name: /^Vietnamese/ }).click()
+  await side.getByRole('button', { name: /Anan Saigon/ }).first().click()
   await side.getByRole('form', { name: 'Edit eatery' }).getByRole('button', { name: 'Remove…' }).click()
   await side.getByRole('button', { name: 'Remove', exact: true }).click()
 
-  await expect(side.getByRole('button', { name: /Anan Saigon/ })).toHaveCount(0)
+  await expect(side.getByRole('button', { name: /Anan Saigon/ }).first()).toHaveCount(0)
   expect((db.eateries.find(e => e.id === 'e2') as { deleted_at: string | null }).deleted_at).toBeTruthy()
 })
 

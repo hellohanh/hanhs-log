@@ -72,6 +72,8 @@
 
 /* catalogue tree */
 .tree { list-style: none; margin: 0; padding: 0; }
+.nodeLi { display: flex; align-items: center; gap: 2px; }
+.nodeLi .node { flex: 1; min-width: 0; }
 .node { display: flex; align-items: center; gap: 7px; width: 100%; padding: 7px 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; font-weight: 700; text-align: left; cursor: pointer; }
 .node:hover { background: var(--ground); }
 .arrow { width: 14px; flex: none; color: var(--muted); font-size: 10px; display: inline-flex; justify-content: center; }
