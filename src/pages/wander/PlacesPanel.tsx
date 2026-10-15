@@ -218,40 +218,40 @@ export default function PlacesPanel({
         <p className={styles.muted}>No places on this trip yet. Search above to add one.</p>
       )}
 
-      {pins.length > 0 && (
+      {(pins.length > 0 || eateries.length > 0) && (
         <div className={styles.list}>
           <PinTree
             pins={pins}
+            nomNom={
+              eateries.length > 0
+                ? {
+                    count: eateries.length,
+                    ids: eateries.map(e => e.id),
+                    content: (
+                      <EateryTree
+                        eateries={eateries}
+                        reviews={eateryReviews}
+                        openDay={openDay}
+                        onOpen={e => {
+                          if (onOpenPlace) return onOpenPlace('eatery', e)
+                          onFocus(e)
+                          onEateryEdit({ mode: 'edit', id: e.id })
+                        }}
+                        onAddToDay={onAddToDay}
+                        picked={picked}
+                        showAll={showAll}
+                        onPick={onPick}
+                      />
+                    )
+                  }
+                : undefined
+            }
             reviews={reviews}
             openDay={openDay}
             onOpen={p => {
               if (onOpenPlace) return onOpenPlace('pin', p)
               onFocus(p)
               onEditing({ mode: 'edit', pinId: p.id })
-            }}
-            onAddToDay={onAddToDay}
-            picked={picked}
-            showAll={showAll}
-            onPick={onPick}
-          />
-        </div>
-      )}
-
-      {eateries.length > 0 && (
-        <div className={styles.list}>
-          <div className={styles.cat}>
-            <span className={styles.catDot} style={{ background: '#D85A30' }} />
-            <strong style={{ fontSize: 14 }}>Nom-Nom</strong>
-            <span className={styles.fromSavor}>from Savorlog</span>
-          </div>
-          <EateryTree
-            eateries={eateries}
-            reviews={eateryReviews}
-            openDay={openDay}
-            onOpen={e => {
-              if (onOpenPlace) return onOpenPlace('eatery', e)
-              onFocus(e)
-              onEateryEdit({ mode: 'edit', id: e.id })
             }}
             onAddToDay={onAddToDay}
             picked={picked}

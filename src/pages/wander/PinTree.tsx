@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { buildPinTree, type PinNode } from '../../lib/pinCatalog'
+import { buildPinTree, byLabel, categoryOf, type PinNode } from '../../lib/pinCatalog'
 import { flowerSvg, BADGE } from '../../lib/pinDraw'
 import { pinBadge, type Pin, type Review } from '../../lib/pins'
 import type { StopKind } from '../../lib/itinerary'
@@ -16,6 +16,7 @@ const STEP = 22
 
 export default function PinTree({
   pins,
+  nomNom,
   reviews,
   openDay,
   onOpen,
@@ -33,8 +34,19 @@ export default function PinTree({
   picked: Set<string>
   showAll: boolean
   onPick: (ids: string[]) => void
+  /**
+   * The trip's Savorlog eateries as the Nom-Nom category, in its A–Z place
+   * with the others (Hanh, session 10): their count and ids for the row and
+   * its eye, and the eatery tree shown when it's opened. Any older food trip
+   * pins sit under the same row.
+   */
+  nomNom?: { count: number; ids: string[]; content: React.ReactNode }
 }) {
-  const tree = buildPinTree(pins)
+  const built = buildPinTree(pins)
+  const food = categoryOf('food')!
+  const tree = nomNom && !built.some(n => n.key === 'food')
+    ? [...built, { key: 'food', label: food.label, color: food.color, count: 0, children: [], pins: [] } as PinNode<Pin>].sort(byLabel)
+    : built
   const [open, setOpen] = useState<Set<string>>(new Set())
   const toggle = (key: string) =>
     setOpen(s => {
@@ -49,7 +61,9 @@ export default function PinTree({
   const walk = (nodes: PinNode<Pin>[], depth: number) => {
     for (const n of nodes) {
       const expanded = open.has(n.key)
-      const ids = idsOf(n)
+      const isNomNom = depth === 0 && n.key === 'food' && nomNom
+      const ids = isNomNom ? [...nomNom.ids, ...idsOf(n)] : idsOf(n)
+      const count = isNomNom ? n.count + nomNom.count : n.count
       rows.push(
         <li key={n.key} className={styles.nodeLi}>
           <button
@@ -57,18 +71,19 @@ export default function PinTree({
             className={styles.node}
             style={{ paddingLeft: 6 + depth * STEP }}
             aria-expanded={expanded}
-            aria-label={`${n.label}, ${n.count} ${n.count === 1 ? 'pin' : 'pins'}`}
+            aria-label={`${n.label}, ${count} ${count === 1 ? 'pin' : 'pins'}`}
             onClick={() => toggle(n.key)}
           >
             <span className={styles.arrow} aria-hidden="true">{expanded ? '▾' : '▸'}</span>
             <span className={styles.catDot} style={{ background: n.color }} />
             <span className={styles.name}>{n.label}</span>
-            <span className={styles.count}>{n.count}</span>
+            <span className={styles.count}>{count}</span>
           </button>
           <EyeButton label={n.label} state={eyeState(ids, picked, showAll)} onClick={() => onPick(ids)} />
         </li>
       )
       if (expanded) {
+        if (isNomNom) rows.push(<li key="nomnom-eateries" style={{ paddingLeft: 6 + (depth + 1) * STEP }}>{nomNom.content}</li>)
         walk(n.children, depth + 1)
         for (const p of n.pins) rows.push(leafRow(p, depth + 1))
       }

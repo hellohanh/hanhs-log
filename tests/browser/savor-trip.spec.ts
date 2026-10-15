@@ -11,11 +11,15 @@ const EATERY = {
 }
 
 test('the trip Places panel shows catalogue eateries from Savorlog', async ({ page }) => {
-  await fakeSupabase(page, { eateries: [EATERY] })
+  const pin = (id: string, name: string, category: string) =>
+    ({ id, trip_id: 'trip-saigon', google_place_id: `g-${id}`, name, address: null, lat: 10.77, lng: 106.69, category, subcategory: null, subsubcategory: null, michelin: null, michelin_year: null, street_food: false, fine_dining: false, note: null })
+  await fakeSupabase(page, { eateries: [EATERY], pins: [pin('s1', 'Bến Thành Market', 'shopping'), pin('a1', 'Tân Sơn Nhất', 'airport')] })
   await page.goto('./wander/trip/trip-saigon')
   const places = page.getByRole('complementary', { name: 'Places' })
-  await expect(places.getByText('Nom-Nom')).toBeVisible()
-  await expect(places.getByText('from Savorlog')).toBeVisible()
+  // Nom-Nom is a category like the others, in A–Z order, with no "from Savorlog" chip (session 10).
+  await expect(places.getByRole('button', { name: /, \d+ pins?$/ })).toHaveText([/Airport/, /Nom-Nom/, /Shopping/])
+  await expect(places.getByText('from Savorlog')).toHaveCount(0)
+  await places.getByRole('button', { name: /^Nom-Nom, 1 pin/ }).click()
   await places.getByRole('button', { name: /^Vietnamese/ }).click()
   await places.getByRole('button', { name: /^Phở/ }).click()
   await places.getByRole('button', { name: /Phở Hòa Pasteur/ }).first().click()
@@ -64,6 +68,7 @@ test('a catalogue eatery can be scheduled onto an itinerary day (M5.4)', async (
 
   // Expand the Nom-Nom tree and add the eatery to the open day.
   const places = page.getByRole('complementary', { name: 'Places' })
+  await places.getByRole('button', { name: /^Nom-Nom,/ }).click()
   await places.getByRole('button', { name: /^Vietnamese/ }).click()
   await places.getByRole('button', { name: /^Phở/ }).click()
   const add = places.getByRole('button', { name: /Add Phở Hòa Pasteur to/ })
