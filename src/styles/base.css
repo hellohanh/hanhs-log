@@ -94,3 +94,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   --font-body: 'Segoe UI Web', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-family: var(--font-body);
 }
+
+/* The map pin popup (session 10): Google's popup box scrolls sideways when
+   its content is a hair too wide; the content wraps instead. */
+.gm-style .gm-style-iw-d { overflow-x: hidden !important; }
+.gm-style .gm-style-iw-c { max-width: calc(100vw - 32px) !important; }

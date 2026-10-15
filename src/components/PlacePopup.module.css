@@ -1,4 +1,4 @@
-.pop { position: relative; width: 280px; max-width: 72vw; padding: 2px 2px 4px; color: #1f1d1a; font-family: inherit; font-size: 14px; line-height: 1.45; }
+.pop { position: relative; box-sizing: border-box; width: 310px; max-width: calc(100vw - 80px); padding: 2px 2px 4px; color: #1f1d1a; font-family: 'Segoe UI Web', 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
 .x { position: absolute; top: -2px; right: -4px; width: 26px; height: 26px; border: 0; border-radius: 50%; background: transparent; color: #6b665e; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .x:hover { background: #f1eee8; }
 .title { display: flex; align-items: center; gap: 6px; padding-right: 26px; margin-bottom: 6px; }
@@ -8,12 +8,13 @@
 .bin { color: #b2433f; }
 .line { display: flex; gap: 8px; margin: 4px 0 0; }
 .line span { flex: none; width: 16px; text-align: center; }
-.line a { color: #1a6fd1; }
+.line a { color: #1a6fd1; overflow-wrap: anywhere; }
+.line span:first-child + * { min-width: 0; }
 .muted { color: #8a8780; margin: 4px 0 0; }
 .hr { border-top: 1px solid #e6e1d8; margin: 10px 0 8px; }
 .add { border: 0; background: none; padding: 0; color: #1a6fd1; font: inherit; cursor: pointer; }
 .noteText { display: block; width: 100%; text-align: left; border: 0; border-radius: 8px; background: #f6f3ee; padding: 7px 9px; color: inherit; font: inherit; cursor: text; white-space: pre-wrap; }
-.note { width: 100%; box-sizing: border-box; border: 1px solid #d9d3c8; border-radius: 8px; padding: 7px 9px; font: inherit; resize: vertical; }
+.note { font-family: inherit; width: 100%; box-sizing: border-box; border: 1px solid #d9d3c8; border-radius: 8px; padding: 7px 9px; font: inherit; resize: vertical; }
 .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: #fbeceb; border-radius: 8px; padding: 8px; margin: 6px 0; font-size: 13px; }
 .err { color: #b2433f; font-size: 13px; margin: 6px 0 0; }
