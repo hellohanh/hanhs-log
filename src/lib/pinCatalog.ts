@@ -40,8 +40,25 @@ export function slug(label: string): string {
     .replace(/^-|-$/g, '')
 }
 
-const s = (label: string, icon: string, color: string, leaves?: Leaf[]): Sub => ({ key: slug(label), label, icon, color, leaves })
-const l = (label: string, icon: string): Leaf => ({ key: slug(label), label, icon })
+// Keys come from the original wording (they're stored on every pin, so they
+// never change); what people see is in Title Case (Hanh, session 10).
+const s = (label: string, icon: string, color: string, leaves?: Leaf[]): Sub => ({ key: slug(label), label: labelCase(label), icon, color, leaves })
+const l = (label: string, icon: string): Leaf => ({ key: slug(label), label: labelCase(label), icon })
+
+/**
+ * Title Case for catalogue labels (session 10): every word starts with a
+ * capital ("Mall / Department Store", "Bánh Mì"), small joining words stay
+ * lower-case after the first word ("Mac & Cheese", "Biscuits & Gravy"), and
+ * capitals already there are kept ("Korean BBQ"). Hyphenated and
+ * apostrophe words keep their own spelling ("Tex-Mex", "Po'boy").
+ */
+export function labelCase(label: string): string {
+  const small = new Set(['of', 'the', 'and', 'in', 'on', 'at', 'by', 'for', 'to', 'de', 'la', 'a', 'an'])
+  return label
+    .split(/(\s+|\/|\()/)
+    .map((w, i) => (i > 0 && small.has(w.toLocaleLowerCase()) ? w : w ? w[0].toLocaleUpperCase() + w.slice(1) : w))
+    .join('')
+}
 
 // ---- Nom-Nom (E32): cuisine colour by region, dish icon by dish family ----
 const REGION = {
@@ -225,7 +242,7 @@ type Placed = { category: string; subcategory: string | null; subsubcategory: st
 
 /**
  * Groups pins into the collapsible tree (category › sub › sub-sub › pins),
- * in catalogue order, only including branches that have pins (E30, E53). A pin
+ * A–Z at every level (session 10), only including branches that have pins (E30, E53). A pin
  * whose deeper level isn't set — or uses a key not in the catalogue — sits
  * directly under its parent.
  */
@@ -252,8 +269,22 @@ export function buildPinTree<T extends Placed>(pins: T[]): PinNode<T>[] {
     }
     out.push(catNode)
   }
+  // A–Z at every level, the places too (Hanh, session 10).
+  const sortNode = (n: PinNode<T>) => {
+    n.children.sort(byLabel)
+    n.children.forEach(sortNode)
+    n.pins.sort(byPlaceName)
+  }
+  out.sort(byLabel)
+  out.forEach(sortNode)
   return out
 }
+
+const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
+/** A–Z by label, ignoring accents and capitals. */
+export const byLabel = (a: { label: string }, b: { label: string }) => collator.compare(a.label, b.label)
+/** A–Z by a place's name (rows without a name keep their order). */
+export const byPlaceName = (a: unknown, b: unknown) => collator.compare((a as { name?: string }).name ?? '', (b as { name?: string }).name ?? '')
 
 /** What a pin looks like from its category path: colour, icon and a label like "Nom-Nom › Vietnamese › Phở". */
 export function pinLook(p: CategoryPath): { color: string; icon: string; label: string; parts: string[] } {

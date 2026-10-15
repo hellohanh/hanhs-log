@@ -2,7 +2,7 @@
 .x { position: absolute; top: -2px; right: -4px; width: 26px; height: 26px; border: 0; border-radius: 50%; background: transparent; color: #6b665e; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .x:hover { background: #f1eee8; }
 .title { display: flex; align-items: center; gap: 6px; padding-right: 26px; margin-bottom: 6px; }
-.title b { font-size: 17px; }
+.title b { font-size: 17px; font-weight: 700; /* Google's box thins <b>; set it outright (session 10) */ }
 .icon { width: 26px; height: 26px; flex: none; border: 0; border-radius: 50%; background: transparent; color: #6b665e; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .icon:hover { background: #f1eee8; }
 .bin { color: #b2433f; }
