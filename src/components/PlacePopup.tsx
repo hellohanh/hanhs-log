@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { placeDetails, type PlaceDetails } from '../lib/placeDetails'
+import { placeDetails, siteLabel, type PlaceDetails } from '../lib/placeDetails'
 import styles from './PlacePopup.module.css'
 
 // The popup on a map pin (Hanh, session 10, approved preview). Clicking a pin
@@ -91,6 +91,9 @@ export default function PlacePopup({
           {info.address && <p className={styles.line}><span aria-hidden="true">📍</span>{info.address}</p>}
           {info.phone && (
             <p className={styles.line}><span aria-hidden="true">📞</span><a href={`tel:${info.tel}`}>{info.phone}</a></p>
+          )}
+          {info.website && (
+            <p className={styles.line}><span aria-hidden="true">🌐</span><a href={info.website} target="_blank" rel="noreferrer">{siteLabel(info.website)}</a></p>
           )}
           <p className={styles.line}><span aria-hidden="true">↗</span><a href={info.mapsUrl} target="_blank" rel="noreferrer">View in Google Maps</a></p>
         </>

@@ -567,3 +567,18 @@ test('time entry takes any minute, 00 to 59 (session 10)', async ({ page }) => {
   await setTime(from, 'Time', '07:43')
   await expectTime(from, 'Time', '07:43')
 })
+
+test('centring in the visible part of the map (session 10)', async () => {
+  const { centreFor } = await import('../../src/lib/mapCentre')
+  const saigon = { lat: 10.7769, lng: 106.7009 }
+  // No offset: the centre is the place itself.
+  const same = centreFor(saigon, 13, 0)
+  expect(same.lat).toBeCloseTo(saigon.lat, 6)
+  expect(same.lng).toBeCloseTo(saigon.lng, 6)
+  // Half a 420 px panel at zoom 13: the centre moves 210 px east (≈ 0.0721°).
+  const right = centreFor(saigon, 13, 210)
+  expect(right.lat).toBeCloseTo(saigon.lat, 6)
+  expect(right.lng - saigon.lng).toBeCloseTo((210 / (256 * 2 ** 13)) * 360, 6)
+  // A place shown below the middle: the centre is north of it.
+  expect(centreFor(saigon, 15, 0, 100).lat).toBeGreaterThan(saigon.lat)
+})

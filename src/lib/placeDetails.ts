@@ -7,6 +7,8 @@ export interface PlaceDetails {
   phone: string | null
   /** Digits and + only, for a tel: link. */
   tel: string | null
+  /** The place's own website, if Google has one. */
+  website: string | null
   mapsUrl: string
 }
 
@@ -17,23 +19,29 @@ export function mapsLink(placeId: string | null, lat: number, lng: number): stri
 }
 
 export async function placeDetails(placeId: string | null, at: { lat: number; lng: number }): Promise<PlaceDetails> {
-  const fallback: PlaceDetails = { address: null, phone: null, tel: null, mapsUrl: mapsLink(placeId, at.lat, at.lng) }
+  const fallback: PlaceDetails = { address: null, phone: null, tel: null, website: null, mapsUrl: mapsLink(placeId, at.lat, at.lng) }
   const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? ''
   if (!placeId || !key) return fallback
   try {
     const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
-      headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'formattedAddress,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri' }
+      headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'formattedAddress,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,websiteUri' }
     })
     if (!res.ok) return fallback
-    const p = (await res.json()) as { formattedAddress?: string; nationalPhoneNumber?: string; internationalPhoneNumber?: string; googleMapsUri?: string }
+    const p = (await res.json()) as { formattedAddress?: string; nationalPhoneNumber?: string; internationalPhoneNumber?: string; googleMapsUri?: string; websiteUri?: string }
     const phone = p.internationalPhoneNumber ?? p.nationalPhoneNumber ?? null
     return {
       address: p.formattedAddress ?? null,
       phone,
       tel: phone ? phone.replace(/[^\d+]/g, '') : null,
+      website: p.websiteUri ?? null,
       mapsUrl: p.googleMapsUri ?? fallback.mapsUrl
     }
   } catch {
     return fallback
   }
+}
+
+/** A website shown without https:// or a trailing slash. */
+export function siteLabel(url: string): string {
+  return url.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
 }
