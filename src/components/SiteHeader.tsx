@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { useIsPhone } from '../lib/usePhone'
+import PhoneMenu from './PhoneMenu'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
 import styles from './SiteHeader.module.css'
@@ -27,19 +29,37 @@ export default function SiteHeader() {
   const { session, signOut } = useAuth()
   const { isDark, toggle } = useTheme()
   const ref = useRef<HTMLElement>(null)
+  // Phones (session 10): one slim row with a ☰ menu; on a trip the header
+  // merges into the trip's own title bar, so it isn't drawn at all.
+  const phone = useIsPhone()
+  const { pathname } = useLocation()
+  const hidden = phone && /^\/wander\/trip\//.test(pathname)
 
   // The header wraps to two rows on phones; publish its real height so
   // pinned content (the splash picture) sits just below it.
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!el) {
+      document.documentElement.style.setProperty('--site-header-h', '0px')
+      return
+    }
     const publish = () => document.documentElement.style.setProperty('--site-header-h', `${el.offsetHeight}px`)
     publish()
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(publish)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [hidden, phone])
+
+  if (hidden) return null
+  if (phone) {
+    return (
+      <header ref={ref} className={`${styles.header} ${styles.phone}`}>
+        <Link to="/" className={styles.wordmark}>Hanh's Log</Link>
+        <PhoneMenu />
+      </header>
+    )
+  }
 
   return (
     <header ref={ref} className={styles.header}>

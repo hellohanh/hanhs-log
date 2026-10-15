@@ -24,6 +24,13 @@ import PlacesPanel, { type Editing, type EateryEditing } from './PlacesPanel'
 import { fetchTripEateries, fetchEateryReviews, asReviews, requestEateryDeletion, saveEateryNote, type Eatery, type EateryReview } from '../../lib/eateries'
 import { deletePin, fetchPins, fetchReviews, pinBadge, pinFaded, savePinNote, type Pin, type Review } from '../../lib/pins'
 import PlacePopup from '../../components/PlacePopup'
+import BottomSheet, { type Snap } from '../../components/BottomSheet'
+import PhoneMenu from '../../components/PhoneMenu'
+import { useIsPhone } from '../../lib/usePhone'
+import { useBackStep } from '../../lib/useBackStep'
+
+/** How far above the middle a place sits when its phone card opens, so the card doesn't cover it. */
+const PHONE_CARD_LIFT = 170
 import { togglePicks } from '../../lib/pinRules'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml } from '../../lib/pinDraw'
@@ -107,7 +114,16 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const [popup, setPopup] = useState<{ kind: 'pin' | 'eatery'; id: string } | null>(null)
   const [michelinOnly, setMichelinOnly] = useState(false)
   const [pinEdit, setPinEdit] = useState<Editing>(null)
-  const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null)
+  const [focus, setFocus] = useState<{ lat: number; lng: number; dy?: number } | null>(null)
+  // Phone layout (session 10, approved mockups): map is the screen; Places and
+  // Itinerary are bottom sheets picked from the bottom bar. A trip opens on
+  // the Itinerary at half height (today during the trip).
+  const phone = useIsPhone()
+  const [tab, setTab] = useState<'places' | 'itinerary'>('itinerary')
+  const [snap, setSnap] = useState<Snap>('half')
+  const [routeOn, setRouteOn] = useState(false)
+  const [tripMenu, setTripMenu] = useState(false)
+  const [lookReq, setLookReq] = useState(0)
   // Itinerary ↔ Places: the open day (for "Add to day"), a request to schedule
   // a pin on it, and OTD Pins (the day's pin ids to keep bright on the map).
   const [openDay, setOpenDay] = useState<{ id: string; label: string } | null>(null)
@@ -212,6 +228,18 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
     fetchMyName(userId).then(setMyName, () => setMyName(undefined))
   }, [tripId, userId, loadPeople, loadCity])
 
+  // Phone back gesture: close the top layer first (session 10).
+  const formOpen = !!pinEdit || !!eateryEdit || editing
+  const layer = formOpen ? 'form' : popup ? 'card' : tripMenu ? 'menu' : snap === 'full' ? 'full' : null
+  useBackStep(phone, layer, () => {
+    if (editing) setEditing(false)
+    else if (pinEdit) setPinEdit(null)
+    else if (eateryEdit) setEateryEdit(null)
+    else if (popup) setPopup(null)
+    else if (tripMenu) setTripMenu(false)
+    else setSnap('half')
+  })
+
   if (load.state === 'loading') return <Message text="Loading the trip…" />
   if (load.state === 'missing') {
     return <Message text="Can't open this trip. You may not be on it, or the link may be wrong." />
@@ -223,6 +251,190 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const dates = tripDates(trip.start_date, trip.end_date, todayISO())
   const shown = people.slice(0, 3)
   const extra = people.length - shown.length
+
+  // ---- Phone (session 10) ----
+  if (phone) {
+    const card = popupItem && popup && (
+      <div className={styles.pCard}>
+        <PlacePopup
+          fill
+          place={{
+            name: popupItem.name,
+            googlePlaceId: popupItem.google_place_id,
+            lat: popupItem.lat,
+            lng: popupItem.lng,
+            note: popupItem.note,
+            deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list."
+          }}
+          onClose={() => setPopup(null)}
+          onEdit={() => {
+            setPopup(null)
+            if (popup.kind === 'eatery') setEateryEdit({ mode: 'edit', id: popup.id })
+            else setPinEdit({ mode: 'edit', pinId: popup.id })
+            setTab('places')
+            setSnap('full')
+          }}
+          onDelete={async () => {
+            if (popup.kind === 'pin') { await deletePin(popup.id); setPopup(null); await loadPins() }
+            else { await requestEateryDeletion(popup.id); setPopup(null); await loadEateries() }
+          }}
+          onSaveNote={async note => {
+            if (popup.kind === 'pin') { await savePinNote(popup.id, note); await loadPins() }
+            else { await saveEateryNote(popup.id, note); await loadEateries() }
+          }}
+        />
+      </div>
+    )
+    // A place from the list or a pin: the sheet drops, the map centres the
+    // place above its card, and the card opens.
+    const showPlace = (kind: 'pin' | 'eatery', at: { id: string; lat: number; lng: number }) => {
+      setSnap('peek')
+      setFocus({ lat: at.lat, lng: at.lng, dy: -PHONE_CARD_LIFT })
+      setPopup({ kind, id: at.id })
+    }
+    const pickTab = (t: 'places' | 'itinerary') => {
+      setPopup(null)
+      if (t !== tab) { setTab(t); setSnap('half') }
+      else setSnap(snap === 'peek' ? 'half' : 'peek')
+    }
+    return (
+      <main className={`segoe ${styles.pPage}`}>
+        <header className={styles.pBar}>
+          <Link to="/wander" className={styles.pBack} aria-label="Your trips">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
+          </Link>
+          <div className={styles.pTitles}>
+            <h1 className={styles.pH1}>{trip.name}</h1>
+            <span className={styles.pMeta}>{dates}{people.length ? ` · ${people.length} ${people.length === 1 ? 'person' : 'people'}` : ''}</span>
+          </div>
+          <div className={styles.pMenuWrap}>
+            <button type="button" className={styles.pIcon} aria-label="Trip menu" aria-expanded={tripMenu} onClick={() => setTripMenu(m => !m)}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+            </button>
+            {tripMenu && (
+              <div className={styles.pMenu} role="menu">
+                <button type="button" role="menuitem" onClick={() => { setTripMenu(false); setEditing(true) }}>Edit trip</button>
+                <button type="button" role="menuitem" onClick={() => { setTripMenu(false); setSharing(true) }}>Share &amp; people</button>
+                <button type="button" role="menuitem" onClick={() => { setTripMenu(false); setLookReq(n => n + 1) }}>Map look &amp; GPins</button>
+              </div>
+            )}
+          </div>
+          <PhoneMenu />
+        </header>
+
+        <div className={styles.pBody}>
+          <TripMap
+            city={city}
+            pins={allMapPins}
+            route={routeOn ? dayRoute : null}
+            focus={focus}
+            phone
+            openLook={lookReq}
+            routeOn={routeOn}
+            onRouteToggle={() => setRouteOn(r => !r)}
+            onPinClick={id => {
+              const kind = eateries.some(e => e.id === id) ? 'eatery' : 'pin'
+              const at = kind === 'eatery' ? eateries.find(e => e.id === id) : pins.find(p => p.id === id)
+              if (at) showPlace(kind, at)
+            }}
+            onMapClick={() => { setPopup(null); setSnap('peek'); setTripMenu(false) }}
+          />
+          <BottomSheet label="Places" snap={snap} onSnap={setSnap} hidden={tab !== 'places' || !!card}>
+            <PlacesPanel
+              tripId={trip.id}
+              userId={userId}
+              people={people}
+              pins={pins}
+              reviews={reviews}
+              eateries={eateries}
+              eateryReviews={eateryReviews}
+              loadError={pinsError}
+              showAll={showAll}
+              onShowAll={on => { setShowAll(on); if (on) setPicked(new Set()) }}
+              picked={picked}
+              onPick={ids => { setPicked(p => togglePicks(p, ids, showAll)); setShowAll(false) }}
+              michelinOnly={michelinOnly}
+              onMichelinOnly={setMichelinOnly}
+              editing={pinEdit}
+              onEditing={e => { setPinEdit(e); if (e) setSnap('full') }}
+              eateryEdit={eateryEdit}
+              onEateryEdit={e => { setEateryEdit(e); if (e) setSnap('full') }}
+              onSaved={() => loadPins()}
+              onEateriesSaved={() => loadEateries()}
+              onFocus={at => setFocus({ lat: at.lat, lng: at.lng })}
+              onOpenPlace={hasMap ? (kind, item) => showPlace(kind, item) : undefined}
+              near={city.state === 'ready' ? { lat: city.city.lat, lng: city.city.lng } : undefined}
+              openDay={openDay}
+              onAddToDay={(id, kind) => setAddReq(r => ({ id, kind, n: (r?.n ?? 0) + 1 }))}
+            />
+          </BottomSheet>
+          <BottomSheet label="Itinerary" snap={snap} onSnap={setSnap} hidden={tab !== 'itinerary' || !!card}>
+            <ItineraryPanel
+              tripId={trip.id}
+              start={trip.start_date}
+              end={trip.end_date}
+              wide={false}
+              phone
+              routeOn={routeOn}
+              pins={pins}
+              reviews={reviews}
+              eateries={eateries}
+              eateryReviews={eateryReviews}
+              addRequest={addReq}
+              onWide={() => undefined}
+              onClose={() => setSnap('peek')}
+              onOpenDay={setOpenDay}
+              onOtdPins={setOtdPinIds}
+              onDayRoute={setDayRoute}
+            />
+          </BottomSheet>
+          {card}
+        </div>
+
+        <nav className={styles.pNav} aria-label="Trip views">
+          <button type="button" aria-pressed={tab === 'places'} onClick={() => pickTab('places')}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+            Places
+          </button>
+          <button type="button" aria-pressed={tab === 'itinerary'} onClick={() => pickTab('itinerary')}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></svg>
+            Itinerary
+          </button>
+        </nav>
+
+        {editing && (
+          <div className={styles.pOverlay} role="dialog" aria-label="Edit trip">
+            <EditTrip
+              trip={trip}
+              onCancel={() => setEditing(false)}
+              onSaved={(t, found) => {
+                setLoad({ state: 'ready', trip: t })
+                setEditing(false)
+                if (found) setCity({ state: 'ready', city: found })
+                else if (mapQuery(t) !== mapQuery(trip)) loadCity(t)
+              }}
+            />
+          </div>
+        )}
+        {sharing && (
+          <ShareDialog
+            trip={trip}
+            people={people}
+            isOwner={isOwner}
+            myName={myName ?? null}
+            userId={userId}
+            onTokenChange={token => setLoad({ state: 'ready', trip: { ...trip, invite_token: token } })}
+            onPeopleChange={loadPeople}
+            onNameChange={name => { setMyName(name); loadPeople() }}
+            onClose={() => setSharing(false)}
+          />
+        )}
+        {myName === null && !nameLater && !sharing && (
+          <NamePrompt userId={userId} onSaved={name => { setMyName(name); loadPeople() }} onLater={() => setNameLater(true)} />
+        )}
+      </main>
+    )
+  }
 
   return (
     <main className={`segoe ${styles.page}`}>

@@ -39,7 +39,12 @@ export default function TripMap({
   focus,
   popup,
   popupAt,
-  onPopupClose
+  onPopupClose,
+  phone = false,
+  routeOn,
+  onRouteToggle,
+  onMapClick,
+  openLook = 0
 }: {
   city: CityState
   rightInset?: number
@@ -48,11 +53,23 @@ export default function TripMap({
   route?: RouteSeg[] | null
   onPinClick?: (id: string) => void
   /** Pan here (a new object each time, so the same place can be re-focused). */
-  focus?: { lat: number; lng: number } | null
+  focus?: { lat: number; lng: number; dy?: number } | null
   /** The pin popup (session 10): what to show, and the pin it hangs from. */
   popup?: React.ReactNode
   popupAt?: { lat: number; lng: number } | null
   onPopupClose?: () => void
+  /**
+   * Phone layout (session 10, approved): three round buttons on the right —
+   * Map look (with GPins and Districts inside its panel), My location, Day
+   * route — instead of the chips and the camera control.
+   */
+  phone?: boolean
+  routeOn?: boolean
+  onRouteToggle?: () => void
+  /** A tap on the map itself (not a pin). */
+  onMapClick?: () => void
+  /** Bumped by the phone's ⋯ menu to open the Map look panel. */
+  openLook?: number
 }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -166,7 +183,7 @@ export default function TripMap({
   useEffect(() => {
     if (!map || !focus) return
     if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
-    map.panTo(centreFor(focus, map.getZoom() ?? 15, insetRef.current / 2))
+    map.panTo(centreFor(focus, map.getZoom() ?? 15, insetRef.current / 2, focus.dy ?? 0))
   }, [map, focus])
 
   // Opening or closing the itinerary panel shifts the map with it, so what
@@ -262,6 +279,38 @@ export default function TripMap({
 
   const defaultName = MAP_LOOKS.find(x => x.key === DEFAULT_LOOK[mode])!.name
 
+  useEffect(() => { if (openLook) setOpen(true) }, [openLook])
+
+  // A tap on the map (not a pin): the phone drops its sheet and closes a card.
+  const mapClickRef = useRef(onMapClick)
+  mapClickRef.current = onMapClick
+  useEffect(() => {
+    if (!map) return
+    const l = map.addListener('click', () => mapClickRef.current?.())
+    return () => l.remove()
+  }, [map])
+
+  // My location (phone, session 10): a blue dot, and the map centres on it.
+  const [locating, setLocating] = useState('')
+  const meDot = useRef<google.maps.Circle | null>(null)
+  const locate = () => {
+    if (!map || !navigator.geolocation) return setLocating("Your phone didn't share its location.")
+    setLocating('Finding you…')
+    navigator.geolocation.getCurrentPosition(
+      p => {
+        const at = { lat: p.coords.latitude, lng: p.coords.longitude }
+        meDot.current?.setMap(null)
+        meDot.current = new google.maps.Circle({ map, center: at, radius: Math.max(12, p.coords.accuracy / 4), fillColor: '#1A8CFF', fillOpacity: 0.9, strokeColor: '#FFFFFF', strokeWeight: 3, clickable: false, zIndex: 9 })
+        map.panTo(at)
+        if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
+        setLocating('')
+      },
+      () => setLocating("Couldn't get your location. Check the browser's location permission."),
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+  useEffect(() => () => { meDot.current?.setMap(null) }, [])
+
   // The pin popup (session 10).
   const popupEl = useMapPopup(map, popup ? popupAt ?? null : null, () => onPopupClose?.(), rightInset)
 
@@ -270,8 +319,24 @@ export default function TripMap({
       {popupEl && popup ? createPortal(popup, popupEl) : null}
       <div ref={box} className={styles.map} role="region" aria-label="Map" />
       {notice && <p className={styles.notice} role="status">{notice}</p>}
-      {map && <CameraControl map={map} home={home} tiltable={tiltable} right={rightInset + 16} inset={rightInset} />}
-      {ready && (
+      {map && !phone && <CameraControl map={map} home={home} tiltable={tiltable} right={rightInset + 16} inset={rightInset} />}
+      {ready && phone && (
+        <div className={styles.phoneCtl}>
+          <button type="button" className={styles.chip} aria-expanded={open} aria-controls="map-look-panel" aria-label={`Map look: ${look.name}`} onClick={() => setOpen(o => !o)}>
+            <MapIcon />
+          </button>
+          <button type="button" className={styles.chip} aria-label="My location" onClick={locate}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>
+          </button>
+          {onRouteToggle && (
+            <button type="button" className={`${styles.chip} ${routeOn ? styles.chipOn : ''}`} aria-pressed={!!routeOn} aria-label="Day route" onClick={onRouteToggle}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="2" /><circle cx="18" cy="5" r="2" /><path d="M8 19h7a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7" /></svg>
+            </button>
+          )}
+        </div>
+      )}
+      {locating && <p className={styles.notice} role="status">{locating}</p>}
+      {ready && !phone && (
         <div className={styles.controls}>
           <button
             ref={lookBtnRef}
@@ -325,6 +390,28 @@ export default function TripMap({
               </svg>
             </button>
           </div>
+          {phone && (
+            <div className={styles.phoneRow}>
+              <button
+                type="button"
+                className={`${styles.chip} ${styles.chipText} ${pinsLocked ? styles.chipOff : ''}`}
+                aria-pressed={pinsLocked ? true : pins}
+                aria-disabled={pinsLocked || undefined}
+                onClick={() => {
+                  if (pinsLocked) return
+                  savePins(!pins)
+                  setPins(!pins)
+                }}
+              >
+                {pinsLocked || pins ? 'GPins ON' : 'GPins OFF'}
+              </button>
+              {districtsInView && (
+                <button type="button" className={`${styles.chip} ${styles.chipText}`} aria-pressed={showDistricts} onClick={() => setShowDistricts(s => !s)}>
+                  Districts
+                </button>
+              )}
+            </div>
+          )}
           <div className={styles.tiles}>
             {MAP_LOOKS.map(l => (
               <button

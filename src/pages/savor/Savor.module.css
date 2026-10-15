@@ -165,3 +165,4 @@
   .side { width: auto; border-right: 0; border-bottom: 1px solid var(--rule); }
   .mapArea { min-height: 360px; }
 }
+@media (max-width: 760px) { .node, .row { min-height: 48px; } .addDay { width: 36px; height: 36px; } }

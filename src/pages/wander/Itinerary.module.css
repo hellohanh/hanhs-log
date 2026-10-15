@@ -312,3 +312,13 @@
 .copyList button:hover:not(:disabled) { border-color: var(--accent); }
 .copyList button:disabled { color: var(--muted); cursor: default; }
 .copyList span { font-size: 12px; color: var(--muted); }
+
+/* Phone (session 10, approved): the panel fills the Itinerary bottom sheet.
+   Day tabs are one row that swipes sideways; the timeline scrolls under them. */
+.phone { position: relative; inset: auto; width: 100%; height: 100%; max-width: none; border-left: 0; box-shadow: none; overflow: hidden; transition: none; }
+.phone .head { padding: 0 16px 8px; border-bottom: 0; }
+.phone .days { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; padding-top: 4px; }
+.phone .days::-webkit-scrollbar { display: none; }
+.phone .day { min-width: 64px; min-height: 52px; scroll-snap-align: center; }
+.phone .timeline { flex: 1 1 auto; min-height: 0; }
+.addBtn { min-height: 36px; padding: 0 14px; border: 1px solid var(--rule); border-radius: var(--pill); background: var(--surface); color: var(--accent); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }

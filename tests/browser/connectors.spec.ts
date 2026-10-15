@@ -1,6 +1,10 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import { fakeSupabase } from './fake-supabase'
 
+// The desktop trip layout. On the phone size the trip page is the map with
+// bottom sheets (session 10), covered in phone.spec.ts.
+test.beforeEach(({}, info) => { test.skip(info.project.name === 'phone', 'desktop trip layout; phone layout in phone.spec.ts') })
+
 // Connectors between a day's stops (M3 step 4): auto between consecutive
 // places, tap the badge to set/clear the mode. Times/distances come live from
 // Google (none in the test build → "no route"), so the caption format and the

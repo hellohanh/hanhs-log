@@ -120,5 +120,8 @@
 .confirm span { margin-right: auto; }
 
 @media (max-width: 760px) {
-  .side { width: auto; border-right: 0; border-bottom: 1px solid var(--rule); max-height: none; }
+  .side { width: auto; border-right: 0; border-bottom: 0; max-height: none; padding-top: 4px; }
+  /* Phone (session 10): rows and buttons big enough for a thumb (48 px rows). */
+  .node, .row { min-height: 48px; }
+  .addDay { width: 36px; height: 36px; }
 }

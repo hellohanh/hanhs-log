@@ -22,13 +22,16 @@ export default function PlacePopup({
   onClose,
   onEdit,
   onDelete,
-  onSaveNote
+  onSaveNote,
+  fill = false
 }: {
   place: PopupPlace
   onClose: () => void
   onEdit: () => void
   onDelete: () => Promise<void>
   onSaveNote: (note: string) => Promise<void>
+  /** Phone card (session 10): full width instead of the 310 px bubble. */
+  fill?: boolean
 }) {
   const [info, setInfo] = useState<PlaceDetails | null>(null)
   const [editingNote, setEditingNote] = useState(false)
@@ -62,7 +65,7 @@ export default function PlacePopup({
   }
 
   return (
-    <div className={styles.pop} role="dialog" aria-label={place.name}>
+    <div className={`${styles.pop} ${fill ? styles.fill : ''}`} role="dialog" aria-label={place.name}>
       <button type="button" className={styles.x} aria-label="Close" onClick={onClose}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </button>

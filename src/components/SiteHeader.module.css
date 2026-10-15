@@ -68,3 +68,7 @@
   text-decoration: none;
   cursor: pointer;
 }
+
+/* Phones (session 10): one slim row, the rest in the ☰ menu. */
+.phone { flex-wrap: nowrap; min-height: 56px; padding-top: 4px; padding-bottom: 4px; }
+.phone .wordmark { font-size: 21px; }

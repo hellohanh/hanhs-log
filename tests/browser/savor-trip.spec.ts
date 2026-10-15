@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { fakeSupabase } from './fake-supabase'
 
+// The desktop trip layout. On the phone size the trip page is the map with
+// bottom sheets (session 10), covered in phone.spec.ts.
+test.beforeEach(({}, info) => { test.skip(info.project.name === 'phone', 'desktop trip layout; phone layout in phone.spec.ts') })
+
 // Savorlog on trips (M5.2/5.3): a trip shows the catalogue's eateries (by city)
 // in a Nom-Nom section, and picking the Nom-Nom category while adding a place
 // hands off to the full Savorlog add panel (saving to the shared catalogue).

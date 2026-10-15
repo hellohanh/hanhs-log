@@ -56,7 +56,7 @@ import {
   legDurationParts
 } from '../../lib/itineraryLayout'
 import TravelForm from './TravelForm'
-import { fetchTrips, placeLabel, type TripSummary } from '../../lib/trips'
+import { fetchTrips, placeLabel, todayISO, type TripSummary } from '../../lib/trips'
 import { ActivityBlock, ActivityFields, AddPopup, usePopupStyle } from './ActivityBlock'
 import { ADD_SNAP_MIN, NEW_BLOCK_MIN, hhmm, minuteAt, toMin } from '../../lib/itineraryDays'
 import styles from './Itinerary.module.css'
@@ -85,7 +85,9 @@ export default function ItineraryPanel({
   onClose,
   onOpenDay,
   onOtdPins,
-  onDayRoute
+  onDayRoute,
+  phone = false,
+  routeOn
 }: {
   tripId: string
   start: string | null
@@ -105,6 +107,15 @@ export default function ItineraryPanel({
   onOtdPins: (pinIds: string[] | null) => void
   /** The day route to draw on the map (coloured per mode), or null when off/closed. */
   onDayRoute: (route: RouteSeg[] | null) => void
+  /**
+   * Phone layout (session 10, approved): shown inside a bottom sheet — no
+   * widen / close buttons, one row of day tabs that swipes sideways, an Add
+   * button, opens on today during the trip (else the first day), and blocks
+   * open on a tap instead of dragging.
+   */
+  phone?: boolean
+  /** The Day route switch when it lives elsewhere (the phone map button). */
+  routeOn?: boolean
 }) {
   const [days, setDays] = useState<ItineraryDay[] | null>(null)
   const [legs, setLegs] = useState<TravelLeg[]>([])
@@ -127,7 +138,8 @@ export default function ItineraryPanel({
   const [confirmDay, setConfirmDay] = useState(false)
   // Day route: off every visit; on draws the day's route on the map and fades
   // the other pins (Hanh, session 6 — supersedes the old OTD Pins).
-  const [showRoute, setShowRoute] = useState(false)
+  const [routeChecked, setShowRoute] = useState(false)
+  const showRoute = routeOn ?? routeChecked
   // Live Google leg routes (time + distance + road path), keyed by from>to:mode.
   const [legTimes, setLegTimes] = useState<Record<string, LegTime | null>>({})
   const wantLeg = useRef(new Set<string>())
@@ -167,11 +179,16 @@ export default function ItineraryPanel({
       setActs(allActs)
       setStops(allStops)
       setConnectors(await fetchConnectors(list.map(d => d.id)))
-      setSelected(s => (s && list.some(d => d.id === s) ? s : list[0]?.id ?? null))
+      setSelected(s => {
+        if (s && list.some(d => d.id === s)) return s
+        // On the phone a trip opens on today while it's under way (session 10).
+        const today = phone ? list.find(d => d.date === todayISO() && !d.repeat_after) : undefined
+        return (today ?? list[0])?.id ?? null
+      })
     } catch (e) {
       setError((e as Error).message)
     }
-  }, [tripId, start, end, loadLegs])
+  }, [tripId, start, end, loadLegs, phone])
 
   useEffect(() => {
     load()
@@ -231,6 +248,13 @@ export default function ItineraryPanel({
 
   const dayIndex = days?.findIndex(d => d.id === selected) ?? -1
   const day = days && dayIndex >= 0 ? days[dayIndex] : null
+
+  // Phone: the day tabs are one row; keep the open day in view (session 10).
+  const tabsRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!phone) return
+    tabsRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ inline: 'center', block: 'nearest' })
+  }, [phone, selected, days])
 
   // Start each day's timeline at 6:00, as in old Wanderlog.
   useEffect(() => {
@@ -398,11 +422,25 @@ export default function ItineraryPanel({
   }
 
   return (
-    <aside className={`${styles.panel} ${wide ? styles.wide : ''}`} aria-label="Itinerary">
+    <aside className={`${styles.panel} ${wide ? styles.wide : ''} ${phone ? styles.phone : ''}`} aria-label="Itinerary">
       <div className={styles.head}>
         <strong>Itinerary</strong>
-        <IconBtn label={wide ? 'Back to normal width' : 'Widen to 200%'} pressed={wide} onClick={onWide}><WidenIcon /></IconBtn>
-        <IconBtn label="Close the itinerary" onClick={onClose}><CloseIcon /></IconBtn>
+        {phone ? (
+          day && (
+            <button
+              type="button"
+              className={styles.addBtn}
+              onClick={() => { setForm(null); setEditing(null); setEditStop(null); setAdding({ start: 9 * 60, end: 9 * 60 + NEW_BLOCK_MIN }) }}
+            >
+              + Add
+            </button>
+          )
+        ) : (
+          <>
+            <IconBtn label={wide ? 'Back to normal width' : 'Widen to 200%'} pressed={wide} onClick={onWide}><WidenIcon /></IconBtn>
+            <IconBtn label="Close the itinerary" onClick={onClose}><CloseIcon /></IconBtn>
+          </>
+        )}
       </div>
 
       {error && <p className={styles.error} role="alert">Couldn't load the itinerary: {error}</p>}
@@ -410,7 +448,7 @@ export default function ItineraryPanel({
 
       {days && (
         <>
-          <div className={styles.days} role="tablist" aria-label="Days">
+          <div ref={tabsRef} className={styles.days} role="tablist" aria-label="Days">
             {days.map((d, i) => {
               const t = dayTab(d, i)
               return (
@@ -467,10 +505,12 @@ export default function ItineraryPanel({
           {day && (
             <>
               <div className={styles.tools}>
-                <label className={styles.showAll} title="Draw this day's route on the map and fade the other pins">
-                  <input type="checkbox" checked={showRoute} onChange={e => setShowRoute(e.target.checked)} /> Day route
-                </label>
-                <IconBtn label="Add travel (flight, train, bus, own transport)" onClick={() => setForm({ leg: null })}><PlaneIcon /></IconBtn>
+                {routeOn === undefined && (
+                  <label className={styles.showAll} title="Draw this day's route on the map and fade the other pins">
+                    <input type="checkbox" checked={showRoute} onChange={e => setShowRoute(e.target.checked)} /> Day route
+                  </label>
+                )}
+                {!phone && <IconBtn label="Add travel (flight, train, bus, own transport)" onClick={() => setForm({ leg: null })}><PlaneIcon /></IconBtn>}
                 <IconBtn label="Day note" pressed={noteOpen || !!day.note} onClick={() => setNoteOpen(o => !o)}><NoteIcon /></IconBtn>
                 {canDelete && <IconBtn label="Delete this day" onClick={() => setConfirmDay(true)}><TrashIcon /></IconBtn>}
               </div>

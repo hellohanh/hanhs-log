@@ -44,15 +44,23 @@ for (const p of pages) {
   })
 }
 
+// On a phone the header's links and the theme switch sit in the ☰ menu (session 10).
+async function openMenuOnPhone(page: import('@playwright/test').Page) {
+  const burger = page.getByRole('button', { name: 'Menu', exact: true })
+  if (await burger.isVisible()) await burger.click()
+}
+
 test('light/dark switch flips the theme and is remembered', async ({ page }) => {
   await page.goto('./')
   const html = page.locator('html')
   const toggle = page.getByTestId('theme-toggle')
+  await openMenuOnPhone(page)
   await toggle.click()
   const first = await html.getAttribute('data-theme')
   expect(first === 'dark' || first === 'light').toBe(true)
   await page.reload()
   await expect(html).toHaveAttribute('data-theme', first!)
+  await openMenuOnPhone(page)
   await toggle.click()
   await expect(html).toHaveAttribute('data-theme', first === 'dark' ? 'light' : 'dark')
 })
@@ -70,8 +78,10 @@ test('Wanderlog and Savorlog use Segoe UI; the splash and header keep the site f
 
 test('header links move between sections', async ({ page }) => {
   await page.goto('./')
+  await openMenuOnPhone(page)
   await page.getByRole('link', { name: 'Savorlog' }).first().click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Eateries')
+  await openMenuOnPhone(page)
   await page.getByRole('link', { name: 'Wanderlog' }).first().click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your trips')
 })

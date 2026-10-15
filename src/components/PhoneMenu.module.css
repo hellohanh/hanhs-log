@@ -1,0 +1,7 @@
+.wrap { position: relative; }
+.burger { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--pill); background: transparent; color: var(--ink); cursor: pointer; }
+.burger[aria-expanded='true'] { background: var(--surface); }
+.menu { position: absolute; right: 0; top: 48px; z-index: 40; min-width: 220px; padding: 6px 0; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22); }
+.item { min-height: 48px; display: flex; align-items: center; padding: 0 18px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 16px; text-align: left; text-decoration: none; cursor: pointer; }
+.item:hover { background: var(--ground); }
+.item[aria-current='page'] { color: var(--accent); }

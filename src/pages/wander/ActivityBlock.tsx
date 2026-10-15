@@ -1,3 +1,4 @@
+import { isPhone } from '../../lib/usePhone'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import TimeSelect from '../../components/TimeSelect'
 import type { Activity, StopItem, StopKind } from '../../lib/itinerary'
@@ -231,6 +232,22 @@ export function useTimeBlockDrag(
   const shown = live ?? { start: s0, end: e0 }
 
   useEffect(() => setLive(null), [startTime, endTime])
+
+  // Phone (session 10): a tap opens the block to change its times; no
+  // dragging, so a finger can scroll the timeline. A scroll gesture cancels
+  // the pointer, so only a real tap reaches onPointerUp.
+  if (isPhone()) {
+    const tap: Handlers = {
+      onPointerDown() {},
+      onPointerMove() {},
+      onPointerUp(e) {
+        e.stopPropagation()
+        onOpen()
+      }
+    }
+    const none: Handlers = { onPointerDown() {}, onPointerMove() {}, onPointerUp() {} }
+    return { shown, dragging: false, handlers: (part: Part) => (part === 'move' ? tap : none) }
+  }
 
   const handlers = (part: Part): Handlers => ({
     onPointerDown(e) {

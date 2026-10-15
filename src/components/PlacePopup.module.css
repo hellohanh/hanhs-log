@@ -18,3 +18,11 @@
 .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: #fbeceb; border-radius: 8px; padding: 8px; margin: 6px 0; font-size: 13px; }
 .err { color: #b2433f; font-size: 13px; margin: 6px 0 0; }
+
+/* Phone card (session 10): full width, the site's own colours. */
+.fill { width: 100%; max-width: none; color: var(--ink); font-size: 15px; }
+.fill .title b { font-size: 19px; }
+.fill .icon, .fill .x { width: 40px; height: 40px; }
+.fill .line { margin-top: 8px; }
+.fill .line a, .fill .add { color: #1a6fd1; }
+.fill .noteText { background: var(--ground); }
