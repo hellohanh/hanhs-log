@@ -25,11 +25,14 @@ export interface Frame {
 export default function SavorMap({
   pins,
   frame,
-  onPinClick
+  onPinClick,
+  onView
 }: {
   pins: MapPin[]
   frame?: Frame | null
   onPinClick?: (id: string) => void
+  /** The visible area after each pan or zoom (session 10: the list follows the map). */
+  onView?: (b: Bounds) => void
 }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -108,6 +111,18 @@ export default function SavorMap({
     if (!map) return
     map.setOptions(kind === 'flat' ? { mapTypeId: opts.mapTypeId, styles: opts.styles } : { mapTypeId: opts.mapTypeId })
   }, [map, kind, opts.mapTypeId, opts.styles])
+
+  // Tell the page what's in view once the map settles after a pan or zoom.
+  const onViewRef = useRef(onView)
+  onViewRef.current = onView
+  useEffect(() => {
+    if (!map) return
+    const l = map.addListener('idle', () => {
+      const b = map.getBounds()?.toJSON()
+      if (b) onViewRef.current?.(b)
+    })
+    return () => l.remove()
+  }, [map])
 
   // Frame the chosen place: a country to its mainland box, a city at its zoom.
   useEffect(() => {

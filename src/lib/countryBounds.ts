@@ -36,3 +36,9 @@ export function mainlandBounds(country: string): Bounds | null {
 export function within(b: Bounds, lat: number, lng: number): boolean {
   return lat >= b.south && lat <= b.north && lng >= b.west && lng <= b.east
 }
+
+/** Is a point inside the map's visible area? Handles a view across the 180° line (Pacific). */
+export function inView(b: Bounds, lat: number, lng: number): boolean {
+  if (lat < b.south || lat > b.north) return false
+  return b.west <= b.east ? lng >= b.west && lng <= b.east : lng >= b.west || lng <= b.east
+}
