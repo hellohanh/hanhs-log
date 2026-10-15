@@ -29,6 +29,8 @@ export default function PlacesPanel({
   loadError,
   showAll,
   onShowAll,
+  picked,
+  onPick,
   michelinOnly,
   onMichelinOnly,
   editing,
@@ -52,6 +54,8 @@ export default function PlacesPanel({
   loadError: string
   showAll: boolean
   onShowAll: (on: boolean) => void
+  picked: Set<string>
+  onPick: (ids: string[]) => void
   michelinOnly: boolean
   onMichelinOnly: (on: boolean) => void
   editing: Editing
@@ -222,6 +226,9 @@ export default function PlacesPanel({
               onEditing({ mode: 'edit', pinId: p.id })
             }}
             onAddToDay={onAddToDay}
+            picked={picked}
+            showAll={showAll}
+            onPick={onPick}
           />
         </div>
       )}
@@ -242,6 +249,9 @@ export default function PlacesPanel({
               onEateryEdit({ mode: 'edit', id: e.id })
             }}
             onAddToDay={onAddToDay}
+            picked={picked}
+            showAll={showAll}
+            onPick={onPick}
           />
         </div>
       )}

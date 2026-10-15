@@ -23,6 +23,7 @@ import TripMap, { type CityState, type MapPin } from './TripMap'
 import PlacesPanel, { type Editing, type EateryEditing } from './PlacesPanel'
 import { fetchTripEateries, fetchEateryReviews, asReviews, type Eatery, type EateryReview } from '../../lib/eateries'
 import { fetchPins, fetchReviews, pinBadge, pinFaded, type Pin, type Review } from '../../lib/pins'
+import { togglePicks } from '../../lib/pinRules'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml } from '../../lib/pinDraw'
 import ItineraryPanel, { ItineraryOpener, PANEL_WIDTH } from './ItineraryPanel'
@@ -99,6 +100,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const [reviews, setReviews] = useState<Review[]>([])
   const [pinsError, setPinsError] = useState('')
   const [showAll, setShowAll] = useState(true)
+  // The eyes on the Places rows (session 10): picks, not remembered.
+  const [picked, setPicked] = useState<Set<string>>(new Set())
   const [michelinOnly, setMichelinOnly] = useState(false)
   const [pinEdit, setPinEdit] = useState<Editing>(null)
   const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null)
@@ -150,7 +153,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
         const look = pinLook(p)
         const box = pinBox(p)
         const editingThis = pinEdit?.mode === 'edit' && pinEdit.pinId === p.id
-        const faded = pinFaded(p, { editing: editingThis, otdPins: otdActive ? otdSet : null, showAll, michelinOnly })
+        const faded = pinFaded(p, { editing: editingThis, otdPins: otdActive ? otdSet : null, showAll, michelinOnly, picked })
         return {
           id: p.id,
           lat: p.lat,
@@ -162,7 +165,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           faded
         }
       }),
-    [pins, reviews, showAll, michelinOnly, pinEdit, otdActive, otdSet]
+    [pins, reviews, showAll, michelinOnly, picked, pinEdit, otdActive, otdSet]
   )
   // The trip's catalogue eateries as map pins (same drawing as pins).
   const eateryMapPins = useMemo<MapPin[]>(
@@ -171,7 +174,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
         const look = pinLook({ category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
         const box = pinBox(e)
         const editingThis = eateryEdit?.mode === 'edit' && eateryEdit.id === e.id
-        const faded = pinFaded({ id: e.id, michelin: e.michelin }, { editing: editingThis, otdPins: otdActive ? otdSet : null, showAll, michelinOnly })
+        const faded = pinFaded({ id: e.id, michelin: e.michelin }, { editing: editingThis, otdPins: otdActive ? otdSet : null, showAll, michelinOnly, picked })
         return {
           id: e.id,
           lat: e.lat,
@@ -183,7 +186,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           faded
         }
       }),
-    [eateries, eateryReviews, showAll, michelinOnly, eateryEdit, otdActive, otdSet]
+    [eateries, eateryReviews, showAll, michelinOnly, picked, eateryEdit, otdActive, otdSet]
   )
   const allMapPins = useMemo(() => [...mapPins, ...eateryMapPins], [mapPins, eateryMapPins])
 
@@ -271,7 +274,9 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           eateryReviews={eateryReviews}
           loadError={pinsError}
           showAll={showAll}
-          onShowAll={setShowAll}
+          onShowAll={on => { setShowAll(on); if (on) setPicked(new Set()) }}
+          picked={picked}
+          onPick={ids => { setPicked(p => togglePicks(p, ids, showAll)); setShowAll(false) }}
           michelinOnly={michelinOnly}
           onMichelinOnly={setMichelinOnly}
           editing={pinEdit}

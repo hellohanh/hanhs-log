@@ -3,7 +3,8 @@ import { buildCountryTree } from '../../lib/savorTree'
 import { asReviews, priceLabel, type Eatery, type EateryReview } from '../../lib/eateries'
 import { stopRef } from '../../lib/itinerary'
 import { badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
-import { pinBadge } from '../../lib/pinRules'
+import { eyeState, pinBadge } from '../../lib/pinRules'
+import EyeButton from '../../components/EyeButton'
 import styles from './Savor.module.css'
 
 // The catalogue as a country → dish collapsible tree (E65), shared by the
@@ -16,13 +17,20 @@ export default function EateryTree({
   reviews,
   openDay,
   onOpen,
-  onAddToDay
+  onAddToDay,
+  picked,
+  showAll,
+  onPick
 }: {
   eateries: Eatery[]
   reviews: EateryReview[]
   openDay?: { id: string; label: string } | null
   onOpen: (e: Eatery) => void
   onAddToDay?: (id: string, kind: 'eatery') => void
+  /** The eyes (session 10): which eateries show while Show all is off. */
+  picked: Set<string>
+  showAll: boolean
+  onPick: (ids: string[]) => void
 }) {
   const tree = buildCountryTree(eateries)
   const [open, setOpen] = useState<Set<string>>(new Set())
@@ -66,6 +74,7 @@ export default function EateryTree({
             +
           </button>
         )}
+        <EyeButton label={e.name} state={eyeState([e.id], picked, showAll)} onClick={() => onPick([e.id])} />
       </li>
     )
   }
@@ -74,27 +83,35 @@ export default function EateryTree({
     <ul className={styles.tree}>
       {tree.map(c => {
         const openC = open.has(c.key)
+        const cIds = [...c.loose.map(e => e.id), ...c.dishes.flatMap(d => d.eateries.map(e => e.id))]
         return (
           <li key={c.key}>
-            <button type="button" className={styles.node} aria-expanded={openC} onClick={() => toggle(c.key)}>
-              <span className={styles.arrow} aria-hidden="true">{openC ? '▾' : '▸'}</span>
-              <span className={styles.dot} style={{ background: c.color }} />
-              <span className={styles.name}>{c.label}</span>
-              <span className={styles.cnt}>{c.count}</span>
-            </button>
+            <div className={styles.nodeLi}>
+              <button type="button" className={styles.node} aria-expanded={openC} onClick={() => toggle(c.key)}>
+                <span className={styles.arrow} aria-hidden="true">{openC ? '▾' : '▸'}</span>
+                <span className={styles.dot} style={{ background: c.color }} />
+                <span className={styles.name}>{c.label}</span>
+                <span className={styles.cnt}>{c.count}</span>
+              </button>
+              <EyeButton label={c.label} state={eyeState(cIds, picked, showAll)} onClick={() => onPick(cIds)} />
+            </div>
             {openC && (
               <ul className={styles.tree} style={{ paddingLeft: 22 }}>
                 {c.loose.map(row)}
                 {c.dishes.map(d => {
                   const dk = `${c.key}/${d.key}`
                   const openD = open.has(dk)
+                  const dIds = d.eateries.map(e => e.id)
                   return (
                     <li key={dk}>
-                      <button type="button" className={styles.node} aria-expanded={openD} onClick={() => toggle(dk)}>
-                        <span className={styles.arrow} aria-hidden="true">{openD ? '▾' : '▸'}</span>
-                        <span className={`${styles.name} ${styles.dish}`}>{d.label}</span>
-                        <span className={styles.cnt}>{d.count}</span>
-                      </button>
+                      <div className={styles.nodeLi}>
+                        <button type="button" className={styles.node} aria-expanded={openD} onClick={() => toggle(dk)}>
+                          <span className={styles.arrow} aria-hidden="true">{openD ? '▾' : '▸'}</span>
+                          <span className={`${styles.name} ${styles.dish}`}>{d.label}</span>
+                          <span className={styles.cnt}>{d.count}</span>
+                        </button>
+                        <EyeButton label={d.label} state={eyeState(dIds, picked, showAll)} onClick={() => onPick(dIds)} />
+                      </div>
                       {openD && <ul className={styles.tree} style={{ paddingLeft: 22 }}>{d.eateries.map(row)}</ul>}
                     </li>
                   )

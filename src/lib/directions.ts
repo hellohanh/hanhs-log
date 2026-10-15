@@ -73,4 +73,4 @@ export async function computeLeg(
 export { formatMinutes, formatMeters } from './itineraryLayout'
 
 /** The route line colour per mode (matches the connector badges). */
-export const MODE_COLOR: Record<ConnMode, string> = { walk: '#2F8A3E', drive: '#185FA5', transit: '#6A3FA0', bike: '#C8781E' }
+export const MODE_COLOR: Record<ConnMode, string> = { walk: '#2F8A3E', drive: '#1A8CFF', transit: '#6A3FA0', bike: '#C8781E' }

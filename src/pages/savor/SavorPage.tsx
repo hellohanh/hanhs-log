@@ -2,15 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
-import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, priceLabel, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
+import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
 import { searchPlaces, type FoundPlace } from '../../lib/pins'
 import { fetchMyName, type Person } from '../../lib/trips'
 import { searchLocations, resolveScope, inScope, type LocationHit, type Scope } from '../../lib/savorLocation'
 import { inView, type Bounds } from '../../lib/countryBounds'
-import { buildCountryTree } from '../../lib/savorTree'
 import { pinLook } from '../../lib/pinCatalog'
-import { pinBox, pinHtml, badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
-import { pinBadge, pinFaded } from '../../lib/pinRules'
+import { pinBox, pinHtml, flowerSvg } from '../../lib/pinDraw'
+import { pinBadge, pinFaded, togglePicks } from '../../lib/pinRules'
+import EateryTree from './EateryTree'
 import SavorMap, { type Frame } from './SavorMap'
 import SavorForm from './SavorForm'
 import SavorShareDialog from './SavorShareDialog'
@@ -56,8 +56,9 @@ function SavorLoaded({ userId }: { userId: string }) {
   const [reviews, setReviews] = useState<EateryReview[]>([])
   const [error, setError] = useState('')
   const [showAll, setShowAll] = useState(true)
+  // The eyes on the catalogue rows (session 10): picks, not remembered.
+  const [picked, setPicked] = useState<Set<string>>(new Set())
   const [michelinOnly, setMichelinOnly] = useState(false)
-  const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<Editing>(null)
   const [scope, setScope] = useState<Scope | null>(null)
   // The place popup can be closed (session 10): then the page shows whatever
@@ -109,7 +110,6 @@ function SavorLoaded({ userId }: { userId: string }) {
     [eateries, scope, byView, view]
   )
   const active = Boolean(scope) || byView
-  const tree = useMemo(() => buildCountryTree(shown), [shown])
   const hasMichelin = shown.some(e => e.michelin)
   const michelinCount = shown.filter(e => e.michelin).length
   const frame: Frame | null = scope ? (scope.kind === 'country' ? { bounds: scope.bounds, center: scope.center } : { center: scope.center, zoom: 13 }) : null
@@ -124,21 +124,15 @@ function SavorLoaded({ userId }: { userId: string }) {
           title: `${e.name} (${look.label})`,
           html: pinHtml({ color: look.color, icon: look.icon, michelin: e.michelin, badge: pinBadge(asReviews(reviews, e.id)) }),
           width: box.width, height: box.height,
-          faded: pinFaded({ id: e.id, michelin: e.michelin }, { editing: false, otdPins: null, showAll, michelinOnly })
+          faded: pinFaded({ id: e.id, michelin: e.michelin }, { editing: false, otdPins: null, showAll, michelinOnly, picked })
         }
       }),
-    [shown, reviews, showAll, michelinOnly]
+    [shown, reviews, showAll, michelinOnly, picked]
   )
 
-  const toggle = (key: string) =>
-    setOpenKeys(s => {
-      const next = new Set(s)
-      next.has(key) ? next.delete(key) : next.add(key)
-      return next
-    })
   const chooseScope = (s: Scope) => {
     setScope(s)
-    setOpenKeys(new Set())
+    setPicked(new Set())
     setEditing(null)
     setFound(null)
     setQuery('')
@@ -234,7 +228,7 @@ function SavorLoaded({ userId }: { userId: string }) {
               {active && shown.length > 0 && (
                 <div className={styles.filters}>
                   <label className={styles.showAll}>
-                    <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show all
+                    <input type="checkbox" checked={showAll} onChange={e => { setShowAll(e.target.checked); if (e.target.checked) setPicked(new Set()) }} /> Show all
                   </label>
                   {hasMichelin && (
                     <button type="button" className={styles.chip} aria-pressed={michelinOnly} onClick={() => setMichelinOnly(v => !v)} title="Show only MICHELIN eateries on the map">
@@ -250,44 +244,15 @@ function SavorLoaded({ userId }: { userId: string }) {
                 <p className={styles.muted}>No eateries in this part of the map. Move the map, or search above to add one.</p>
               )}
               {active && shown.length > 0 && (
-                <ul className={styles.tree}>
-                  {tree.map(c => {
-                    const openC = openKeys.has(c.key)
-                    return (
-                      <li key={c.key}>
-                        <button type="button" className={styles.node} aria-expanded={openC} onClick={() => toggle(c.key)}>
-                          <span className={styles.arrow} aria-hidden="true">{openC ? '▾' : '▸'}</span>
-                          <span className={styles.dot} style={{ background: c.color }} />
-                          <span className={styles.name}>{c.label}</span>
-                          <span className={styles.cnt}>{c.count}</span>
-                        </button>
-                        {openC && (
-                          <ul className={styles.tree} style={{ paddingLeft: 22 }}>
-                            {c.loose.map(e => <EateryRow key={e.id} e={e} reviews={reviews} onOpen={() => setEditing({ mode: 'edit', id: e.id })} />)}
-                            {c.dishes.map(d => {
-                              const dk = `${c.key}/${d.key}`
-                              const openD = openKeys.has(dk)
-                              return (
-                                <li key={dk}>
-                                  <button type="button" className={styles.node} aria-expanded={openD} onClick={() => toggle(dk)}>
-                                    <span className={styles.arrow} aria-hidden="true">{openD ? '▾' : '▸'}</span>
-                                    <span className={`${styles.name} ${styles.dish}`}>{d.label}</span>
-                                    <span className={styles.cnt}>{d.count}</span>
-                                  </button>
-                                  {openD && (
-                                    <ul className={styles.tree} style={{ paddingLeft: 22 }}>
-                                      {d.eateries.map(e => <EateryRow key={e.id} e={e} reviews={reviews} onOpen={() => setEditing({ mode: 'edit', id: e.id })} />)}
-                                    </ul>
-                                  )}
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
+                <EateryTree
+                  key={scope ? scope.name : 'map-view'}
+                  eateries={shown}
+                  reviews={reviews}
+                  onOpen={e => setEditing({ mode: 'edit', id: e.id })}
+                  picked={picked}
+                  showAll={showAll}
+                  onPick={ids => { setPicked(p => togglePicks(p, ids, showAll)); setShowAll(false) }}
+                />
               )}
             </>
           )}
@@ -373,20 +338,3 @@ function LocationPicker({ onPick, onClose }: { onPick: (hit: LocationHit) => voi
   )
 }
 
-function EateryRow({ e, reviews, onOpen }: { e: Eatery; reviews: EateryReview[]; onOpen: () => void }) {
-  const badge = pinBadge(asReviews(reviews, e.id))
-  return (
-    <li className={styles.rowLi}>
-      <button type="button" className={styles.row} onClick={onOpen}>
-        <span className={styles.status} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" dangerouslySetInnerHTML={{ __html: badgeSvg(badge, 12) }} />
-        <span className={styles.name}>{e.name}</span>
-        {e.michelin && (
-          <span className={styles.mich} title={e.michelin === 'mentioned' ? 'MICHELIN' : `MICHELIN ${e.michelin} star${e.michelin === '1' ? '' : 's'}`}>
-            {e.michelin === 'mentioned' ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(e.michelin))}
-          </span>
-        )}
-        {e.price != null && <span className={styles.price}>{priceLabel(e.price)}</span>}
-      </button>
-    </li>
-  )
-}

@@ -16,9 +16,9 @@ test('the trip Places panel shows catalogue eateries from Savorlog', async ({ pa
   const places = page.getByRole('complementary', { name: 'Places' })
   await expect(places.getByText('Nom-Nom')).toBeVisible()
   await expect(places.getByText('from Savorlog')).toBeVisible()
-  await places.getByRole('button', { name: /Vietnamese/ }).click()
+  await places.getByRole('button', { name: /^Vietnamese/ }).click()
   await places.getByRole('button', { name: /^Phở/ }).click()
-  await places.getByRole('button', { name: /Phở Hòa Pasteur/ }).click()
+  await places.getByRole('button', { name: /Phở Hòa Pasteur/ }).first().click()
   // Opening an eatery on the trip uses the Savorlog edit panel.
   await expect(places.getByRole('form', { name: 'Edit eatery' })).toBeVisible()
 })
@@ -64,7 +64,7 @@ test('a catalogue eatery can be scheduled onto an itinerary day (M5.4)', async (
 
   // Expand the Nom-Nom tree and add the eatery to the open day.
   const places = page.getByRole('complementary', { name: 'Places' })
-  await places.getByRole('button', { name: /Vietnamese/ }).click()
+  await places.getByRole('button', { name: /^Vietnamese/ }).click()
   await places.getByRole('button', { name: /^Phở/ }).click()
   const add = places.getByRole('button', { name: /Add Phở Hòa Pasteur to/ })
   await expect(add).toBeEnabled()

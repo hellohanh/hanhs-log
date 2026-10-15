@@ -45,7 +45,7 @@ test('"Place" in the Add popup schedules a pin at the clicked time', async ({ pa
   await clickTimeline(panel, 9 * 60)
   const pop = panel.getByRole('dialog', { name: /^Add at/ })
   await pop.getByRole('radio', { name: /Place/ }).click()
-  await pop.getByRole('button', { name: /Phở Hòa Pasteur/ }).click()
+  await pop.getByRole('button', { name: /Phở Hòa Pasteur/ }).first().click()
   await expect(panel.getByRole('button', { name: /Phở Hòa Pasteur, .* to / })).toBeVisible()
   expect(db.stops).toHaveLength(1)
   // The block is a 60-minute stop at the clicked time.
