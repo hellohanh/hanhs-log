@@ -1,0 +1,6 @@
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-direction: column; background: var(--surface); border-radius: 18px 18px 0 0; box-shadow: 0 -3px 14px rgba(0, 0, 0, 0.16); transition: height 0.22s ease; overflow: hidden; }
+.dragging { transition: none; }
+@media (prefers-reduced-motion: reduce) { .sheet { transition: none; } }
+.grabZone { flex: none; height: 22px; display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; }
+.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--rule); }
+.body { flex: 1; min-height: 0; overscroll-behavior: contain; }

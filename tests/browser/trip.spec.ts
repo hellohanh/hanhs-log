@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { fakeSupabase, FRIEND, setTime, expectTime } from './fake-supabase'
 
+// The desktop trip layout. On the phone size the trip page is the map with
+// bottom sheets (session 10), covered in phone.spec.ts.
+test.beforeEach(({}, info) => { test.skip(info.project.name === 'phone', 'desktop trip layout; phone layout in phone.spec.ts') })
+
 // The trip page, Share & people, the first-name prompt and invite links,
 // against the stand-in Supabase in fake-supabase.ts.
 

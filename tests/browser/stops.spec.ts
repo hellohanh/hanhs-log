@@ -2,6 +2,10 @@ import { test, expect, type Locator, type Page } from '@playwright/test'
 import { fakeSupabase, setTime } from './fake-supabase'
 import { toMin } from '../../src/lib/itineraryDays'
 
+// The desktop trip layout. On the phone size the trip page is the map with
+// bottom sheets (session 10), covered in phone.spec.ts.
+test.beforeEach(({}, info) => { test.skip(info.project.name === 'phone', 'desktop trip layout; phone layout in phone.spec.ts') })
+
 // Places on itinerary days (M3 step 4): dropped/added as time blocks, Day route,
 // and the three ways to add one — drag, the Add popup's "Place", and the
 // "Add to day" buttons. The map needs Google, so map fade is checked via

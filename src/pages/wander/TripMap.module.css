@@ -158,3 +158,14 @@
 .check table { border-collapse: collapse; width: 100%; color: var(--ink); }
 .check th, .check td { padding: 3px 6px; border-bottom: 1px solid var(--rule); text-align: left; white-space: nowrap; }
 .check p { margin: 0; }
+
+/* Phone (session 10, approved): three round buttons down the right side;
+   GPins and Districts move into the Map look panel. */
+.phoneCtl { position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; gap: 10px; z-index: 3; }
+.phoneCtl .chip { width: 44px; height: 44px; }
+.chipOn { background: var(--accent); color: #FFFFFF; border-color: var(--accent); }
+.phoneCtl .chipOn[aria-pressed='true'] { color: #FFFFFF; }
+.phoneRow { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 0 12px; }
+@media (max-width: 760px) {
+  .panel { left: 8px; right: 8px; top: 8px; width: auto; max-height: calc(100% - 16px); overflow-y: auto; }
+}
