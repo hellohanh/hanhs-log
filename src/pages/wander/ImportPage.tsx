@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
 import { categoryOf, pinLook } from '../../lib/pinCatalog'
-import { searchPlaces, type FoundPlace } from '../../lib/pins'
+import { fetchPins, searchPlaces, type FoundPlace, type Pin } from '../../lib/pins'
 import { fetchTrips, placeLabel, type TripSummary } from '../../lib/trips'
 import { fetchCatalogue, fetchEateryReviews, type Eatery, type EateryReview } from '../../lib/eateries'
 import {
@@ -165,7 +165,8 @@ function Importer({ userId }: { userId: string }) {
               items={items}
               trip={trip}
               catalogue={catalogue}
-              onGo={index => setView({ kind: 'card', category: view.category, index })}
+              notice={notice}
+              onGo={(index, msg) => { setNotice(msg ?? ''); setView({ kind: 'card', category: view.category, index }) }}
               onCity={msg => { setNotice(msg ?? ''); setView({ kind: 'city' }) }}
               onDone={(item, patch) => {
                 updateItem(item.id, patch)
@@ -288,8 +289,9 @@ function CityView({
 }
 
 function CardView({
-  userId, city, category, index, items, trip, catalogue, onGo, onCity, onDone
+  userId, city, category, index, items, trip, catalogue, notice, onGo, onCity, onDone
 }: {
+  notice: string
   userId: string
   city: string
   category: string
@@ -297,7 +299,7 @@ function CardView({
   items: ImportItem[]
   trip: TripSummary | undefined
   catalogue: Eatery[]
-  onGo: (index: number) => void
+  onGo: (index: number, notice?: string) => void
   onCity: (notice?: string) => void
   onDone: (item: ImportItem, patch: Partial<ImportItem>) => void
 }) {
@@ -314,6 +316,20 @@ function CardView({
 
   const existing = item ? catalogue.find(e => e.google_place_id === item.google_place_id) : undefined
 
+  // A place already pinned on the chosen trip is ticked off automatically,
+  // linked to that pin (Hanh, session 10: one pin per place per trip).
+  const [tripPins, setTripPins] = useState<Pin[] | null>(null)
+  const tripId = trip?.id
+  useEffect(() => {
+    setTripPins(null)
+    if (tripId) fetchPins(tripId).then(setTripPins, () => setTripPins([]))
+  }, [tripId])
+  const pinned =
+    item && item.status === 'pending' && !asFood && tripPins
+      ? tripPins.find(p => p.google_place_id && (p.google_place_id === item.google_place_id || p.google_place_id === place?.id))
+      : undefined
+  const ticking = useRef(false)
+
   useEffect(() => {
     if (!item) return
     let alive = true
@@ -325,20 +341,28 @@ function CardView({
     if (existing) fetchEateryReviews([existing.id]).then(setReviews, () => setReviews([]))
   }, [existing])
 
+  useEffect(() => {
+    if (!pinned || !item || !trip || ticking.current) return
+    ticking.current = true
+    saved({ pin: pinned.id }, `${displayName(item)} was already on ${trip.name}, so it's ticked off.`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinned?.id])
+
   if (!item) return <p className="lede">Nothing here.</p>
 
   // On to the next place still waiting in this category, or back to the city.
-  const goNext = () => {
+  const goNext = (msg?: string) => {
     const fresh = list.map((x, i) => (i === index ? { ...x, status: 'saved' as const } : x))
     const n = nextPending(fresh, index)
-    if (n === null) onCity(`All ${catLabel} places in ${city} are done.`)
-    else onGo(n)
+    if (n === null) onCity([msg, `All ${catLabel} places in ${city} are done.`].filter(Boolean).join(' '))
+    else onGo(n, msg)
   }
-  const saved = async (patch: { pin?: string; eatery?: string }) => {
+  async function saved(patch: { pin?: string; eatery?: string }, msg?: string) {
+    if (!item) return
     try {
       await markSaved(item.id, patch)
       onDone(item, { status: 'saved', saved_pin_id: patch.pin ?? null, saved_eatery_id: patch.eatery ?? null })
-      goNext()
+      goNext(msg)
     } catch (e) {
       setErr(`Saved, but couldn't tick it off the import: ${(e as Error).message}`)
     }
@@ -367,6 +391,7 @@ function CardView({
         <span className={styles.savesTo}>Saves to: {savesTo}</span>
       </div>
 
+      {notice && <p className={styles.notice} role="status">{notice}</p>}
       <div className={styles.old} aria-label="From old Wanderlog">
         <b>From old Wanderlog{old.length > 1 ? ` · ${old.length} copies` : ''}</b>
         <ul>

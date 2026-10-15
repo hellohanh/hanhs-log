@@ -1,0 +1,6 @@
+.eye { flex: none; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: transparent; cursor: pointer; padding: 0; }
+.eye:hover { background: var(--ground); }
+.on { color: var(--accent); }
+.part { color: var(--accent); opacity: 0.5; }
+.off { color: var(--muted); opacity: 0.7; }
+.all { color: var(--muted); }

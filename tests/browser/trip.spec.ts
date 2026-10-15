@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { fakeSupabase, FRIEND } from './fake-supabase'
+import { fakeSupabase, FRIEND, setTime, expectTime } from './fake-supabase'
 
 // The trip page, Share & people, the first-name prompt and invite links,
 // against the stand-in Supabase in fake-supabase.ts.
@@ -272,9 +272,9 @@ test('itinerary panel: extra days, day notes and a flight with its duration acro
   await form.getByLabel('Airline').fill('Vietnam Airlines')
   await form.getByLabel('Flight number').fill('VN 300')
   await form.getByRole('group', { name: 'From' }).getByLabel('Airport').fill('Tokyo / NRT')
-  await form.getByRole('group', { name: 'From' }).getByLabel('Time', { exact: true }).fill('09:30')
+  await setTime(form.getByRole('group', { name: 'From' }), 'Time', '09:30')
   await form.getByRole('group', { name: 'To' }).getByLabel('Airport').fill('Ho Chi Minh City / SGN')
-  await form.getByRole('group', { name: 'To' }).getByLabel('Time', { exact: true }).fill('13:45')
+  await setTime(form.getByRole('group', { name: 'To' }), 'Time', '13:45')
   await expect(form.getByRole('group', { name: 'From' }).getByLabel('Time zone')).toHaveValue('Asia/Tokyo')
   await expect(form.getByText('Takes 6h 15m')).toBeVisible()
   await form.getByRole('button', { name: 'Save' }).click()
@@ -330,8 +330,8 @@ test('itinerary: click a time to add an activity (15-minute mark, 30 minutes), e
   await clickTimeline(panel, 15 * 60 + 20)
   const pop = panel.getByRole('dialog', { name: 'Add at 15:15' })
   await expect(pop).toBeVisible()
-  await expect(pop.getByLabel('Start')).toHaveValue('15:15')
-  await expect(pop.getByLabel('End')).toHaveValue('15:45')
+  await expectTime(pop, 'Start', '15:15')
+  await expectTime(pop, 'End', '15:45')
   await expect(pop.getByRole('radio', { name: /Place/ })).toBeVisible()
   await pop.getByRole('button', { name: 'Add' }).click()
   await expect(pop.getByRole('alert')).toHaveText('Say what the activity is.')
@@ -398,8 +398,8 @@ test('itinerary: Travel from the popup opens the travel form with the clicked ti
   await pop.getByRole('radio', { name: /Travel/ }).click()
   await pop.getByRole('button', { name: 'Next' }).click()
   const form = panel.getByRole('form', { name: 'Add travel' })
-  await expect(form.getByRole('group', { name: 'From' }).getByLabel('Time', { exact: true })).toHaveValue('08:30')
-  await expect(form.getByRole('group', { name: 'To' }).getByLabel('Time', { exact: true })).toHaveValue('09:00')
+  await expectTime(form.getByRole('group', { name: 'From' }), 'Time', '08:30')
+  await expectTime(form.getByRole('group', { name: 'To' }), 'Time', '09:00')
 })
 
 test('itinerary: drag maths', async () => {
@@ -421,8 +421,8 @@ test('itinerary: blocks that share time sit side by side; touching blocks share 
     await clickTimeline(panel, 16 * 60 + 5)
     const d = panel.getByRole('dialog')
     await d.getByRole('textbox', { name: 'What' }).fill(t)
-    await d.getByLabel('Start').fill(start)
-    await d.getByLabel('End').fill(end)
+    await setTime(d, 'Start', start)
+    await setTime(d, 'End', end)
     await d.getByRole('button', { name: 'Add' }).click()
     await expect(panel.getByRole('button', { name: new RegExp(`^${t},`) })).toBeVisible()
   }
@@ -464,9 +464,9 @@ test('copy a travel leg to another trip: linked, shown read only there', async (
   await form.getByLabel('Airline').fill('JAL')
   await form.getByLabel('Flight number').fill('JL7017')
   await form.getByRole('group', { name: 'From' }).getByLabel('Airport').fill('Los Angeles / LAX')
-  await form.getByRole('group', { name: 'From' }).getByLabel('Time', { exact: true }).fill('09:40')
+  await setTime(form.getByRole('group', { name: 'From' }), 'Time', '09:40')
   await form.getByRole('group', { name: 'To' }).getByLabel('Airport').fill('Tokyo / HND')
-  await form.getByRole('group', { name: 'To' }).getByLabel('Time', { exact: true }).fill('15:05')
+  await setTime(form.getByRole('group', { name: 'To' }), 'Time', '15:05')
   await form.getByRole('button', { name: 'Save' }).click()
 
   // The copy icon → pick the Japan trip → linked (the day is added there).
@@ -490,4 +490,95 @@ test('copy a travel leg to another trip: linked, shown read only there', async (
   const card = p2.getByRole('dialog', { name: 'Linked travel' })
   await expect(card).toContainText('Edit or delete it there')
   await expect(p2.getByRole('form', { name: /travel/ })).toHaveCount(0)
+})
+
+test('a flight across the date line gets a repeat day tab, split across both (session 10)', async ({ page }) => {
+  const db = await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  const jan2 = panel.getByRole('tab').filter({ hasText: 'Jan 2' })
+  await jan2.first().click()
+  await panel.getByRole('button', { name: /Add travel/ }).click()
+  const form = panel.getByRole('form', { name: 'Add travel' })
+  await form.getByLabel('Title (optional)').fill("Prew Crew's Homebound; 2nd Leg")
+  await form.getByLabel('Airline').fill('Delta')
+  await form.getByLabel('Flight number').fill('196')
+  await form.getByRole('group', { name: 'From' }).getByLabel('Airport').fill('Seoul / ICN')
+  await setTime(form.getByRole('group', { name: 'From' }), 'Time', '18:45')
+  await form.getByRole('group', { name: 'To' }).getByLabel('Airport').fill('Seattle / SEA')
+  await setTime(form.getByRole('group', { name: 'To' }), 'Time', '12:00')
+  await expect(form.getByText('Takes 10h 15m')).toBeVisible()
+  await form.getByRole('button', { name: 'Save' }).click()
+
+  // Jan 2 twice: Seoul, then Seattle, both before Jan 3 (none here: the trip ends Jan 2).
+  await expect(jan2).toHaveCount(2)
+  await expect(jan2.nth(0)).toContainText('Seoul')
+  await expect(jan2.nth(1)).toContainText('Seattle')
+  expect(db.days.filter(d => d.date === '2027-01-02').map(d => d.repeat_after ?? null)).toEqual([null, '2027-01-02'])
+  const leaving = panel.getByRole('button', { name: /^Prew Crew's Homebound; 2nd Leg/ })
+  await expect(leaving).toContainText('continues on Jan 2 · Seattle →')
+
+  // The Seattle tab shows the landing part, from 01:45 Seattle time.
+  await jan2.nth(1).click()
+  const landing = panel.getByRole('button', { name: /^Prew Crew's Homebound; 2nd Leg/ })
+  await expect(landing).toContainText('← from Jan 2 · Seoul')
+  await expect(landing).toHaveCSS('top', '105px')
+
+  // Deleting the flight removes the empty repeat day again.
+  await landing.click()
+  await panel.getByRole('button', { name: 'Delete' }).click()
+  const confirm = panel.getByRole('button', { name: 'Delete', exact: true })
+  if (await confirm.count()) await confirm.last().click()
+  await expect(jan2).toHaveCount(1)
+  await expect(jan2).not.toContainText('Seoul')
+})
+
+test('date-line helpers: which legs need a repeat day', async () => {
+  const { repeatFor, repeatStartMin, cityOf } = await import('../../src/lib/dateLine')
+  const leg = {
+    id: 'l', day_id: 'd', mode: 'flight' as const, title: null, carrier: null, reference: null,
+    from_location: 'Seoul / ICN', from_date: '2027-01-03', from_time: '18:45', from_timezone: 'Asia/Seoul',
+    to_location: 'Seattle / SEA', to_date: '2027-01-03', to_time: '12:00', to_timezone: 'America/Los_Angeles'
+  }
+  expect(repeatFor(leg)).toEqual({ date: '2027-01-03', after: '2027-01-03' })
+  expect(repeatStartMin(leg)).toBe(1 * 60 + 45)
+  expect(cityOf('Los Angeles / LAX')).toBe('Los Angeles')
+  // Westbound (lose a day) and ordinary overnight legs don't need one.
+  expect(repeatFor({ ...leg, from_location: 'Seattle / SEA', from_timezone: 'America/Los_Angeles', from_time: '11:00', to_location: 'Seoul / ICN', to_timezone: 'Asia/Seoul', to_date: '2027-01-04', to_time: '15:00' })).toBeNull()
+  expect(repeatFor({ ...leg, from_timezone: 'America/Chicago', from_time: '22:00', to_timezone: 'America/New_York', to_date: '2027-01-04', to_time: '02:00' })).toBeNull()
+  // Seoul 18:50 → Saigon 22:25 lands after midnight Seoul time, but the same evening there: one day.
+  expect(repeatFor({ ...leg, from_time: '18:50', to_location: 'Ho Chi Minh City / SGN', to_timezone: 'Asia/Ho_Chi_Minh', to_date: '2027-01-03', to_time: '22:25' })).toBeNull()
+  // Arrival typed earlier with no real flight time (a typo) adds nothing.
+  expect(repeatFor({ ...leg, from_timezone: 'Asia/Seoul', from_time: '18:45', to_timezone: 'Asia/Seoul', to_time: '12:00' })).toBeNull()
+  // Tokyo just after midnight → Honolulu the evening before: a repeat Jan 2 after Jan 3.
+  expect(repeatFor({ ...leg, from_timezone: 'Asia/Tokyo', from_time: '01:00', to_timezone: 'Pacific/Honolulu', to_date: '2027-01-02', to_time: '13:00' })).toEqual({ date: '2027-01-02', after: '2027-01-03' })
+})
+
+test('time entry takes any minute, 00 to 59 (session 10)', async ({ page }) => {
+  await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  await panel.getByRole('button', { name: /Add travel/ }).click()
+  const from = panel.getByRole('form', { name: 'Add travel' }).getByRole('group', { name: 'From' })
+  await expect(from.getByRole('combobox', { name: 'Time hour', exact: true }).locator('option')).toHaveCount(25)
+  await expect(from.getByRole('combobox', { name: 'Time minute', exact: true }).locator('option')).toHaveCount(61)
+  await setTime(from, 'Time', '07:43')
+  await expectTime(from, 'Time', '07:43')
+})
+
+test('centring in the visible part of the map (session 10)', async () => {
+  const { centreFor } = await import('../../src/lib/mapCentre')
+  const saigon = { lat: 10.7769, lng: 106.7009 }
+  // No offset: the centre is the place itself.
+  const same = centreFor(saigon, 13, 0)
+  expect(same.lat).toBeCloseTo(saigon.lat, 6)
+  expect(same.lng).toBeCloseTo(saigon.lng, 6)
+  // Half a 420 px panel at zoom 13: the centre moves 210 px east (≈ 0.0721°).
+  const right = centreFor(saigon, 13, 210)
+  expect(right.lat).toBeCloseTo(saigon.lat, 6)
+  expect(right.lng - saigon.lng).toBeCloseTo((210 / (256 * 2 ** 13)) * 360, 6)
+  // A place shown below the middle: the centre is north of it.
+  expect(centreFor(saigon, 15, 0, 100).lat).toBeGreaterThan(saigon.lat)
 })

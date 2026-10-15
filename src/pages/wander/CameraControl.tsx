@@ -1,3 +1,4 @@
+import { centreFor } from '../../lib/mapCentre'
 import { useState } from 'react'
 import styles from './CameraControl.module.css'
 
@@ -21,12 +22,15 @@ const FLAT_TIP = 'Tilt and rotate work on Google looks'
 export default function CameraControl({
   map,
   home,
+  inset = 0,
   tiltable = true,
   flatMode = 'grey',
   right = 16
 }: {
   map: google.maps.Map
   home: { center: google.maps.LatLngLiteral; zoom: number }
+  /** Width covered on the right (the itinerary panel): Reset centres in what's left (session 10). */
+  inset?: number
   /** False on hand-made looks (flat map): tilt and rotate can't work there. */
   tiltable?: boolean
   /** On the flat map: grey the tilt/rotate buttons out, or hide them. */
@@ -46,8 +50,8 @@ export default function CameraControl({
   const reset = () => {
     map.setTilt(0)
     map.setHeading(0)
-    map.setCenter(home.center)
     map.setZoom(home.zoom)
+    map.setCenter(centreFor(home.center, home.zoom, inset / 2))
   }
 
   return (

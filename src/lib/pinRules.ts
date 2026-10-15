@@ -40,10 +40,36 @@ export function averageRating(reviews: Review[]): number | null {
  */
 export function pinFaded(
   pin: { id: string; michelin: string | null },
-  s: { editing: boolean; otdPins: Set<string> | null; showAll: boolean; michelinOnly: boolean }
+  s: { editing: boolean; otdPins: Set<string> | null; showAll: boolean; michelinOnly: boolean; picked?: Set<string> | null }
 ): boolean {
   if (s.editing) return false
   if (s.otdPins) return !s.otdPins.has(pin.id)
-  return !s.showAll || (s.michelinOnly && !pin.michelin)
+  const shown = s.showAll || Boolean(s.picked?.has(pin.id))
+  return !shown || (s.michelinOnly && !pin.michelin)
+}
+
+// ---- The eye on each Places row (Hanh, session 10, approved mockup) ----
+// Show all pins off → only the places whose eye is on show on the map, so
+// you can show your hotel and the bánh mì spots together. An eye on a row
+// (category, group, type, cuisine, dish or one place) turns everything under
+// it on or off. Picking an eye while Show all is on switches Show all off and
+// shows only that; ticking Show all clears the picks. Not remembered.
+
+/** 'all' while Show all is on; otherwise on / part (some under it) / off. */
+export type Eye = 'all' | 'on' | 'part' | 'off'
+
+export function eyeState(ids: string[], picked: Set<string>, showAll: boolean): Eye {
+  if (showAll) return 'all'
+  const n = ids.filter(id => picked.has(id)).length
+  return n === 0 ? 'off' : n === ids.length ? 'on' : 'part'
+}
+
+/** The picks after clicking an eye over these ids. */
+export function togglePicks(picked: Set<string>, ids: string[], showAll: boolean): Set<string> {
+  if (showAll) return new Set(ids)
+  const next = new Set(picked)
+  const allOn = ids.every(id => picked.has(id))
+  for (const id of ids) allOn ? next.delete(id) : next.add(id)
+  return next
 }
 

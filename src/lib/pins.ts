@@ -50,15 +50,24 @@ export async function fetchReviews(pinIds: string[]): Promise<Review[]> {
 
 /** Adds a pin, or saves changes to one. Returns its id. */
 export async function savePin(fields: PinFields, id?: string): Promise<string> {
+  // One pin per Google place per trip (0014, Hanh session 10).
+  const fail = (e: { code?: string; message: string }) =>
+    new Error(e.code === '23505' ? 'That place is already pinned on this trip.' : e.message)
   if (id) {
     const { error } = await client().from('pins').update(fields).eq('id', id)
-    if (error) throw new Error(error.message)
+    if (error) throw fail(error)
     return id
   }
   const newId = crypto.randomUUID()
   const { error } = await client().from('pins').insert({ id: newId, ...fields })
-  if (error) throw new Error(error.message)
+  if (error) throw fail(error)
   return newId
+}
+
+/** Changes just a pin's note (the map popup's note, session 10). */
+export async function savePinNote(id: string, note: string): Promise<void> {
+  const { error } = await client().from('pins').update({ note: note.trim() || null }).eq('id', id)
+  if (error) throw new Error(error.message)
 }
 
 export async function deletePin(id: string): Promise<void> {

@@ -29,6 +29,8 @@ export default function PlacesPanel({
   loadError,
   showAll,
   onShowAll,
+  picked,
+  onPick,
   michelinOnly,
   onMichelinOnly,
   editing,
@@ -38,6 +40,7 @@ export default function PlacesPanel({
   onSaved,
   onEateriesSaved,
   onFocus,
+  onOpenPlace,
   near,
   openDay,
   onAddToDay
@@ -52,6 +55,8 @@ export default function PlacesPanel({
   loadError: string
   showAll: boolean
   onShowAll: (on: boolean) => void
+  picked: Set<string>
+  onPick: (ids: string[]) => void
   michelinOnly: boolean
   onMichelinOnly: (on: boolean) => void
   editing: Editing
@@ -61,6 +66,8 @@ export default function PlacesPanel({
   onSaved: (focusPinId?: string) => void
   onEateriesSaved: () => void
   onFocus: (at: { lat: number; lng: number }) => void
+  /** A list click opens the map popup (session 10); absent → the edit panel. */
+  onOpenPlace?: (kind: 'pin' | 'eatery', item: { id: string; lat: number; lng: number }) => void
   near?: { lat: number; lng: number }
   /** The itinerary's open day, for "Add to day" and drag; null when it's closed. */
   openDay: { id: string; label: string } | null
@@ -218,10 +225,14 @@ export default function PlacesPanel({
             reviews={reviews}
             openDay={openDay}
             onOpen={p => {
+              if (onOpenPlace) return onOpenPlace('pin', p)
               onFocus(p)
               onEditing({ mode: 'edit', pinId: p.id })
             }}
             onAddToDay={onAddToDay}
+            picked={picked}
+            showAll={showAll}
+            onPick={onPick}
           />
         </div>
       )}
@@ -238,10 +249,14 @@ export default function PlacesPanel({
             reviews={eateryReviews}
             openDay={openDay}
             onOpen={e => {
+              if (onOpenPlace) return onOpenPlace('eatery', e)
               onFocus(e)
               onEateryEdit({ mode: 'edit', id: e.id })
             }}
             onAddToDay={onAddToDay}
+            picked={picked}
+            showAll={showAll}
+            onPick={onPick}
           />
         </div>
       )}

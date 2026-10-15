@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import TimeSelect from '../../components/TimeSelect'
 import type { Activity, StopItem, StopKind } from '../../lib/itinerary'
 import { dragTimes, hhmm, toMin } from '../../lib/itineraryDays'
 import { HOUR_PX } from '../../lib/itineraryLayout'
@@ -184,8 +185,8 @@ export function ActivityFields({
       )}
       {kind === 'travel' && <p className={styles.muted0}>Opens the travel form with these times filled in.</p>}
       <div className={styles.legRow}>
-        <label className={styles.lf}>Start<input type="time" step={300} value={start} onChange={e => setStart(e.target.value)} /></label>
-        <label className={styles.lf}>End<input type="time" step={300} value={end} onChange={e => setEnd(e.target.value)} /></label>
+        <TimeSelect className={styles.lf} label="Start" value={start} onChange={setStart} />
+        <TimeSelect className={styles.lf} label="End" value={end} onChange={setEnd} />
       </div>
       {error && <p className={styles.legError} role="alert">{error}</p>}
       {confirm && onDelete ? (

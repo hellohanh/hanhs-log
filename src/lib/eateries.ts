@@ -76,6 +76,8 @@ export async function saveEatery(fields: EateryFields, id?: string): Promise<str
   }
   const newId = crypto.randomUUID()
   const { error } = await client().from('eateries').insert({ id: newId, ...fields })
+  // One eatery per Google place (0007): say so plainly rather than the database's words.
+  if (error?.code === '23505') throw new Error('That place is already in Savorlog.')
   if (error) throw new Error(error.message)
   return newId
 }
@@ -88,6 +90,12 @@ export async function saveMyEateryReview(
 ): Promise<void> {
   const row = { eatery_id: eateryId, user_id: userId, status: r.status, verdict: r.status === 'vis' ? r.verdict : null, rating: r.status === 'vis' ? r.rating : null }
   const { error } = await client().from('eatery_reviews').upsert(row, { onConflict: 'eatery_id,user_id' })
+  if (error) throw new Error(error.message)
+}
+
+/** Changes just an eatery's note (the map popup's note, session 10). */
+export async function saveEateryNote(id: string, note: string): Promise<void> {
+  const { error } = await client().from('eateries').update({ note: note.trim() || null }).eq('id', id)
   if (error) throw new Error(error.message)
 }
 

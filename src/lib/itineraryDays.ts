@@ -7,6 +7,8 @@ export interface ItineraryDay {
   id: string
   trip_id: string
   date: string | null
+  /** Set on a repeat day (a flight across the date line, migration 0013): the date it follows. */
+  repeat_after?: string | null
   note: string | null
   created_at: string
 }
@@ -81,10 +83,16 @@ export function dragTimes(start: number, end: number, deltaMin: number, part: 't
   return { start, end: Math.min(24 * 60 - 1, Math.max(start + MIN_ACTIVITY_MIN, end + d)) }
 }
 
-/** Dated days first (by date), then undated days (in the order they were added). */
+/** Dated days first (by date; a repeat day right after the day it follows), then undated days (in the order they were added). */
 export function sortDays(days: ItineraryDay[]): ItineraryDay[] {
   return [...days].sort((a, b) => {
-    if (a.date && b.date) return a.date.localeCompare(b.date)
+    if (a.date && b.date) {
+      const ka = a.repeat_after ?? a.date
+      const kb = b.repeat_after ?? b.date
+      if (ka !== kb) return ka.localeCompare(kb)
+      if (!a.repeat_after !== !b.repeat_after) return a.repeat_after ? 1 : -1
+      return a.date.localeCompare(b.date) || a.created_at.localeCompare(b.created_at)
+    }
     if (a.date) return -1
     if (b.date) return 1
     return a.created_at.localeCompare(b.created_at)

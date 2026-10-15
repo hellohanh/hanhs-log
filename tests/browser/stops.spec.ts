@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
-import { fakeSupabase } from './fake-supabase'
+import { fakeSupabase, setTime } from './fake-supabase'
 import { toMin } from '../../src/lib/itineraryDays'
 
 // Places on itinerary days (M3 step 4): dropped/added as time blocks, Day route,
@@ -45,7 +45,7 @@ test('"Place" in the Add popup schedules a pin at the clicked time', async ({ pa
   await clickTimeline(panel, 9 * 60)
   const pop = panel.getByRole('dialog', { name: /^Add at/ })
   await pop.getByRole('radio', { name: /Place/ }).click()
-  await pop.getByRole('button', { name: /Phở Hòa Pasteur/ }).click()
+  await pop.getByRole('button', { name: /Phở Hòa Pasteur/ }).first().click()
   await expect(panel.getByRole('button', { name: /Phở Hòa Pasteur, .* to / })).toBeVisible()
   expect(db.stops).toHaveLength(1)
   // The block is a 60-minute stop at the clicked time.
@@ -128,7 +128,7 @@ test('a scheduled place can be retimed and taken off the day', async ({ page }) 
   const block = panel.getByRole('button', { name: /Phở Hòa Pasteur, 0?9:00 to 10:00/ })
   await block.click()
   const edit = panel.getByRole('dialog', { name: 'Phở Hòa Pasteur' })
-  await edit.getByLabel('End').fill('10:30')
+  await setTime(edit, 'End', '10:30')
   await edit.getByRole('button', { name: 'Save' }).click()
   await expect(panel.getByRole('button', { name: /Phở Hòa Pasteur, 0?9:00 to 10:30/ })).toBeVisible()
   expect(db.stops[0]).toMatchObject({ start_time: '09:00', end_time: '10:30' })

@@ -1,7 +1,7 @@
-import { categoryOf } from './pinCatalog'
+import { byLabel, byPlaceName, categoryOf } from './pinCatalog'
 
 // Groups the eatery catalogue into Savorlog's two levels — country (cuisine) →
-// main dish — in docs/pin-standard.md order, only including branches that have
+// main dish — A–Z at every level (session 10; "Other" last), only including branches that have
 // eateries (E60). An eatery whose dish isn't set (or isn't in the catalogue)
 // sits directly under its country; one whose cuisine isn't known sits under a
 // final "Other" country. Pure (no React, no CSS) so tests import it directly.
@@ -49,6 +49,16 @@ export function buildCountryTree<T extends Placed>(eateries: T[]): CountryNode<T
     if (inCountry.length > 0) out.push(makeCountry(sub.key, sub.label, sub.color, inCountry))
   }
   const leftover = eateries.filter(e => !e.cuisine || !known.has(e.cuisine))
-  if (leftover.length > 0) out.push(makeCountry(OTHER.key, OTHER.label, OTHER.color, leftover))
+  out.sort(byLabel)
+  for (const c of out) {
+    c.dishes.sort(byLabel)
+    c.loose.sort(byPlaceName)
+    for (const d of c.dishes) d.eateries.sort(byPlaceName)
+  }
+  if (leftover.length > 0) {
+    const other = makeCountry(OTHER.key, OTHER.label, OTHER.color, leftover)
+    other.loose.sort(byPlaceName)
+    out.push(other)
+  }
   return out
 }

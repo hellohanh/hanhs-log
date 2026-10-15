@@ -2,14 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
-import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, priceLabel, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
+import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, requestEateryDeletion, saveEateryNote, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
 import { searchPlaces, type FoundPlace } from '../../lib/pins'
 import { fetchMyName, type Person } from '../../lib/trips'
 import { searchLocations, resolveScope, inScope, type LocationHit, type Scope } from '../../lib/savorLocation'
-import { buildCountryTree } from '../../lib/savorTree'
+import { inView, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
-import { pinBox, pinHtml, badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
-import { pinBadge, pinFaded } from '../../lib/pinRules'
+import { pinBox, pinHtml, flowerSvg } from '../../lib/pinDraw'
+import { pinBadge, pinFaded, togglePicks } from '../../lib/pinRules'
+import EateryTree from './EateryTree'
+import PlacePopup from '../../components/PlacePopup'
 import SavorMap, { type Frame } from './SavorMap'
 import SavorForm from './SavorForm'
 import SavorShareDialog from './SavorShareDialog'
@@ -55,10 +57,19 @@ function SavorLoaded({ userId }: { userId: string }) {
   const [reviews, setReviews] = useState<EateryReview[]>([])
   const [error, setError] = useState('')
   const [showAll, setShowAll] = useState(true)
+  // The eyes on the catalogue rows (session 10): picks, not remembered.
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  // The pin popup (session 10): a pin or list click opens it; ✎ edits.
+  const [popupId, setPopupId] = useState<string | null>(null)
+  const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null)
+  const hasMap = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
   const [michelinOnly, setMichelinOnly] = useState(false)
-  const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<Editing>(null)
   const [scope, setScope] = useState<Scope | null>(null)
+  // The place popup can be closed (session 10): then the page shows whatever
+  // is in the map view, starting on the whole world.
+  const [closed, setClosed] = useState(false)
+  const [view, setView] = useState<Bounds | null>(null)
   const [query, setQuery] = useState('')
   const [found, setFound] = useState<FoundPlace[] | null>(null)
   const [searching, setSearching] = useState(false)
@@ -98,8 +109,12 @@ function SavorLoaded({ userId }: { userId: string }) {
     setSharing(true)
   }
 
-  const shown = useMemo(() => (scope ? eateries.filter(e => inScope(e, scope)) : []), [eateries, scope])
-  const tree = useMemo(() => buildCountryTree(shown), [shown])
+  const byView = !scope && closed
+  const shown = useMemo(
+    () => (scope ? eateries.filter(e => inScope(e, scope)) : byView && view ? eateries.filter(e => inView(view, e.lat, e.lng)) : []),
+    [eateries, scope, byView, view]
+  )
+  const active = Boolean(scope) || byView
   const hasMichelin = shown.some(e => e.michelin)
   const michelinCount = shown.filter(e => e.michelin).length
   const frame: Frame | null = scope ? (scope.kind === 'country' ? { bounds: scope.bounds, center: scope.center } : { center: scope.center, zoom: 13 }) : null
@@ -114,21 +129,15 @@ function SavorLoaded({ userId }: { userId: string }) {
           title: `${e.name} (${look.label})`,
           html: pinHtml({ color: look.color, icon: look.icon, michelin: e.michelin, badge: pinBadge(asReviews(reviews, e.id)) }),
           width: box.width, height: box.height,
-          faded: pinFaded({ id: e.id, michelin: e.michelin }, { editing: false, otdPins: null, showAll, michelinOnly })
+          faded: pinFaded({ id: e.id, michelin: e.michelin }, { editing: false, otdPins: null, showAll, michelinOnly, picked })
         }
       }),
-    [shown, reviews, showAll, michelinOnly]
+    [shown, reviews, showAll, michelinOnly, picked]
   )
 
-  const toggle = (key: string) =>
-    setOpenKeys(s => {
-      const next = new Set(s)
-      next.has(key) ? next.delete(key) : next.add(key)
-      return next
-    })
   const chooseScope = (s: Scope) => {
     setScope(s)
-    setOpenKeys(new Set())
+    setPicked(new Set())
     setEditing(null)
     setFound(null)
     setQuery('')
@@ -155,6 +164,7 @@ function SavorLoaded({ userId }: { userId: string }) {
     setEditing(already ? { mode: 'edit', id: already.id } : { mode: 'add', place })
   }
 
+  const popupEatery = popupId ? eateries.find(e => e.id === popupId) ?? null : null
   const editingEatery = editing?.mode === 'edit' ? eateries.find(e => e.id === editing.id) : undefined
 
   return (
@@ -168,7 +178,13 @@ function SavorLoaded({ userId }: { userId: string }) {
           {scope && (
             <>
               Showing <b>{scope.name}</b> {scope.kind === 'city' ? '(city)' : '(country)'}
-              <button type="button" className={styles.change} onClick={() => setScope(null)}>Change</button>
+              <button type="button" className={styles.change} onClick={() => { setScope(null); setClosed(false) }}>Change</button>
+            </>
+          )}
+          {byView && (
+            <>
+              Showing <b>the map view</b>
+              <button type="button" className={styles.change} onClick={() => setClosed(false)}>Pick a place</button>
             </>
           )}
           <button type="button" className={styles.change} onClick={openShare}>Family</button>
@@ -215,10 +231,10 @@ function SavorLoaded({ userId }: { userId: string }) {
                 <span className={styles.count}>{shown.length > 0 ? shown.length : ''}</span>
               </div>
               {error && <p className={styles.error} role="alert">Couldn't load the catalogue: {error}</p>}
-              {scope && shown.length > 0 && (
+              {active && shown.length > 0 && (
                 <div className={styles.filters}>
                   <label className={styles.showAll}>
-                    <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show all
+                    <input type="checkbox" checked={showAll} onChange={e => { setShowAll(e.target.checked); if (e.target.checked) setPicked(new Set()) }} /> Show all
                   </label>
                   {hasMichelin && (
                     <button type="button" className={styles.chip} aria-pressed={michelinOnly} onClick={() => setMichelinOnly(v => !v)} title="Show only MICHELIN eateries on the map">
@@ -230,54 +246,58 @@ function SavorLoaded({ userId }: { userId: string }) {
               {scope && shown.length === 0 && !error && (
                 <p className={styles.muted}>No eateries in {scope.name} yet. Search above to add one.</p>
               )}
-              {scope && shown.length > 0 && (
-                <ul className={styles.tree}>
-                  {tree.map(c => {
-                    const openC = openKeys.has(c.key)
-                    return (
-                      <li key={c.key}>
-                        <button type="button" className={styles.node} aria-expanded={openC} onClick={() => toggle(c.key)}>
-                          <span className={styles.arrow} aria-hidden="true">{openC ? '▾' : '▸'}</span>
-                          <span className={styles.dot} style={{ background: c.color }} />
-                          <span className={styles.name}>{c.label}</span>
-                          <span className={styles.cnt}>{c.count}</span>
-                        </button>
-                        {openC && (
-                          <ul className={styles.tree} style={{ paddingLeft: 22 }}>
-                            {c.loose.map(e => <EateryRow key={e.id} e={e} reviews={reviews} onOpen={() => setEditing({ mode: 'edit', id: e.id })} />)}
-                            {c.dishes.map(d => {
-                              const dk = `${c.key}/${d.key}`
-                              const openD = openKeys.has(dk)
-                              return (
-                                <li key={dk}>
-                                  <button type="button" className={styles.node} aria-expanded={openD} onClick={() => toggle(dk)}>
-                                    <span className={styles.arrow} aria-hidden="true">{openD ? '▾' : '▸'}</span>
-                                    <span className={`${styles.name} ${styles.dish}`}>{d.label}</span>
-                                    <span className={styles.cnt}>{d.count}</span>
-                                  </button>
-                                  {openD && (
-                                    <ul className={styles.tree} style={{ paddingLeft: 22 }}>
-                                      {d.eateries.map(e => <EateryRow key={e.id} e={e} reviews={reviews} onOpen={() => setEditing({ mode: 'edit', id: e.id })} />)}
-                                    </ul>
-                                  )}
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
+              {byView && shown.length === 0 && !error && (
+                <p className={styles.muted}>No eateries in this part of the map. Move the map, or search above to add one.</p>
+              )}
+              {active && shown.length > 0 && (
+                <EateryTree
+                  key={scope ? scope.name : 'map-view'}
+                  eateries={shown}
+                  reviews={reviews}
+                  onOpen={e => {
+                    if (!hasMap) return setEditing({ mode: 'edit', id: e.id })
+                    setFocus({ lat: e.lat, lng: e.lng })
+                    setPopupId(e.id)
+                  }}
+                  picked={picked}
+                  showAll={showAll}
+                  onPick={ids => { setPicked(p => togglePicks(p, ids, showAll)); setShowAll(false) }}
+                />
               )}
             </>
           )}
         </aside>
         <div className={styles.mapArea}>
-          <SavorMap pins={mapPins} frame={frame} onPinClick={id => { if (shown.some(e => e.id === id)) setEditing({ mode: 'edit', id }) }} />
+          <SavorMap
+            pins={mapPins}
+            frame={frame}
+            onView={setView}
+            focus={focus}
+            onPinClick={id => { if (shown.some(e => e.id === id)) setPopupId(id) }}
+            popupAt={popupEatery ? { lat: popupEatery.lat, lng: popupEatery.lng } : null}
+            onPopupClose={() => setPopupId(null)}
+            popup={
+              popupEatery ? (
+                <PlacePopup
+                  place={{
+                    name: popupEatery.name,
+                    googlePlaceId: popupEatery.google_place_id,
+                    lat: popupEatery.lat,
+                    lng: popupEatery.lng,
+                    note: popupEatery.note,
+                    deleteText: "Remove this eatery? It goes to the owner's pending-deletion list."
+                  }}
+                  onClose={() => setPopupId(null)}
+                  onEdit={() => { setPopupId(null); setEditing({ mode: 'edit', id: popupEatery.id }) }}
+                  onDelete={async () => { await requestEateryDeletion(popupEatery.id); setPopupId(null); await load() }}
+                  onSaveNote={async note => { await saveEateryNote(popupEatery.id, note); await load() }}
+                />
+              ) : null
+            }
+          />
         </div>
       </div>
-      {!scope && !sharing && <LocationPicker onPick={h => chooseScope(resolveScope(h))} />}
+      {!scope && !closed && !sharing && <LocationPicker onPick={h => chooseScope(resolveScope(h))} onClose={() => setClosed(true)} />}
       {sharing && (
         <SavorShareDialog
           token={inviteToken}
@@ -298,7 +318,7 @@ function SavorLoaded({ userId }: { userId: string }) {
   )
 }
 
-function LocationPicker({ onPick }: { onPick: (hit: LocationHit) => void }) {
+function LocationPicker({ onPick, onClose }: { onPick: (hit: LocationHit) => void; onClose: () => void }) {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<LocationHit[]>([])
   const [searching, setSearching] = useState(false)
@@ -316,11 +336,21 @@ function LocationPicker({ onPick }: { onPick: (hit: LocationHit) => void }) {
     )
   }
 
+  // Closable (session 10): ×, Escape, or a click outside the box.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
-    <div className={styles.scrim}>
-      <div className={styles.modal} role="dialog" aria-modal="true" aria-label="Where to see eateries">
+    <div className={styles.scrim} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className={`${styles.modal} ${styles.modalClosable}`} role="dialog" aria-modal="true" aria-label="Where to see eateries">
+        <button type="button" className={styles.modalX} aria-label="Close" onClick={onClose}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
         <h2 className={styles.modalH}>Where do you want to see eateries?</h2>
-        <p className={styles.modalP}>Pick a country or a city — the catalogue and the map show that place.</p>
+        <p className={styles.modalP}>Pick a country or a city, or close this to move the map yourself.</p>
         <form className={styles.search} role="search" onSubmit={e => e.preventDefault()}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
           <input autoFocus type="search" value={query} onChange={e => run(e.target.value)} placeholder="Search a country or city" aria-label="Search a country or city" />
@@ -339,26 +369,8 @@ function LocationPicker({ onPick }: { onPick: (hit: LocationHit) => void }) {
           </ul>
         )}
         {query.trim() && !searching && hits.length === 0 && !err && <p className={styles.muted}>Nothing found. Try another name.</p>}
-        <p className={styles.req}>A country or city is required to open Savorlog.</p>
       </div>
     </div>
   )
 }
 
-function EateryRow({ e, reviews, onOpen }: { e: Eatery; reviews: EateryReview[]; onOpen: () => void }) {
-  const badge = pinBadge(asReviews(reviews, e.id))
-  return (
-    <li className={styles.rowLi}>
-      <button type="button" className={styles.row} onClick={onOpen}>
-        <span className={styles.status} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" dangerouslySetInnerHTML={{ __html: badgeSvg(badge, 12) }} />
-        <span className={styles.name}>{e.name}</span>
-        {e.michelin && (
-          <span className={styles.mich} title={e.michelin === 'mentioned' ? 'MICHELIN' : `MICHELIN ${e.michelin} star${e.michelin === '1' ? '' : 's'}`}>
-            {e.michelin === 'mentioned' ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(e.michelin))}
-          </span>
-        )}
-        {e.price != null && <span className={styles.price}>{priceLabel(e.price)}</span>}
-      </button>
-    </li>
-  )
-}

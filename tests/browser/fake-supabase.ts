@@ -31,7 +31,7 @@ export interface FakePerson {
   joined_at: string | null
 }
 
-export interface FakeDay { id: string; trip_id: string; date: string | null; note: string | null; created_at: string }
+export interface FakeDay { id: string; trip_id: string; date: string | null; repeat_after?: string | null; note: string | null; created_at: string }
 export interface FakeLeg { id: string; day_id: string; [k: string]: unknown }
 export type FakeRow = Record<string, unknown>
 
@@ -218,6 +218,10 @@ export async function fakeSupabase(
       const trip = url.searchParams.get('trip_id')?.replace('eq.', '')
       if (req.method() === 'GET') return route.fulfill({ json: db.pins.filter(p => p.trip_id === trip) })
       if (req.method() === 'POST') {
+        // One pin per Google place per trip (migration 0014).
+        if (args.google_place_id && db.pins.some(p => p.trip_id === args.trip_id && p.google_place_id === args.google_place_id)) {
+          return route.fulfill({ status: 409, json: { code: '23505', message: 'That place is already pinned on this trip.' } })
+        }
         db.pins.push({ created_at: '2026-10-10T12:00:00Z', ...args })
         return route.fulfill({ status: 201, body: '' })
       }
@@ -389,11 +393,11 @@ export async function fakeSupabase(
       const leg = db.legs.find(l => l.id === args._leg)
       const date = (leg?.from_date as string | null) ?? null
       if (!leg || !date) return deny(route, 'the leg needs a departure date to be linked')
-      if (!db.days.some(d => d.trip_id === args._trip && d.date === date)) {
+      if (!db.days.some(d => d.trip_id === args._trip && d.date === date && !d.repeat_after)) {
         db.days.push({ id: `day-${db.days.length + 1}`, trip_id: args._trip, date, note: null, created_at: '2026-10-13T12:00:00Z' })
       }
       if (!db.legLinks.some(k => k.leg_id === args._leg && k.trip_id === args._trip)) db.legLinks.push({ leg_id: args._leg, trip_id: args._trip })
-      return route.fulfill({ json: db.days.find(d => d.trip_id === args._trip && d.date === date)!.id })
+      return route.fulfill({ json: db.days.find(d => d.trip_id === args._trip && d.date === date && !d.repeat_after)!.id })
     }
     if (path === '/rest/v1/rpc/trip_leg_links') {
       const tripOf = (legId: string) => db.days.find(d => d.id === db.legs.find(l => l.id === legId)?.day_id)?.trip_id
@@ -453,4 +457,19 @@ export async function fakePlaces(page: Page, places: { id: string; name: string;
       }
     })
   )
+}
+
+/** Sets a 24-hour time picker (hour + minute menus, session 10) by its label. */
+export async function setTime(scope: import('@playwright/test').Locator, label: string, hhmm: string): Promise<void> {
+  const [h, m] = hhmm.split(':')
+  await scope.getByRole('combobox', { name: `${label} hour`, exact: true }).selectOption(h)
+  await scope.getByRole('combobox', { name: `${label} minute`, exact: true }).selectOption(m)
+}
+
+/** Checks a 24-hour time picker shows hh:mm. */
+export async function expectTime(scope: import('@playwright/test').Locator, label: string, hhmm: string): Promise<void> {
+  const { expect } = await import('@playwright/test')
+  const [h, m] = hhmm.split(':')
+  await expect(scope.getByRole('combobox', { name: `${label} hour`, exact: true })).toHaveValue(h)
+  await expect(scope.getByRole('combobox', { name: `${label} minute`, exact: true })).toHaveValue(m)
 }

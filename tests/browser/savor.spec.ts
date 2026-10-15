@@ -44,7 +44,7 @@ async function enter(page: Page, type: string, name: RegExp) {
   await dialog.getByRole('button', { name }).click()
 }
 
-test('the gate is required, then filters to the chosen country', async ({ page }) => {
+test('the gate opens first, then filters to the chosen country', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await page.goto('./savor')
   await expect(page.getByRole('dialog', { name: 'Where to see eateries' })).toBeVisible()
@@ -56,8 +56,8 @@ test('the gate is required, then filters to the chosen country', async ({ page }
   await expect(page.getByText(/Showing/)).toContainText('Vietnam')
   const side = page.getByRole('complementary', { name: 'Catalogue' })
   await expect(side.getByText('2', { exact: true }).first()).toBeVisible() // Tokyo's filtered out
-  await side.getByRole('button', { name: /Vietnamese/ }).click()
-  await expect(side.getByRole('button', { name: /Anan Saigon/ })).toBeVisible()
+  await side.getByRole('button', { name: /^Vietnamese/ }).click()
+  await expect(side.getByRole('button', { name: /Anan Saigon/ }).first()).toBeVisible()
 })
 
 test('search-to-add opens the add card and saves a new eatery', async ({ page }) => {
@@ -66,7 +66,7 @@ test('search-to-add opens the add card and saves a new eatery', async ({ page })
   const side = page.getByRole('complementary', { name: 'Catalogue' })
   await side.getByRole('searchbox', { name: /Search Google/ }).fill('bun')
   await side.getByRole('button', { name: 'Search' }).click()
-  await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).click()
+  await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first().click()
 
   const form = side.getByRole('form', { name: 'Add an eatery' })
   await expect(form).toBeVisible()
@@ -75,8 +75,8 @@ test('search-to-add opens the add card and saves a new eatery', async ({ page })
   await form.getByRole('button', { name: 'Add eatery' }).click()
 
   // Wait for the reload to show the new row, then check what reached the db.
-  await side.getByRole('button', { name: /Vietnamese/ }).click()
-  await expect(side.getByRole('button', { name: /Bún Chả Hương Liên/ })).toBeVisible()
+  await side.getByRole('button', { name: /^Vietnamese/ }).click()
+  await expect(side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first()).toBeVisible()
   expect(db.eateries.some(e => e.name === 'Bún Chả Hương Liên' && e.cuisine === 'vietnamese' && e.price === 2)).toBe(true)
 })
 
@@ -84,8 +84,8 @@ test('editing an eatery shows its fields and the photo placeholder', async ({ pa
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
   const side = page.getByRole('complementary', { name: 'Catalogue' })
-  await side.getByRole('button', { name: /Vietnamese/ }).click()
-  await side.getByRole('button', { name: /Anan Saigon/ }).click()
+  await side.getByRole('button', { name: /^Vietnamese/ }).click()
+  await side.getByRole('button', { name: /Anan Saigon/ }).first().click()
 
   const form = side.getByRole('form', { name: 'Edit eatery' })
   await expect(form.getByRole('radio', { name: '4 of 4' })).toHaveAttribute('aria-checked', 'true') // price $$$$
@@ -96,12 +96,12 @@ test('removing an eatery sends it to the pending-deletion queue', async ({ page 
   const db = await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
   const side = page.getByRole('complementary', { name: 'Catalogue' })
-  await side.getByRole('button', { name: /Vietnamese/ }).click()
-  await side.getByRole('button', { name: /Anan Saigon/ }).click()
+  await side.getByRole('button', { name: /^Vietnamese/ }).click()
+  await side.getByRole('button', { name: /Anan Saigon/ }).first().click()
   await side.getByRole('form', { name: 'Edit eatery' }).getByRole('button', { name: 'Remove…' }).click()
   await side.getByRole('button', { name: 'Remove', exact: true }).click()
 
-  await expect(side.getByRole('button', { name: /Anan Saigon/ })).toHaveCount(0)
+  await expect(side.getByRole('button', { name: /Anan Saigon/ }).first()).toHaveCount(0)
   expect((db.eateries.find(e => e.id === 'e2') as { deleted_at: string | null }).deleted_at).toBeTruthy()
 })
 
@@ -135,9 +135,10 @@ test('the Family dialog lists the circle; the owner can remove a member', async 
 test('country → dish tree helper', async () => {
   const { buildCountryTree } = await import('../../src/lib/savorTree')
   const tree = buildCountryTree(EATERIES.map(e => ({ cuisine: e.cuisine, dish: e.dish, id: e.id })))
-  expect(tree.map(c => c.key)).toEqual(['vietnamese', 'japanese'])
-  expect(tree[0].loose.map(e => e.id)).toEqual(['e2'])
-  expect(tree[0].dishes.map(d => d.key)).toEqual(['pho'])
+  // A–Z (session 10): Japanese before Vietnamese.
+  expect(tree.map(c => c.key)).toEqual(['japanese', 'vietnamese'])
+  expect(tree[1].loose.map(e => e.id)).toEqual(['e2'])
+  expect(tree[1].dishes.map(d => d.key)).toEqual(['pho'])
 })
 
 test('scope resolution and membership', async () => {
@@ -150,4 +151,33 @@ test('scope resolution and membership', async () => {
   expect(tok.kind).toBe('city')
   expect(inScope({ lat: 35.67, lng: 139.74 }, tok)).toBe(true)
   expect(inScope({ lat: 10.78, lng: 106.69 }, tok)).toBe(false)
+})
+
+test('the place popup can be closed; Pick a place reopens it (session 10)', async ({ page }) => {
+  await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
+  await fakeGoogle(page)
+  await page.goto('./savor')
+  const dialog = page.getByRole('dialog', { name: 'Where to see eateries' })
+  await dialog.getByRole('button', { name: 'Close' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText(/Showing/)).toContainText('the map view')
+  await page.getByRole('button', { name: 'Pick a place' }).click()
+  await expect(dialog).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  // Picking a place still works after closing once.
+  await page.getByRole('button', { name: 'Pick a place' }).click()
+  await dialog.getByRole('searchbox').fill('viet')
+  await dialog.getByRole('button', { name: /Vietnam/ }).click()
+  await expect(page.getByText(/Showing/)).toContainText('Vietnam')
+})
+
+test('map-view filter: inside the visible area, across the 180° line too', async () => {
+  const { inView } = await import('../../src/lib/countryBounds')
+  const saigon = { lat: 10.78, lng: 106.7 }
+  expect(inView({ south: 8, west: 102, north: 23, east: 110 }, saigon.lat, saigon.lng)).toBe(true)
+  expect(inView({ south: 30, west: 130, north: 46, east: 146 }, saigon.lat, saigon.lng)).toBe(false)
+  // A Pacific view from Japan (140°E) to Hawaii (-150°): Honolulu is in, Saigon isn't.
+  expect(inView({ south: 0, west: 140, north: 50, east: -150 }, 21.3, -157.8)).toBe(true)
+  expect(inView({ south: 0, west: 140, north: 50, east: -150 }, saigon.lat, saigon.lng)).toBe(false)
 })

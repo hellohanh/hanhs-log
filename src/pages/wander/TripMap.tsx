@@ -1,3 +1,6 @@
+import { centreFor } from '../../lib/mapCentre'
+import { createPortal } from 'react-dom'
+import { useMapPopup } from './mapPopup'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
 import { MAP_LOOKS, canHidePins, lookOptions, mapKind, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
@@ -33,7 +36,10 @@ export default function TripMap({
   pins: tripPins = [],
   route,
   onPinClick,
-  focus
+  focus,
+  popup,
+  popupAt,
+  onPopupClose
 }: {
   city: CityState
   rightInset?: number
@@ -43,6 +49,10 @@ export default function TripMap({
   onPinClick?: (id: string) => void
   /** Pan here (a new object each time, so the same place can be re-focused). */
   focus?: { lat: number; lng: number } | null
+  /** The pin popup (session 10): what to show, and the pin it hangs from. */
+  popup?: React.ReactNode
+  popupAt?: { lat: number; lng: number } | null
+  onPopupClose?: () => void
 }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -132,8 +142,8 @@ export default function TripMap({
   useEffect(() => {
     if (!map || city.state !== 'ready' || appliedCity.current === city.city) return
     appliedCity.current = city.city
-    map.setCenter({ lat: city.city.lat, lng: city.city.lng })
     map.setZoom(OPENING_ZOOM)
+    map.setCenter(centreFor({ lat: city.city.lat, lng: city.city.lng }, OPENING_ZOOM, rightInset / 2))
   }, [map, city])
 
   // The trip's own pins (rebuilt with the map when the map is replaced).
@@ -155,9 +165,17 @@ export default function TripMap({
   }, [map, tripPins])
   useEffect(() => {
     if (!map || !focus) return
-    map.panTo(focus)
     if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
+    map.panTo(centreFor(focus, map.getZoom() ?? 15, insetRef.current / 2))
   }, [map, focus])
+
+  // Opening or closing the itinerary panel shifts the map with it, so what
+  // was in the middle of the visible part stays there (session 10).
+  const insetRef = useRef(rightInset)
+  useEffect(() => {
+    if (map && rightInset !== insetRef.current) map.panBy((rightInset - insetRef.current) / 2, 0)
+    insetRef.current = rightInset
+  }, [map, rightInset])
 
   // The day route (session 6): one polyline per leg, coloured by travel mode;
   // an unset leg is a straight dashed grey line. Rebuilt with the map.
@@ -244,11 +262,15 @@ export default function TripMap({
 
   const defaultName = MAP_LOOKS.find(x => x.key === DEFAULT_LOOK[mode])!.name
 
+  // The pin popup (session 10).
+  const popupEl = useMapPopup(map, popup ? popupAt ?? null : null, () => onPopupClose?.(), rightInset)
+
   return (
     <div className={styles.wrap}>
+      {popupEl && popup ? createPortal(popup, popupEl) : null}
       <div ref={box} className={styles.map} role="region" aria-label="Map" />
       {notice && <p className={styles.notice} role="status">{notice}</p>}
-      {map && <CameraControl map={map} home={home} tiltable={tiltable} right={rightInset + 16} />}
+      {map && <CameraControl map={map} home={home} tiltable={tiltable} right={rightInset + 16} inset={rightInset} />}
       {ready && (
         <div className={styles.controls}>
           <button
