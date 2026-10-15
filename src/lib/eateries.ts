@@ -76,6 +76,8 @@ export async function saveEatery(fields: EateryFields, id?: string): Promise<str
   }
   const newId = crypto.randomUUID()
   const { error } = await client().from('eateries').insert({ id: newId, ...fields })
+  // One eatery per Google place (0007): say so plainly rather than the database's words.
+  if (error?.code === '23505') throw new Error('That place is already in Savorlog.')
   if (error) throw new Error(error.message)
   return newId
 }

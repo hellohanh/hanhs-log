@@ -114,3 +114,17 @@ test('import helpers: parse, cities, order, next pending', async () => {
   expect(nextPending(items, 0)).toBe(1)
   expect(nextPending(items.map(i => ({ ...i, status: 'saved' as const })), 0)).toBeNull()
 })
+
+test('a place already pinned on the chosen trip is ticked off automatically (session 10)', async ({ page }) => {
+  const db = await fakeSupabase(page, {
+    pins: [{ id: 'pin-old', trip_id: 'trip-saigon', google_place_id: 'gp-cathedral', name: 'Notre Dame Cathedral of Saigon : Nhà Thờ Đức Bà', lat: 10.7798, lng: 106.699, category: 'attraction', subcategory: 'worship', subsubcategory: 'church', michelin: null, michelin_year: null, street_food: false, fine_dining: false, note: null, address: null, created_at: '2026-10-01T00:00:00Z' }]
+  })
+  await page.goto('./wander/import')
+  await page.locator('input[type="file"]').setInputFiles({ name: 'prepared.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(PREPARED)) })
+  await page.getByLabel('Trip for Hồ Chí Minh City').selectOption('trip-saigon')
+  await page.getByRole('button', { name: /Attraction/ }).click()
+  await expect(page.getByText(/was already on Christmas in Saigon, so it's ticked off/)).toBeVisible()
+  await expect.poll(() => db.importItems.find(i => i.google_place_id === 'gp-cathedral')?.status).toBe('saved')
+  expect(db.importItems.find(i => i.google_place_id === 'gp-cathedral')).toMatchObject({ saved_pin_id: 'pin-old' })
+  expect(db.pins).toHaveLength(1)
+})

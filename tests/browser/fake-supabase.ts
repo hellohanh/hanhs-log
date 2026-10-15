@@ -218,6 +218,10 @@ export async function fakeSupabase(
       const trip = url.searchParams.get('trip_id')?.replace('eq.', '')
       if (req.method() === 'GET') return route.fulfill({ json: db.pins.filter(p => p.trip_id === trip) })
       if (req.method() === 'POST') {
+        // One pin per Google place per trip (migration 0014).
+        if (args.google_place_id && db.pins.some(p => p.trip_id === args.trip_id && p.google_place_id === args.google_place_id)) {
+          return route.fulfill({ status: 409, json: { code: '23505', message: 'That place is already pinned on this trip.' } })
+        }
         db.pins.push({ created_at: '2026-10-10T12:00:00Z', ...args })
         return route.fulfill({ status: 201, body: '' })
       }
