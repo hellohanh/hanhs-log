@@ -164,7 +164,10 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   }, [loadEateries])
   // OTD Pins (itinerary open, toggle on) overrides Show all pins and the
   // MICHELIN filter: the day's pins stay bright, the rest fade (Hanh, session 4).
-  const otdActive = panel.open && otdPinIds !== null
+  // Day route on: only the day's places stay bright. On the computer that's
+  // while the itinerary panel is open; on the phone the itinerary is always
+  // there (its sheet) and the route button decides (session 10).
+  const otdActive = (phone ? routeOn : panel.open) && otdPinIds !== null
   const otdSet = useMemo(() => new Set(otdPinIds ?? []), [otdPinIds])
   const mapPins = useMemo<MapPin[]>(
     () =>
