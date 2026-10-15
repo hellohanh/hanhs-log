@@ -1,13 +1,13 @@
 import styles from './TimeSelect.module.css'
 
 // 24-hour time entry (Hanh, session 10: "everywhere"): an hour menu 00–23
-// and a minute menu in 5s, the same on every computer and phone (the
-// browser's own time box shows AM/PM on a US computer). A minute that isn't
-// a multiple of 5 (an older entry) stays in the list so it isn't lost.
-// value is "" or "HH:MM"; onChange gets the same.
+// and a minute menu with every minute 00–59 (Hanh: "do not restrict the
+// minutes"), the same on every computer and phone (the browser's own time
+// box shows AM/PM on a US computer). value is "" or "HH:MM"; onChange gets
+// the same.
 
 const HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'))
-const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
 
 export default function TimeSelect({
   label,
@@ -21,7 +21,6 @@ export default function TimeSelect({
   className?: string
 }) {
   const [h, m] = value ? value.slice(0, 5).split(':') : ['', '']
-  const mins = m && !MINUTES.includes(m) ? [...MINUTES, m].sort() : MINUTES
   return (
     <div className={className} role="group" aria-label={label}>
       <span aria-hidden="true">{label}</span>
@@ -33,7 +32,7 @@ export default function TimeSelect({
         <span className={styles.colon} aria-hidden="true">:</span>
         <select aria-label={`${label} minute`} value={m} onChange={e => onChange(`${h || '00'}:${e.target.value || '00'}`)}>
           {!h && <option value="">--</option>}
-          {mins.map(x => <option key={x} value={x}>{x}</option>)}
+          {MINUTES.map(x => <option key={x} value={x}>{x}</option>)}
         </select>
       </span>
     </div>
