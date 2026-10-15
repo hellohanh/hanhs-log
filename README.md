@@ -4,7 +4,7 @@ One app for trip planning (**Wanderlog**) and eateries (**Savorlog**), sharing o
 login and one database (its own Supabase project; the old Wanderlog site and
 database are separate and untouched). Live at https://hellohanh.github.io/hanhs-log/
 
-## Current state (Session 9, OCT 13 2026)
+## Current state (Session 10, OCT 14 2026)
 
 | Milestone | Status |
 |---|---|
@@ -42,6 +42,12 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 - **Place names**: every pin and eatery is `English : Local` (Japan: `明治神宮 (Meiji Jingū)`), typed in two boxes on the add cards (E72).
 - **Travel legs**: Title first on the form; blocks read `AUSTIN (AUS) 06:00 CST (UTC−6) •••🛬••• LOS ANGELES (LAX) 07:46 PST (UTC−8)` (E73). A **copy icon** links a leg to another trip (long layovers): one leg shown on both, read only on the other trip, deleting removes it everywhere (E74).
 - **Trip list**: ✎ on each card edits the trip without opening it (E75).
+- **Maps**: the **GPins ON / GPins OFF** chip hides Google's place pins; on Google standard and Google dark a second, no-pins Map ID keeps tilt, rotate and 3D buildings with GPins OFF (E76). **Map look → Check all controls** tests every camera button on every look on your screen (E77).
+- **Map pin popup**: clicking a pin, or a place in the left list, opens a popup on the pin: bold name, ✎ to edit, a bin (asks first), address, phone (tap to call), website, View in Google Maps and the note, editable in place; a click outside closes it (E85). Status badges now sit **inside** the pin, just above the point (E86). With the itinerary panel open, centring uses the visible part of the map, and the map shifts when the panel opens or closes (E87).
+- **Places lists**: an **eye** on every row (trip Places and Savorlog) picks what shows when Show all is off, e.g. your hotel plus the bánh mì spots (E84). Labels are in Title Case and every level is A–Z (E88). The same Google place can be pinned only once per trip (E82).
+- **Itinerary times**: 24-hour hour and minute menus everywhere (E81). A flight across the date line that lands "before" it left gets a **second tab for the same date** (e.g. Sun Jan 3 · Seoul, Sun Jan 3 · Seattle), with the flight split across both (E80). The day route's drive line is bright blue.
+- **Savorlog**: the place popup can be closed; then the map starts on the world and the list follows what's on the map (E83).
+- **Speed**: the splash's soft edge is baked into the picture (about 85% less drawing work while the plane flies), and replaced maps are cleaned up (E79). Packages are current with `npm audit` clean (E78).
 - **Pin standard**: every category, colour and icon for Wanderlog and Savorlog pins is in [docs/pin-standard.md](docs/pin-standard.md); Hanh's own icons are in `src/assets/pin-icons/`. Every Nom-Nom cuisine has its dish list (top 5 each, Vietnamese 28; Fusion has none, E70).
 - **Safety net**:
   - every pull request gets a preview link, a build check, migration rules, two-person security tests and browser tests at phone, laptop, 150% zoom and monitor sizes;
@@ -52,17 +58,18 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
   - all workflow actions run on Node 24 (L42).
 
 ## What's next
-1. **Work through the old-pin import** at `/wander/import` with `hanhs-log-import-2026-10-13.json` (E71); fix anything the queue shows up.
-2. **M5.2b** — a migration (`0013`) forbidding new food pins in the `pins` table going forward (existing ones left alone), landed with its test rework. The only deferred piece of M5.
-3. **M6** itinerary polish, then **M7** switch-over.
+1. **Map check results**: run Map look → Check all controls on the live site and grey out anything Google can't do on Terrain / Satellite.
+2. **Work through the old-pin import** at `/wander/import` with `hanhs-log-import-2026-10-13.json` (E71); fix anything the queue shows up.
+3. **M5.2b** — a migration (`0015`) forbidding new food pins in the `pins` table going forward (existing ones left alone), landed with its test rework. The only deferred piece of M5.
+4. **M6** itinerary polish, then **M7** switch-over.
 
-Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl, side bowl), **Q7** (no lobster icon), **Q1** (splash phone layout, parked), **Q8** (Google-dark pins/labels need a Google Cloud style, parked). And the **tilt** needs a **Vector** `VITE_GOOGLE_MAP_ID` in the same Google Cloud project as the Maps key (a Console change, not code).
+Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl, side bowl), **Q7** (no lobster icon), **Q1** (splash phone layout, parked). Q8 is resolved (E76). Tidy-up for Hanh: delete the 64 merged branches on GitHub (Branches page) and tick **Settings → General → Automatically delete head branches**.
 
-**One-time setup is done** (sessions 8–9): migrations 0001–0012 are applied, and the public `eatery-photos` bucket exists with INSERT/DELETE (and SELECT) policies for `authenticated`, limited to `bucket_id = 'eatery-photos'`. Savorlog's owner is the first signed-in person to open `/savor` (check: Family → your name says Owner, and Reset link shows). After GitHub moves `ubuntu-latest` to Ubuntu 26 (Oct 19, 2026), check a run is still green.
+**One-time setup is done** (sessions 8–9): migrations 0001–0014 are applied, and the public `eatery-photos` bucket exists with INSERT/DELETE (and SELECT) policies for `authenticated`, limited to `bucket_id = 'eatery-photos'`. Savorlog's owner is the first signed-in person to open `/savor` (check: Family → your name says Owner, and Reset link shows). After GitHub moves `ubuntu-latest` to Ubuntu 26 (Oct 19, 2026), check a run is still green.
 
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E75, Q1–Q10, L1–L44), README.md, SESSION_LEDGER.md and docs/pin-standard.md
+> Read SKILL.md (E1–E88, Q1–Q10, L1–L51), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project and
 > started from a clean slate (live Wanderlog is never touched). M3, M4 and M5 are live: trips +
 > map + itinerary, all of Savorlog (catalogue, location gate, add/edit + photos, family invite),
@@ -70,8 +77,12 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
 > schedulable on days), every Nom-Nom cuisine has its dish list (E70), the **old-pin import queue**
 > is built (E71, `/wander/import`, prepared file made by Claude), names follow `English : Local` (E72),
 > travel blocks have the new look (E73), legs can be linked to another trip (E74), and trips can be
-> edited from the list (E75). Help me with the import as I work through it; the only deferred M5
-> piece is **M5.2b** (now migration 0013, forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
+> edited from the list (E75). Maps have the GPins chip with a no-pins Map ID (E76) and a Map check (E77);
+> packages are on vite 8 / React Router 7 (E78); the splash is lighter (E79). Since then: date-line
+> repeat days (E80), 24-hour time menus (E81), one pin per place per trip (E82), a closable Savorlog
+> place popup (E83), eyes on Places rows (E84), the map pin popup (E85), badges inside pins (E86),
+> centring beside the itinerary panel (E87), and Title Case A–Z lists (E88). Start with the Map check results. Help me with the import as I work through it; the only deferred M5
+> piece is **M5.2b** (now migration 0015, forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
 > infer, always show the merge link when something's ready to merge, and don't leave red build
 > runs: fix them.
 
@@ -95,7 +106,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
    Check it on your phone and laptop.
 3. Click **Merge** (use "Create a merge commit"). The live site updates in about two minutes.
 
-Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S009 OCT 13 2026).
+Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S010 OCT 14 2026).
 
 ## Database
 The database is shared with Wanderlog, so it has its own rules, nightly

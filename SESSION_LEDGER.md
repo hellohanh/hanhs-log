@@ -348,3 +348,44 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 **Stop Protocol completed:** zip `S009 OCT 13 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** helping Hanh through the import queue; then M5.2b (migration 0013), Q6/Q7, M6, M7. After Oct 19, 2026 check a run on Ubuntu 26.
+
+---
+
+## Session 10 — 2026-10-14
+
+**Goal:**
+- Make every map control work on Google's looks with GPins ON and OFF; check GitHub health; fix the computer slowing down on the site.
+- Then (same day): 24-hour times and flights across the date line, no duplicate pins, a closable Savorlog place popup, eyes on Places rows, a map pin popup, badges inside pins, centring beside the itinerary panel, Title Case A–Z lists.
+
+**Decisions made:** E76 (GPins chip + no-pins Map ID; Q8 resolved), E77 (Map check), E78 (package majors), E79 (splash edge baked in; replaced maps cleaned up), E80 (date-line repeat day), E81 (24-hour time menus), E82 (one pin per place per trip), E83 (closable Savorlog place popup; updates E66), E84 (eyes on Places rows; drive line #1A8CFF), E85 (map pin popup), E86 (badge inside the pin), E87 (centring beside the itinerary panel), E88 (Title Case labels, A–Z lists).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #67: Session 9 Stop Protocol docs.
+- #68: GPins ON / OFF chip, no-pins Map ID path, Map check, builds report the new secret.
+- #69: React Router 7, vite 8, PWA plugin 2, React plugin 5.2, Playwright 1.64, Maps types 3.66 — `npm audit` 5 → 0.
+- #70: splash soft edge baked into `hero-feathered.webp` (2,151 → 325 ms raster per 4 s scroll); replaced Google maps removed instead of piling up.
+- #72: migration **0013** repeat days + date-line split, city lines on tabs; 24-hour time picker; fix for editing a flight from its landing day — applied.
+- #73: minute menu 00–59.
+- #74: repeat day only when a flight lands earlier by the clock (Seoul → Saigon wrongly got one).
+- #75: migration **0014** one pin per Google place per trip + plain duplicate messages + import auto-tick — applied.
+- #76: closable Savorlog place popup; list follows the map view.
+- #77: eyes on trip Places and Savorlog rows; Savorlog uses the shared EateryTree; drive line #1A8CFF.
+- #78: map pin popup (trip + Savorlog); status badge inside the pin (placed by Hanh with an interactive positioner).
+- #79: popup Segoe, no sideways scroll, website, closes on outside click; centring beside the itinerary panel.
+- #80: popup name bold; Title Case labels (keys unchanged); A–Z lists.
+- #71: this Session 10 Stop Protocol docs (held open and extended at the second stop).
+
+**Done outside code:**
+- Google Cloud (project chord-book-tts): styles **Hanh's Log – no pins** (Hanh's JSON) and **Hanh's Log – no pins (dark)**, Map ID **Hanh's Log no pins** `1d7efe6a09082e4f21979b9e` (Vector, both styles attached, Buildings → 3D). The secret first held the style ID (L46); corrected and the live site redeployed. Hanh confirmed GPins OFF hides pins with tilt and 3D buildings on Google standard and dark.
+- GitHub check-up: 0 failed runs, migrations 0001–0012 applied, nightly backup ran (late). Branch deletion blocked by the session proxy (L47) — left to Hanh.
+- Performance audit: every page idle-tested signed in (no loops, timers, leaks or repeated requests); the splash blur mask was the cost.
+
+**Design work:** inline mockups for the date-line tabs (city lines), the closable Savorlog popup, the eyes, the pin popup; an interactive badge positioner (with centre guides) Hanh used to place the badge.
+
+**Lessons:** L45 (live SVG blur mask re-rasterises per frame), L46 (Map Style ID ≠ Map ID; default style slots; 3D not in JSON), L47 (proxy limits; pkill self-kill), L48 (test builds need the stand-in Supabase settings), L49 (row-named buttons break loose test regexes), L50 (old version until the deploy finishes and a full refresh), L51 (Google InfoWindow thins bold, scrolls sideways, auto-pans blind to panels).
+
+**Open questions:** Q1 (phone layout, parked), Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S010 OCT 14 2026 Hanhs Log.zip` produced and presented (remade at the second stop to include #72–#80).
+
+**Next session starts at:** the Map check results (Terrain / Satellite), then the old-pin import, M5.2b (migration 0015), Q6/Q7, M6, M7. After Oct 19, 2026 check a run on Ubuntu 26.
