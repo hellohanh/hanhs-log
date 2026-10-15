@@ -547,6 +547,10 @@ test('date-line helpers: which legs need a repeat day', async () => {
   // Westbound (lose a day) and ordinary overnight legs don't need one.
   expect(repeatFor({ ...leg, from_location: 'Seattle / SEA', from_timezone: 'America/Los_Angeles', from_time: '11:00', to_location: 'Seoul / ICN', to_timezone: 'Asia/Seoul', to_date: '2027-01-04', to_time: '15:00' })).toBeNull()
   expect(repeatFor({ ...leg, from_timezone: 'America/Chicago', from_time: '22:00', to_timezone: 'America/New_York', to_date: '2027-01-04', to_time: '02:00' })).toBeNull()
+  // Seoul 18:50 → Saigon 22:25 lands after midnight Seoul time, but the same evening there: one day.
+  expect(repeatFor({ ...leg, from_time: '18:50', to_location: 'Ho Chi Minh City / SGN', to_timezone: 'Asia/Ho_Chi_Minh', to_date: '2027-01-03', to_time: '22:25' })).toBeNull()
+  // Arrival typed earlier with no real flight time (a typo) adds nothing.
+  expect(repeatFor({ ...leg, from_timezone: 'Asia/Seoul', from_time: '18:45', to_timezone: 'Asia/Seoul', to_time: '12:00' })).toBeNull()
   // Tokyo just after midnight → Honolulu the evening before: a repeat Jan 2 after Jan 3.
   expect(repeatFor({ ...leg, from_timezone: 'Asia/Tokyo', from_time: '01:00', to_timezone: 'Pacific/Honolulu', to_date: '2027-01-02', to_time: '13:00' })).toEqual({ date: '2027-01-02', after: '2027-01-03' })
 })

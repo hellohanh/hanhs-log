@@ -27,18 +27,23 @@ export interface RepeatKey {
 }
 
 /**
- * The repeat day a leg needs, or null. It needs one when it lands on a date
- * that, back home in the departure zone, has already passed: the arrival's
- * local date is earlier than the date the departure zone reads at landing.
- * Needs both dates, times and zones; ordinary overnight legs never match.
+ * The repeat day a leg needs, or null. Only a flight that lands "before" it
+ * left by the clock needs one: an earlier time on the same date, or an
+ * earlier date (Seoul 18:45 Jan 3 → Seattle 12:00 Jan 3). That only happens
+ * across the date line. A flight that just lands late, even after midnight
+ * back home (Seoul 18:50 → Saigon 22:25), stays on its one day (Hanh,
+ * session 10). Needs both dates, times and zones, and a real positive flight
+ * time, so a typo can't add a day.
  */
 export function repeatFor(leg: TravelLeg): RepeatKey | null {
   const { from_date, from_time, from_timezone, to_date, to_time, to_timezone } = leg
   if (!from_date || !from_time || !from_timezone || !to_date || !to_time || !to_timezone) return null
+  const leaves = `${from_date}T${from_time.slice(0, 5)}`
+  const lands = `${to_date}T${to_time.slice(0, 5)}`
+  if (lands >= leaves) return null
+  const leaveMs = zonedWallTimeToUtcMs(from_date, from_time, from_timezone)
   const landMs = zonedWallTimeToUtcMs(to_date, to_time, to_timezone)
-  if (landMs == null) return null
-  const home = localIn(landMs, from_timezone)
-  if (!home || to_date >= home.date) return null
+  if (leaveMs == null || landMs == null || landMs <= leaveMs) return null
   return { date: to_date, after: from_date }
 }
 
