@@ -1,3 +1,5 @@
+import { createPortal } from 'react-dom'
+import { useMapPopup } from './mapPopup'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
 import { MAP_LOOKS, canHidePins, lookOptions, mapKind, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
@@ -33,7 +35,10 @@ export default function TripMap({
   pins: tripPins = [],
   route,
   onPinClick,
-  focus
+  focus,
+  popup,
+  popupAt,
+  onPopupClose
 }: {
   city: CityState
   rightInset?: number
@@ -43,6 +48,10 @@ export default function TripMap({
   onPinClick?: (id: string) => void
   /** Pan here (a new object each time, so the same place can be re-focused). */
   focus?: { lat: number; lng: number } | null
+  /** The pin popup (session 10): what to show, and the pin it hangs from. */
+  popup?: React.ReactNode
+  popupAt?: { lat: number; lng: number } | null
+  onPopupClose?: () => void
 }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -244,8 +253,12 @@ export default function TripMap({
 
   const defaultName = MAP_LOOKS.find(x => x.key === DEFAULT_LOOK[mode])!.name
 
+  // The pin popup (session 10).
+  const popupEl = useMapPopup(map, popup ? popupAt ?? null : null, () => onPopupClose?.())
+
   return (
     <div className={styles.wrap}>
+      {popupEl && popup ? createPortal(popup, popupEl) : null}
       <div ref={box} className={styles.map} role="region" aria-label="Map" />
       {notice && <p className={styles.notice} role="status">{notice}</p>}
       {map && <CameraControl map={map} home={home} tiltable={tiltable} right={rightInset + 16} />}

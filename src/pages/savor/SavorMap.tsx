@@ -1,3 +1,5 @@
+import { createPortal } from 'react-dom'
+import { useMapPopup } from '../wander/mapPopup'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
 import { MAP_LOOKS, canHidePins, lookOptions, mapKind, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
@@ -26,13 +28,23 @@ export default function SavorMap({
   pins,
   frame,
   onPinClick,
-  onView
+  onView,
+  focus,
+  popup,
+  popupAt,
+  onPopupClose
 }: {
   pins: MapPin[]
   frame?: Frame | null
   onPinClick?: (id: string) => void
   /** The visible area after each pan or zoom (session 10: the list follows the map). */
   onView?: (b: Bounds) => void
+  /** Pan here (a new object each time). */
+  focus?: { lat: number; lng: number } | null
+  /** The pin popup (session 10): what to show, and the pin it hangs from. */
+  popup?: React.ReactNode
+  popupAt?: { lat: number; lng: number } | null
+  onPopupClose?: () => void
 }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -180,8 +192,17 @@ export default function SavorMap({
   const notice = noKey ? "The map can't load in this build (no Google Maps key)." : mapError
   const defaultName = MAP_LOOKS.find(x => x.key === DEFAULT_LOOK[mode])!.name
 
+  // The pin popup (session 10).
+  const popupEl = useMapPopup(map, popup ? popupAt ?? null : null, () => onPopupClose?.())
+  useEffect(() => {
+    if (!map || !focus) return
+    map.panTo(focus)
+    if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
+  }, [map, focus])
+
   return (
     <div className={styles.wrap}>
+      {popupEl && popup ? createPortal(popup, popupEl) : null}
       <div ref={box} className={styles.map} role="region" aria-label="Map" />
       {notice && <p className={styles.notice} role="status">{notice}</p>}
       {map && <CameraControl map={map} home={home} tiltable={tiltable} right={16} />}

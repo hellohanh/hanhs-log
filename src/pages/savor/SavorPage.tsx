@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
-import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
+import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, requestEateryDeletion, saveEateryNote, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
 import { searchPlaces, type FoundPlace } from '../../lib/pins'
 import { fetchMyName, type Person } from '../../lib/trips'
 import { searchLocations, resolveScope, inScope, type LocationHit, type Scope } from '../../lib/savorLocation'
@@ -11,6 +11,7 @@ import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml, flowerSvg } from '../../lib/pinDraw'
 import { pinBadge, pinFaded, togglePicks } from '../../lib/pinRules'
 import EateryTree from './EateryTree'
+import PlacePopup from '../../components/PlacePopup'
 import SavorMap, { type Frame } from './SavorMap'
 import SavorForm from './SavorForm'
 import SavorShareDialog from './SavorShareDialog'
@@ -58,6 +59,10 @@ function SavorLoaded({ userId }: { userId: string }) {
   const [showAll, setShowAll] = useState(true)
   // The eyes on the catalogue rows (session 10): picks, not remembered.
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  // The pin popup (session 10): a pin or list click opens it; ✎ edits.
+  const [popupId, setPopupId] = useState<string | null>(null)
+  const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null)
+  const hasMap = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
   const [michelinOnly, setMichelinOnly] = useState(false)
   const [editing, setEditing] = useState<Editing>(null)
   const [scope, setScope] = useState<Scope | null>(null)
@@ -159,6 +164,7 @@ function SavorLoaded({ userId }: { userId: string }) {
     setEditing(already ? { mode: 'edit', id: already.id } : { mode: 'add', place })
   }
 
+  const popupEatery = popupId ? eateries.find(e => e.id === popupId) ?? null : null
   const editingEatery = editing?.mode === 'edit' ? eateries.find(e => e.id === editing.id) : undefined
 
   return (
@@ -248,7 +254,11 @@ function SavorLoaded({ userId }: { userId: string }) {
                   key={scope ? scope.name : 'map-view'}
                   eateries={shown}
                   reviews={reviews}
-                  onOpen={e => setEditing({ mode: 'edit', id: e.id })}
+                  onOpen={e => {
+                    if (!hasMap) return setEditing({ mode: 'edit', id: e.id })
+                    setFocus({ lat: e.lat, lng: e.lng })
+                    setPopupId(e.id)
+                  }}
                   picked={picked}
                   showAll={showAll}
                   onPick={ids => { setPicked(p => togglePicks(p, ids, showAll)); setShowAll(false) }}
@@ -258,7 +268,33 @@ function SavorLoaded({ userId }: { userId: string }) {
           )}
         </aside>
         <div className={styles.mapArea}>
-          <SavorMap pins={mapPins} frame={frame} onView={setView} onPinClick={id => { if (shown.some(e => e.id === id)) setEditing({ mode: 'edit', id }) }} />
+          <SavorMap
+            pins={mapPins}
+            frame={frame}
+            onView={setView}
+            focus={focus}
+            onPinClick={id => { if (shown.some(e => e.id === id)) setPopupId(id) }}
+            popupAt={popupEatery ? { lat: popupEatery.lat, lng: popupEatery.lng } : null}
+            onPopupClose={() => setPopupId(null)}
+            popup={
+              popupEatery ? (
+                <PlacePopup
+                  place={{
+                    name: popupEatery.name,
+                    googlePlaceId: popupEatery.google_place_id,
+                    lat: popupEatery.lat,
+                    lng: popupEatery.lng,
+                    note: popupEatery.note,
+                    deleteText: "Remove this eatery? It goes to the owner's pending-deletion list."
+                  }}
+                  onClose={() => setPopupId(null)}
+                  onEdit={() => { setPopupId(null); setEditing({ mode: 'edit', id: popupEatery.id }) }}
+                  onDelete={async () => { await requestEateryDeletion(popupEatery.id); setPopupId(null); await load() }}
+                  onSaveNote={async note => { await saveEateryNote(popupEatery.id, note); await load() }}
+                />
+              ) : null
+            }
+          />
         </div>
       </div>
       {!scope && !closed && !sharing && <LocationPicker onPick={h => chooseScope(resolveScope(h))} onClose={() => setClosed(true)} />}

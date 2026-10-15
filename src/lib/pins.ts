@@ -64,6 +64,12 @@ export async function savePin(fields: PinFields, id?: string): Promise<string> {
   return newId
 }
 
+/** Changes just a pin's note (the map popup's note, session 10). */
+export async function savePinNote(id: string, note: string): Promise<void> {
+  const { error } = await client().from('pins').update({ note: note.trim() || null }).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 export async function deletePin(id: string): Promise<void> {
   const { error } = await client().from('pins').delete().eq('id', id)
   if (error) throw new Error(error.message)

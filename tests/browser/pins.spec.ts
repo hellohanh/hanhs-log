@@ -263,3 +263,9 @@ test('eyes on the Places rows pick what shows when Show all is off (session 10)'
   await places.getByLabel('Show all pins').check()
   await expect(places.getByRole('button', { name: 'Show only Nom-Nom on the map' })).toBeVisible()
 })
+
+test('map popup: Google Maps link falls back to the spot (session 10)', async () => {
+  const { mapsLink } = await import('../../src/lib/placeDetails')
+  expect(mapsLink('g-pho', 10.789, 106.689)).toBe('https://www.google.com/maps/search/?api=1&query=10.789,106.689&query_place_id=g-pho')
+  expect(mapsLink(null, 10.789, 106.689)).toBe('https://www.google.com/maps/search/?api=1&query=10.789,106.689')
+})
