@@ -263,3 +263,23 @@ test('eyes on the Places rows pick what shows when Show all is off (session 10)'
   await places.getByLabel('Show all pins').check()
   await expect(places.getByRole('button', { name: 'Show only Nom-Nom on the map' })).toBeVisible()
 })
+
+test('map popup: Google Maps link falls back to the spot (session 10)', async () => {
+  const { mapsLink } = await import('../../src/lib/placeDetails')
+  expect(mapsLink('g-pho', 10.789, 106.689)).toBe('https://www.google.com/maps/search/?api=1&query=10.789,106.689&query_place_id=g-pho')
+  expect(mapsLink(null, 10.789, 106.689)).toBe('https://www.google.com/maps/search/?api=1&query=10.789,106.689')
+})
+
+test('the status badge sits inside the pin, centred above the point (session 10)', async ({ page }) => {
+  await fakeSupabase(page, { pins: SAVED_PINS })
+  await page.goto('./wander/trip/trip-saigon')
+  const places = page.getByRole('complementary', { name: 'Places' })
+  await places.getByRole('button', { name: /^Shopping,/ }).click()
+  await places.getByRole('button', { name: /^Market,/ }).click()
+  await places.getByText('Bến Thành Market', { exact: true }).click()
+  const html = await places.locator('[class*="preview"]').innerHTML()
+  // 33 × 43 pin in a 45 px box, 6 px from the top: the 9 px badge's centre is on the
+  // pin's middle (x 22.5) and 11.5 px above the point (y 6 + 41.5 − 11.5 = 36).
+  expect(html).toContain('left:18px;top:31.5px')
+  expect(html).toContain('<svg width="9" height="9" viewBox="0 0 13 13"')
+})

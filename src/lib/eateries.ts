@@ -93,6 +93,12 @@ export async function saveMyEateryReview(
   if (error) throw new Error(error.message)
 }
 
+/** Changes just an eatery's note (the map popup's note, session 10). */
+export async function saveEateryNote(id: string, note: string): Promise<void> {
+  const { error } = await client().from('eateries').update({ note: note.trim() || null }).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 /** Sends an eatery to the pending-deletion queue (the owner finalizes later). */
 export async function requestEateryDeletion(id: string): Promise<void> {
   const { error } = await client().rpc('request_eatery_deletion', { _id: id })

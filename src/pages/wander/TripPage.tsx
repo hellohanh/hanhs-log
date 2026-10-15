@@ -21,8 +21,9 @@ import ShareDialog from './ShareDialog'
 import NamePrompt from './NamePrompt'
 import TripMap, { type CityState, type MapPin } from './TripMap'
 import PlacesPanel, { type Editing, type EateryEditing } from './PlacesPanel'
-import { fetchTripEateries, fetchEateryReviews, asReviews, type Eatery, type EateryReview } from '../../lib/eateries'
-import { fetchPins, fetchReviews, pinBadge, pinFaded, type Pin, type Review } from '../../lib/pins'
+import { fetchTripEateries, fetchEateryReviews, asReviews, requestEateryDeletion, saveEateryNote, type Eatery, type EateryReview } from '../../lib/eateries'
+import { deletePin, fetchPins, fetchReviews, pinBadge, pinFaded, savePinNote, type Pin, type Review } from '../../lib/pins'
+import PlacePopup from '../../components/PlacePopup'
 import { togglePicks } from '../../lib/pinRules'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml } from '../../lib/pinDraw'
@@ -102,6 +103,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const [showAll, setShowAll] = useState(true)
   // The eyes on the Places rows (session 10): picks, not remembered.
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  // The pin popup (session 10): clicking a pin or a list row opens it; ✎ edits.
+  const [popup, setPopup] = useState<{ kind: 'pin' | 'eatery'; id: string } | null>(null)
   const [michelinOnly, setMichelinOnly] = useState(false)
   const [pinEdit, setPinEdit] = useState<Editing>(null)
   const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null)
@@ -189,6 +192,10 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
     [eateries, eateryReviews, showAll, michelinOnly, picked, eateryEdit, otdActive, otdSet]
   )
   const allMapPins = useMemo(() => [...mapPins, ...eateryMapPins], [mapPins, eateryMapPins])
+
+  const popupItem = popup ? (popup.kind === 'pin' ? pins.find(p => p.id === popup.id) : eateries.find(e => e.id === popup.id)) ?? null : null
+  // Without a map (no Google key) a list click still opens the edit panel.
+  const hasMap = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
 
   const loadPeople = useCallback(() => fetchPeople(tripId).then(setPeople, () => setPeople([])), [tripId])
 
@@ -286,6 +293,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           onSaved={() => loadPins()}
           onEateriesSaved={() => loadEateries()}
           onFocus={at => setFocus({ lat: at.lat, lng: at.lng })}
+          onOpenPlace={hasMap ? (kind, item) => { setFocus({ lat: item.lat, lng: item.lng }); setPopup({ kind, id: item.id }) } : undefined}
           near={city.state === 'ready' ? { lat: city.city.lat, lng: city.city.lng } : undefined}
           openDay={panel.open ? openDay : null}
           onAddToDay={(id, kind) => setAddReq(r => ({ id, kind, n: (r?.n ?? 0) + 1 }))}
@@ -297,10 +305,37 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             pins={allMapPins}
             route={panel.open ? dayRoute : null}
             focus={focus}
-            onPinClick={id => {
-              if (eateries.some(e => e.id === id)) setEateryEdit({ mode: 'edit', id })
-              else setPinEdit({ mode: 'edit', pinId: id })
-            }}
+            onPinClick={id => setPopup({ kind: eateries.some(e => e.id === id) ? 'eatery' : 'pin', id })}
+            popupAt={popupItem ? { lat: popupItem.lat, lng: popupItem.lng } : null}
+            onPopupClose={() => setPopup(null)}
+            popup={
+              popupItem && popup ? (
+                <PlacePopup
+                  place={{
+                    name: popupItem.name,
+                    googlePlaceId: popupItem.google_place_id,
+                    lat: popupItem.lat,
+                    lng: popupItem.lng,
+                    note: popupItem.note,
+                    deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list."
+                  }}
+                  onClose={() => setPopup(null)}
+                  onEdit={() => {
+                    setPopup(null)
+                    if (popup.kind === 'eatery') setEateryEdit({ mode: 'edit', id: popup.id })
+                    else setPinEdit({ mode: 'edit', pinId: popup.id })
+                  }}
+                  onDelete={async () => {
+                    if (popup.kind === 'pin') { await deletePin(popup.id); setPopup(null); await loadPins() }
+                    else { await requestEateryDeletion(popup.id); setPopup(null); await loadEateries() }
+                  }}
+                  onSaveNote={async note => {
+                    if (popup.kind === 'pin') { await savePinNote(popup.id, note); await loadPins() }
+                    else { await saveEateryNote(popup.id, note); await loadEateries() }
+                  }}
+                />
+              ) : null
+            }
           />
           {panel.open ? (
             <ItineraryPanel
