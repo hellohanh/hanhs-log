@@ -44,7 +44,7 @@ async function enter(page: Page, type: string, name: RegExp) {
   await dialog.getByRole('button', { name }).click()
 }
 
-test('the gate is required, then filters to the chosen country', async ({ page }) => {
+test('the gate opens first, then filters to the chosen country', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await page.goto('./savor')
   await expect(page.getByRole('dialog', { name: 'Where to see eateries' })).toBeVisible()
@@ -150,4 +150,33 @@ test('scope resolution and membership', async () => {
   expect(tok.kind).toBe('city')
   expect(inScope({ lat: 35.67, lng: 139.74 }, tok)).toBe(true)
   expect(inScope({ lat: 10.78, lng: 106.69 }, tok)).toBe(false)
+})
+
+test('the place popup can be closed; Pick a place reopens it (session 10)', async ({ page }) => {
+  await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
+  await fakeGoogle(page)
+  await page.goto('./savor')
+  const dialog = page.getByRole('dialog', { name: 'Where to see eateries' })
+  await dialog.getByRole('button', { name: 'Close' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText(/Showing/)).toContainText('the map view')
+  await page.getByRole('button', { name: 'Pick a place' }).click()
+  await expect(dialog).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  // Picking a place still works after closing once.
+  await page.getByRole('button', { name: 'Pick a place' }).click()
+  await dialog.getByRole('searchbox').fill('viet')
+  await dialog.getByRole('button', { name: /Vietnam/ }).click()
+  await expect(page.getByText(/Showing/)).toContainText('Vietnam')
+})
+
+test('map-view filter: inside the visible area, across the 180° line too', async () => {
+  const { inView } = await import('../../src/lib/countryBounds')
+  const saigon = { lat: 10.78, lng: 106.7 }
+  expect(inView({ south: 8, west: 102, north: 23, east: 110 }, saigon.lat, saigon.lng)).toBe(true)
+  expect(inView({ south: 30, west: 130, north: 46, east: 146 }, saigon.lat, saigon.lng)).toBe(false)
+  // A Pacific view from Japan (140°E) to Hawaii (-150°): Honolulu is in, Saigon isn't.
+  expect(inView({ south: 0, west: 140, north: 50, east: -150 }, 21.3, -157.8)).toBe(true)
+  expect(inView({ south: 0, west: 140, north: 50, east: -150 }, saigon.lat, saigon.lng)).toBe(false)
 })

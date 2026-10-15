@@ -6,6 +6,7 @@ import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, priceLabe
 import { searchPlaces, type FoundPlace } from '../../lib/pins'
 import { fetchMyName, type Person } from '../../lib/trips'
 import { searchLocations, resolveScope, inScope, type LocationHit, type Scope } from '../../lib/savorLocation'
+import { inView, type Bounds } from '../../lib/countryBounds'
 import { buildCountryTree } from '../../lib/savorTree'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml, badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
@@ -59,6 +60,10 @@ function SavorLoaded({ userId }: { userId: string }) {
   const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<Editing>(null)
   const [scope, setScope] = useState<Scope | null>(null)
+  // The place popup can be closed (session 10): then the page shows whatever
+  // is in the map view, starting on the whole world.
+  const [closed, setClosed] = useState(false)
+  const [view, setView] = useState<Bounds | null>(null)
   const [query, setQuery] = useState('')
   const [found, setFound] = useState<FoundPlace[] | null>(null)
   const [searching, setSearching] = useState(false)
@@ -98,7 +103,12 @@ function SavorLoaded({ userId }: { userId: string }) {
     setSharing(true)
   }
 
-  const shown = useMemo(() => (scope ? eateries.filter(e => inScope(e, scope)) : []), [eateries, scope])
+  const byView = !scope && closed
+  const shown = useMemo(
+    () => (scope ? eateries.filter(e => inScope(e, scope)) : byView && view ? eateries.filter(e => inView(view, e.lat, e.lng)) : []),
+    [eateries, scope, byView, view]
+  )
+  const active = Boolean(scope) || byView
   const tree = useMemo(() => buildCountryTree(shown), [shown])
   const hasMichelin = shown.some(e => e.michelin)
   const michelinCount = shown.filter(e => e.michelin).length
@@ -168,7 +178,13 @@ function SavorLoaded({ userId }: { userId: string }) {
           {scope && (
             <>
               Showing <b>{scope.name}</b> {scope.kind === 'city' ? '(city)' : '(country)'}
-              <button type="button" className={styles.change} onClick={() => setScope(null)}>Change</button>
+              <button type="button" className={styles.change} onClick={() => { setScope(null); setClosed(false) }}>Change</button>
+            </>
+          )}
+          {byView && (
+            <>
+              Showing <b>the map view</b>
+              <button type="button" className={styles.change} onClick={() => setClosed(false)}>Pick a place</button>
             </>
           )}
           <button type="button" className={styles.change} onClick={openShare}>Family</button>
@@ -215,7 +231,7 @@ function SavorLoaded({ userId }: { userId: string }) {
                 <span className={styles.count}>{shown.length > 0 ? shown.length : ''}</span>
               </div>
               {error && <p className={styles.error} role="alert">Couldn't load the catalogue: {error}</p>}
-              {scope && shown.length > 0 && (
+              {active && shown.length > 0 && (
                 <div className={styles.filters}>
                   <label className={styles.showAll}>
                     <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show all
@@ -230,7 +246,10 @@ function SavorLoaded({ userId }: { userId: string }) {
               {scope && shown.length === 0 && !error && (
                 <p className={styles.muted}>No eateries in {scope.name} yet. Search above to add one.</p>
               )}
-              {scope && shown.length > 0 && (
+              {byView && shown.length === 0 && !error && (
+                <p className={styles.muted}>No eateries in this part of the map. Move the map, or search above to add one.</p>
+              )}
+              {active && shown.length > 0 && (
                 <ul className={styles.tree}>
                   {tree.map(c => {
                     const openC = openKeys.has(c.key)
@@ -274,10 +293,10 @@ function SavorLoaded({ userId }: { userId: string }) {
           )}
         </aside>
         <div className={styles.mapArea}>
-          <SavorMap pins={mapPins} frame={frame} onPinClick={id => { if (shown.some(e => e.id === id)) setEditing({ mode: 'edit', id }) }} />
+          <SavorMap pins={mapPins} frame={frame} onView={setView} onPinClick={id => { if (shown.some(e => e.id === id)) setEditing({ mode: 'edit', id }) }} />
         </div>
       </div>
-      {!scope && !sharing && <LocationPicker onPick={h => chooseScope(resolveScope(h))} />}
+      {!scope && !closed && !sharing && <LocationPicker onPick={h => chooseScope(resolveScope(h))} onClose={() => setClosed(true)} />}
       {sharing && (
         <SavorShareDialog
           token={inviteToken}
@@ -298,7 +317,7 @@ function SavorLoaded({ userId }: { userId: string }) {
   )
 }
 
-function LocationPicker({ onPick }: { onPick: (hit: LocationHit) => void }) {
+function LocationPicker({ onPick, onClose }: { onPick: (hit: LocationHit) => void; onClose: () => void }) {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<LocationHit[]>([])
   const [searching, setSearching] = useState(false)
@@ -316,11 +335,21 @@ function LocationPicker({ onPick }: { onPick: (hit: LocationHit) => void }) {
     )
   }
 
+  // Closable (session 10): ×, Escape, or a click outside the box.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
-    <div className={styles.scrim}>
-      <div className={styles.modal} role="dialog" aria-modal="true" aria-label="Where to see eateries">
+    <div className={styles.scrim} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className={`${styles.modal} ${styles.modalClosable}`} role="dialog" aria-modal="true" aria-label="Where to see eateries">
+        <button type="button" className={styles.modalX} aria-label="Close" onClick={onClose}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
         <h2 className={styles.modalH}>Where do you want to see eateries?</h2>
-        <p className={styles.modalP}>Pick a country or a city — the catalogue and the map show that place.</p>
+        <p className={styles.modalP}>Pick a country or a city, or close this to move the map yourself.</p>
         <form className={styles.search} role="search" onSubmit={e => e.preventDefault()}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
           <input autoFocus type="search" value={query} onChange={e => run(e.target.value)} placeholder="Search a country or city" aria-label="Search a country or city" />
@@ -339,7 +368,6 @@ function LocationPicker({ onPick }: { onPick: (hit: LocationHit) => void }) {
           </ul>
         )}
         {query.trim() && !searching && hits.length === 0 && !err && <p className={styles.muted}>Nothing found. Try another name.</p>}
-        <p className={styles.req}>A country or city is required to open Savorlog.</p>
       </div>
     </div>
   )
