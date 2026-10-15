@@ -550,3 +550,16 @@ test('date-line helpers: which legs need a repeat day', async () => {
   // Tokyo just after midnight → Honolulu the evening before: a repeat Jan 2 after Jan 3.
   expect(repeatFor({ ...leg, from_timezone: 'Asia/Tokyo', from_time: '01:00', to_timezone: 'Pacific/Honolulu', to_date: '2027-01-02', to_time: '13:00' })).toEqual({ date: '2027-01-02', after: '2027-01-03' })
 })
+
+test('time entry takes any minute, 00 to 59 (session 10)', async ({ page }) => {
+  await fakeSupabase(page)
+  await page.goto('./wander/trip/trip-saigon')
+  await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  const panel = page.getByRole('complementary', { name: 'Itinerary' })
+  await panel.getByRole('button', { name: /Add travel/ }).click()
+  const from = panel.getByRole('form', { name: 'Add travel' }).getByRole('group', { name: 'From' })
+  await expect(from.getByRole('combobox', { name: 'Time hour', exact: true }).locator('option')).toHaveCount(25)
+  await expect(from.getByRole('combobox', { name: 'Time minute', exact: true }).locator('option')).toHaveCount(61)
+  await setTime(from, 'Time', '07:43')
+  await expectTime(from, 'Time', '07:43')
+})
