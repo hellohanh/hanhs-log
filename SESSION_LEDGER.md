@@ -419,3 +419,46 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 **Stop Protocol completed:** zip `S011 OCT 15 2026 Hanhs Log.zip` produced and presented.
 
 **Next session starts at:** phone step 3 (add/edit forms, mockup first), then steps 4–5; or the Map check results, the old-pin import, M5.2b (migration 0015), Q6/Q7, M6, M7. Optional: the site switching to a new version on its own after a merge. After Oct 19, 2026 check a run on Ubuntu 26.
+
+---
+
+## Session 12 — 2026-10-16
+
+**Goal:**
+- Small Savorlog fixes (cuisine order, a new name).
+- Make the Savorlog map explorable without typing, with pin bubbles.
+- Bring Hanh's own category icons into the pins and redesign the pin popup.
+
+**Decisions made:** E93 (cuisine menu A–Z), E94 (Munch List), E95 (Savorlog pins follow the map), E96 (numbered bubbles), E97 (smooth fly-over), E98 (line-art icons), E99 (pin icon size 12 px), E100 (pin popup layout).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #86: cuisine menu A–Z in the add/edit eatery card.
+- #87: Savorlog title Eateries → Munch List.
+- #88: Savorlog pins follow the map; numbered bubbles on Savorlog and trip maps; smooth fly-over.
+- #89: Hanh's Icon Set 1 (46 line-art icons) in the pins, the add-card preview and the pin popup (65 / 52 / 12 px).
+- #90: pin icons at 70% (12 px).
+- #91: pin popup 350 px, buttons down the right (yellow pencil), English over the local name in red italic.
+- #92: this Session 12 Stop Protocol docs.
+
+**Done outside code:**
+- Word ideas for "eateries" (Hanh chose Munch List).
+- The full category / sub-category / dish list (233) as a clean copyable list in sets of 25; Bubble Tea sits under Café / Coffee and Taiwanese (no boba category).
+- Icon Sets 1 and 2 extracted to white transparent PNGs (checkerboard and labels removed); Set 2's printed labels were off by one row; Hanh chose Set 1.
+
+**Design work:**
+- Mockups for the bubbles, the follow-the-map plan and the icons in the app.
+- Line-weight comparison and a real-size pin test.
+- Interactive tuners for the popup icon size, the name and icon positions, the button column and the card width.
+
+**Lessons:** L56 (printed checkerboards, shifted labels), L57 (even line weight before small sizes), L58 (web Segoe italic is 900 only), L59 (stand-in map can't show Google's popup box; measure popup layout in an effect).
+
+**Open questions:** Q1 (splash on phones, step 4), Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S012 OCT 16 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:**
+- Phone step 3 (add/edit forms, mockup first), then steps 4–5.
+- Line-art icons for Nom-Nom if Hanh draws them.
+- Or: the Map check results, the old-pin import, M5.2b (migration 0015), Q6/Q7, M6, M7.
+- Optional: the site switching to a new version on its own.
+- After Oct 19, 2026, check a run on Ubuntu 26.
