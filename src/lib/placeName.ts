@@ -35,3 +35,12 @@ export function splitName(name: string | null | undefined): NameParts {
   if (i >= 0) return { en: n.slice(0, i).trim(), local: n.slice(i + NAME_SEP.length).trim() }
   return LOCAL_LETTER.test(n) ? { en: '', local: n } : { en: n, local: '' }
 }
+
+/**
+ * The pin popup's two lines (session 11): the English name (bold) over the
+ * local name; a place with only one name shows it as the main line.
+ */
+export function popupLines(name: string): [string, string | null] {
+  const { en, local } = splitName(name)
+  return en ? [en, local || null] : [local, null]
+}

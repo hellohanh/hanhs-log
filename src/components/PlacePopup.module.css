@@ -1,10 +1,12 @@
-.pop { position: relative; box-sizing: border-box; width: 310px; max-width: calc(100vw - 80px); padding: 2px 2px 4px; color: #1f1d1a; font-family: 'Segoe UI Web', 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
-.x { position: absolute; top: -2px; right: -4px; width: 26px; height: 26px; border: 0; border-radius: 50%; background: transparent; color: #6b665e; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.x:hover { background: #f1eee8; }
-.title { display: flex; align-items: center; gap: 6px; padding-right: 26px; margin-bottom: 6px; }
-.cat { flex: none; display: flex; margin-right: 6px; /* + the row's 6 px gap = 12 px (session 11) */ }
-.title b { font-size: 17px; font-weight: 700; /* Google's box thins <b>; set it outright (session 10) */ }
-.icon { width: 26px; height: 26px; flex: none; border: 0; border-radius: 50%; background: transparent; color: #6b665e; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pop { position: relative; box-sizing: border-box; width: 350px; max-width: calc(100vw - 80px); padding: 2px 2px 4px; color: #1f1d1a; font-family: 'Segoe UI Web', 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.actions { position: absolute; top: -2px; right: -4px; display: flex; flex-direction: column; gap: 4px; z-index: 1; }
+.title { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
+.names { flex: 1; min-width: 0; display: flow-root; }
+.spacer { float: right; width: 30px; margin-right: -4px; }
+.cat { flex: none; display: flex; }
+.en { display: block; margin-top: 10px; font-size: 17px; line-height: 1.3; font-weight: 700; /* Google's box thins <b>; set it outright (session 10) */ }
+.local { display: block; margin-top: 1px; font-size: 15px; line-height: 1.35; font-weight: 400; font-style: italic; color: #8E1B3A; /* our web Segoe has only a 900 italic, so use the system Segoe (or a slanted regular) */ font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+.icon { width: 28px; height: 28px; flex: none; border: 0; border-radius: 50%; background: transparent; color: #6b665e; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .icon:hover { background: #f1eee8; }
 .bin { color: #b2433f; }
 .line { display: flex; gap: 8px; margin: 4px 0 0; }
@@ -22,8 +24,9 @@
 
 /* Phone card (session 10): full width, the site's own colours. */
 .fill { width: 100%; max-width: none; color: var(--ink); font-size: 15px; }
-.fill .title b { font-size: 19px; }
-.fill .icon, .fill .x { width: 40px; height: 40px; }
+.fill .en { font-size: 19px; }
+.fill .local { font-size: 17px; }
+.fill .icon { width: 40px; height: 40px; }
 .fill .line { margin-top: 8px; }
 .fill .line a, .fill .add { color: #1a6fd1; }
 .fill .noteText { background: var(--ground); }
