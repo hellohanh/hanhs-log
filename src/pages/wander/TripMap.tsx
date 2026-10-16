@@ -10,6 +10,7 @@ import { MODE_COLOR, type RouteSeg } from '../../lib/directions'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from './CameraControl'
 import MapCheck from '../../components/MapCheck'
+import { glideTo } from '../../lib/glide'
 import { makePinLayer, type MapPin, type PinLayer } from './mapPinLayer'
 import styles from './TripMap.module.css'
 
@@ -182,8 +183,9 @@ export default function TripMap({
   }, [map, tripPins])
   useEffect(() => {
     if (!map || !focus) return
-    if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
-    map.panTo(centreFor(focus, map.getZoom() ?? 15, insetRef.current / 2, focus.dy ?? 0))
+    // Session 11: glide there (street level at least) instead of jumping.
+    const zoom = Math.max(map.getZoom() ?? 15, 15)
+    glideTo(map, { center: centreFor(focus, zoom, insetRef.current / 2, focus.dy ?? 0), zoom })
   }, [map, focus])
 
   // Opening or closing the itinerary panel shifts the map with it, so what

@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from '../../lib/supabase'
 import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, requestEateryDeletion, saveEateryNote, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
 import { searchPlaces, type FoundPlace } from '../../lib/pins'
 import { fetchMyName, type Person } from '../../lib/trips'
-import { searchLocations, resolveScope, inScope, type LocationHit, type Scope } from '../../lib/savorLocation'
+import { searchLocations, resolveScope, type LocationHit, type Scope } from '../../lib/savorLocation'
 import { inView, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml, flowerSvg } from '../../lib/pinDraw'
@@ -19,10 +19,11 @@ import NamePrompt from '../wander/NamePrompt'
 import { type MapPin } from '../wander/mapPinLayer'
 import styles from './Savor.module.css'
 
-// The Savorlog page (/savor): a required location gate (E66) scopes the page to
-// a country or a city, then the shared eatery catalogue by country → dish on
-// the left and the chosen place on one map. Add / edit from the search box and
-// the card (4d).
+// The Savorlog page (/savor): the shared eatery catalogue by country → dish on
+// the left and the map on the right. Session 11: the list and the pins always
+// show what's on the map, so exploring one city and dragging to the next fills
+// in by itself; picking a place (the startup popup or the City/Country field)
+// only glides the map there. Add / edit from the search box and the card (4d).
 
 const asLook = (e: Eatery) => ({ category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
 type Editing = { mode: 'add'; place: FoundPlace } | { mode: 'edit'; id: string } | null
@@ -65,9 +66,9 @@ function SavorLoaded({ userId }: { userId: string }) {
   const hasMap = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
   const [michelinOnly, setMichelinOnly] = useState(false)
   const [editing, setEditing] = useState<Editing>(null)
+  // The last place picked: only where the map glides to (session 11).
   const [scope, setScope] = useState<Scope | null>(null)
-  // The place popup can be closed (session 10): then the page shows whatever
-  // is in the map view, starting on the whole world.
+  // The startup popup can be closed (session 10); it shows until a pick or a close.
   const [closed, setClosed] = useState(false)
   const [view, setView] = useState<Bounds | null>(null)
   const [query, setQuery] = useState('')
@@ -109,12 +110,11 @@ function SavorLoaded({ userId }: { userId: string }) {
     setSharing(true)
   }
 
-  const byView = !scope && closed
+  // What's on the map; with no map (no key) everything.
   const shown = useMemo(
-    () => (scope ? eateries.filter(e => inScope(e, scope)) : byView && view ? eateries.filter(e => inView(view, e.lat, e.lng)) : []),
-    [eateries, scope, byView, view]
+    () => (view ? eateries.filter(e => inView(view, e.lat, e.lng)) : hasMap ? [] : eateries),
+    [eateries, view, hasMap]
   )
-  const active = Boolean(scope) || byView
   const hasMichelin = shown.some(e => e.michelin)
   const michelinCount = shown.filter(e => e.michelin).length
   // Memoised: a new frame object refits the map, so only a new pick may make one
@@ -154,7 +154,7 @@ function SavorLoaded({ userId }: { userId: string }) {
     setSearching(true)
     setSearchError('')
     try {
-      setFound(await searchPlaces(query, scope?.center))
+      setFound(await searchPlaces(query, view ? { lat: (view.south + view.north) / 2, lng: (view.west + view.east) / 2 } : scope?.center))
     } catch (err) {
       setFound(null)
       setSearchError((err as Error).message)
@@ -180,18 +180,6 @@ function SavorLoaded({ userId }: { userId: string }) {
           <h1 className={styles.h1}>Eateries</h1>
         </div>
         <div className={styles.where}>
-          {scope && (
-            <>
-              Showing <b>{scope.name}</b> {scope.kind === 'city' ? '(city)' : '(country)'}
-              <button type="button" className={styles.change} onClick={() => { setScope(null); setClosed(false) }}>Change</button>
-            </>
-          )}
-          {byView && (
-            <>
-              Showing <b>the map view</b>
-              <button type="button" className={styles.change} onClick={() => setClosed(false)}>Pick a place</button>
-            </>
-          )}
           <button type="button" className={styles.change} onClick={openShare}>Family</button>
         </div>
       </div>
@@ -237,7 +225,7 @@ function SavorLoaded({ userId }: { userId: string }) {
                 <span className={styles.count}>{shown.length > 0 ? shown.length : ''}</span>
               </div>
               {error && <p className={styles.error} role="alert">Couldn't load the catalogue: {error}</p>}
-              {active && shown.length > 0 && (
+              {shown.length > 0 && (
                 <div className={styles.filters}>
                   <label className={styles.showAll}>
                     <input type="checkbox" checked={showAll} onChange={e => { setShowAll(e.target.checked); if (e.target.checked) setPicked(new Set()) }} /> Show all
@@ -249,15 +237,12 @@ function SavorLoaded({ userId }: { userId: string }) {
                   )}
                 </div>
               )}
-              {scope && shown.length === 0 && !error && (
-                <p className={styles.muted}>No eateries in {scope.name} yet. Search above to add one.</p>
-              )}
-              {byView && shown.length === 0 && !error && (
+              {shown.length === 0 && !error && (
                 <p className={styles.muted}>No eateries in this part of the map. Move the map, or search above to add one.</p>
               )}
-              {active && shown.length > 0 && (
+              {shown.length > 0 && (
                 <EateryTree
-                  key={scope ? scope.name : 'map-view'}
+                  key="map-view"
                   eateries={shown}
                   reviews={reviews}
                   onOpen={e => {
@@ -317,7 +302,7 @@ function SavorLoaded({ userId }: { userId: string }) {
           onClose={() => setSharing(false)}
         />
       )}
-      {myName === null && !nameLater && !sharing && scope && (
+      {myName === null && !nameLater && !sharing && (scope || closed) && (
         <NamePrompt userId={userId} onSaved={name => { setMyName(name); loadCircle() }} onLater={() => setNameLater(true)} />
       )}
     </main>
@@ -361,7 +346,7 @@ function LocationHits({ hits, onPick }: { hits: LocationHit[]; onPick: (hit: Loc
 }
 
 // Session 11: a City/Country field above the eatery search. Picking a match
-// does what the startup popup does (scope + map fit), then clears the field.
+// glides the map there, like the startup popup, then clears the field.
 function LocationField({ onPick }: { onPick: (hit: LocationHit) => void }) {
   const { query, hits, searching, err, run } = useLocationSearch()
   return (

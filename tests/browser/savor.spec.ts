@@ -44,7 +44,7 @@ async function enter(page: Page, type: string, name: RegExp) {
   await dialog.getByRole('button', { name }).click()
 }
 
-test('the gate opens first, then filters to the chosen country', async ({ page }) => {
+test('the startup popup opens first; a pick closes it and the top bar has no place line (session 11)', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await page.goto('./savor')
   await expect(page.getByRole('dialog', { name: 'Where to see eateries' })).toBeVisible()
@@ -53,9 +53,13 @@ test('the gate opens first, then filters to the chosen country', async ({ page }
   await dialog.getByRole('searchbox').fill('viet')
   await dialog.getByRole('button', { name: /Vietnam/ }).click()
 
-  await expect(page.getByText(/Showing/)).toContainText('Vietnam')
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText(/Showing/)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Family' })).toBeVisible()
+  // A pick only moves the map; without a map (no key) the list shows everything.
   const side = page.getByRole('complementary', { name: 'Catalogue' })
-  await expect(side.getByText('2', { exact: true }).first()).toBeVisible() // Tokyo's filtered out
+  await expect(side.getByText('3', { exact: true }).first()).toBeVisible()
   await side.getByRole('button', { name: /^Vietnamese/ }).click()
   await expect(side.getByRole('button', { name: /Anan Saigon/ }).first()).toBeVisible()
 })
@@ -70,17 +74,15 @@ test('the City/Country field in the panel picks a place like the popup does', as
   const field = side.getByRole('searchbox', { name: 'City or country' })
   await expect(field).toHaveAttribute('placeholder', 'City/Country')
   await field.fill('viet')
-  await side.getByRole('button', { name: /Vietnam/ }).click()
+  await side.getByRole('list', { name: 'Places' }).getByRole('button', { name: /Vietnam/ }).click()
 
-  await expect(page.getByText(/Showing/)).toContainText('Vietnam')
   await expect(field).toHaveValue('') // cleared, ready for the next place
   await expect(side.getByRole('list', { name: 'Places' })).toHaveCount(0)
-  await expect(side.getByText('2', { exact: true }).first()).toBeVisible()
 
-  // A second pick moves on to the new place.
+  // A second pick works too.
   await field.fill('ital')
-  await side.getByRole('button', { name: /Italy/ }).click()
-  await expect(page.getByText(/Showing/)).toContainText('Italy')
+  await side.getByRole('list', { name: 'Places' }).getByRole('button', { name: /Italy/ }).click()
+  await expect(field).toHaveValue('')
 })
 
 test('search-to-add opens the add card and saves a new eatery', async ({ page }) => {
@@ -141,12 +143,10 @@ test('removing an eatery sends it to the pending-deletion queue', async ({ page 
   expect((db.eateries.find(e => e.id === 'e2') as { deleted_at: string | null }).deleted_at).toBeTruthy()
 })
 
-test('a country with no eateries says so; Change reopens the gate', async ({ page }) => {
-  await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
+test('an empty catalogue says so', async ({ page }) => {
+  await fakeSupabase(page, { eateries: [], eateryReviews: [] })
   await enter(page, 'italy', /Italy/)
-  await expect(page.getByText(/No eateries in Italy yet/)).toBeVisible()
-  await page.getByRole('button', { name: 'Change' }).click()
-  await expect(page.getByRole('dialog', { name: 'Where to see eateries' })).toBeVisible()
+  await expect(page.getByText(/No eateries in this part of the map/)).toBeVisible()
 })
 
 test('the Family dialog lists the circle; the owner can remove a member', async ({ page }) => {
@@ -189,23 +189,57 @@ test('scope resolution and membership', async () => {
   expect(inScope({ lat: 10.78, lng: 106.69 }, tok)).toBe(false)
 })
 
-test('the place popup can be closed; Pick a place reopens it (session 10)', async ({ page }) => {
+test('the startup popup can be closed with × or Escape (session 10)', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await fakeGoogle(page)
   await page.goto('./savor')
   const dialog = page.getByRole('dialog', { name: 'Where to see eateries' })
   await dialog.getByRole('button', { name: 'Close' }).click()
   await expect(dialog).toHaveCount(0)
-  await expect(page.getByText(/Showing/)).toContainText('the map view')
-  await page.getByRole('button', { name: 'Pick a place' }).click()
+  await page.reload()
   await expect(dialog).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
-  // Picking a place still works after closing once.
-  await page.getByRole('button', { name: 'Pick a place' }).click()
-  await dialog.getByRole('searchbox').fill('viet')
-  await dialog.getByRole('button', { name: /Vietnam/ }).click()
-  await expect(page.getByText(/Showing/)).toContainText('Vietnam')
+})
+
+test('numbered bubbles: crowded pins merge, the Day route stops never do, street level never merges (session 11)', async () => {
+  const { clusterPins, bubbleSize, NO_MERGE_ZOOM } = await import('../../src/lib/pinClusters')
+  const pts = [
+    { id: 'a', x: 100, y: 100, faded: false },
+    { id: 'b', x: 120, y: 110, faded: true },
+    { id: 'c', x: 130, y: 95, faded: false },
+    { id: 'd', x: 400, y: 400, faded: false },
+    { id: 'e', x: 105, y: 102, faded: false, keepApart: true }
+  ]
+  const { singles, groups } = clusterPins(pts, 12)
+  expect(groups).toHaveLength(1)
+  expect(groups[0].ids.sort()).toEqual(['a', 'b', 'c'])
+  expect(groups[0].faded).toBe(false) // one full-strength pin keeps the bubble full
+  expect(singles.sort()).toEqual(['d', 'e'])
+  expect(clusterPins(pts.map(p => ({ ...p, faded: true })), 12).groups[0].faded).toBe(true)
+  expect(clusterPins(pts, NO_MERGE_ZOOM).groups).toHaveLength(0)
+  expect(bubbleSize(2)).toBe(32)
+  expect(bubbleSize(500)).toBe(52)
+})
+
+test('fly-over path: ends where asked, dips out for far hops, fits a box (session 11)', async () => {
+  const { glidePath, zoomForBounds, boundsCentre, glideMs } = await import('../../src/lib/glide')
+  const saigon = { lat: 10.78, lng: 106.7, zoom: 13 }
+  const tokyo = { lat: 35.68, lng: 139.76, zoom: 13 }
+  const end = glidePath(saigon, tokyo, 1, 1200)
+  expect(end.lat).toBeCloseTo(35.68, 4)
+  expect(end.lng).toBeCloseTo(139.76, 4)
+  expect(end.zoom).toBeCloseTo(13, 4)
+  expect(glidePath(saigon, tokyo, 0.5, 1200).zoom).toBeLessThan(6) // zooms out on the way
+  const near = { lat: 10.79, lng: 106.71, zoom: 13 }
+  expect(glidePath(saigon, near, 0.5, 1200).zoom).toBeCloseTo(13, 1) // a short hop stays in
+  expect(glideMs(saigon, tokyo, 1200)).toBeLessThanOrEqual(1800)
+  const vn = { south: 8.2, west: 102, north: 23.4, east: 109.6 }
+  const z = zoomForBounds(vn, 1200, 800, 24)
+  expect(z).toBeGreaterThan(4)
+  expect(z).toBeLessThan(7)
+  const mid = boundsCentre({ south: -20, west: 170, north: -10, east: -170 }) // across the 180° line
+  expect(Math.abs(mid.lng)).toBeGreaterThan(175)
 })
 
 test('map-view filter: inside the visible area, across the 180° line too', async () => {

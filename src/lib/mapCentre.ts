@@ -7,12 +7,12 @@
 
 const TILE = 256
 
-function toWorld(p: { lat: number; lng: number }) {
+export function toWorld(p: { lat: number; lng: number }) {
   const s = Math.min(Math.max(Math.sin((p.lat * Math.PI) / 180), -0.9999), 0.9999)
   return { x: ((p.lng + 180) / 360) * TILE, y: (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * TILE }
 }
 
-function fromWorld(w: { x: number; y: number }) {
+export function fromWorld(w: { x: number; y: number }) {
   const lng = (w.x / TILE) * 360 - 180
   const n = Math.PI - (2 * Math.PI * w.y) / TILE
   const lat = (180 / Math.PI) * Math.atan(Math.sinh(n))

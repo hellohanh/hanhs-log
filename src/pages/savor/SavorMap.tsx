@@ -6,14 +6,16 @@ import { MAP_LOOKS, canHidePins, lookOptions, mapKind, readLook, readPins, saveL
 import { useIsDark } from '../../lib/theme'
 import CameraControl from '../wander/CameraControl'
 import MapCheck from '../../components/MapCheck'
+import { glideTo } from '../../lib/glide'
 import { makePinLayer, type MapPin, type PinLayer } from '../wander/mapPinLayer'
 import type { Bounds } from '../../lib/countryBounds'
 import styles from '../wander/TripMap.module.css'
 
 // The Savorlog map (M4 step 4c): the chosen place's eateries on one map,
 // reusing the trip map's looks (11), Pins toggle and 3 × 4 camera control.
-// The location gate (E66) frames a country to its mainland box, or a city at
-// zoom 13 on its centre.
+// Picking a place (the popup or the City/Country field) glides to a country's
+// mainland box or a city at zoom 13; the pins and list always follow the map
+// (session 11).
 
 const WORLD = { center: { lat: 20, lng: 0 }, zoom: 2 }
 
@@ -139,13 +141,9 @@ export default function SavorMap({
   // Frame the chosen place: a country to its mainland box, a city at its zoom.
   useEffect(() => {
     if (!map || !frame) return
-    if (frame.bounds) {
-      const b = frame.bounds
-      map.fitBounds({ south: b.south, west: b.west, north: b.north, east: b.east }, 24)
-    } else if (frame.center) {
-      map.setCenter(frame.center)
-      map.setZoom(frame.zoom ?? 13)
-    }
+    // Session 11: glide there; the pins and list then follow the map.
+    if (frame.bounds) glideTo(map, { bounds: frame.bounds, pad: 24 })
+    else if (frame.center) glideTo(map, { center: frame.center, zoom: frame.zoom ?? 13 })
   }, [map, frame])
 
   // The eatery pins (rebuilt with the map when the map is replaced).
@@ -196,8 +194,7 @@ export default function SavorMap({
   const popupEl = useMapPopup(map, popup ? popupAt ?? null : null, () => onPopupClose?.())
   useEffect(() => {
     if (!map || !focus) return
-    map.panTo(focus)
-    if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
+    glideTo(map, { center: focus, zoom: Math.max(map.getZoom() ?? 15, 15) })
   }, [map, focus])
 
   return (
