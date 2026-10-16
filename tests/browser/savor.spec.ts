@@ -103,6 +103,19 @@ test('search-to-add opens the add card and saves a new eatery', async ({ page })
   expect(db.eateries.some(e => e.name === 'Bún Chả Hương Liên' && e.cuisine === 'vietnamese' && e.price === 2)).toBe(true)
 })
 
+test('the cuisine picker in the add card is A–Z (session 11)', async ({ page }) => {
+  await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
+  await enter(page, 'viet', /Vietnam/)
+  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  await side.getByRole('searchbox', { name: /Search Google/ }).fill('bun')
+  await side.getByRole('button', { name: 'Search' }).click()
+  await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first().click()
+  const labels = (await side.getByLabel('Cuisine (country)').locator('option').allTextContents()).slice(1)
+  expect(labels.length).toBeGreaterThan(10)
+  const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
+  expect(labels).toEqual([...labels].sort(collator.compare))
+})
+
 test('editing an eatery shows its fields and the photo placeholder', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)

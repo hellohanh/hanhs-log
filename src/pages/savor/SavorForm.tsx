@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { categoryOf, pinLook } from '../../lib/pinCatalog'
+import { byLabel, categoryOf, pinLook } from '../../lib/pinCatalog'
 import { BADGE, flowerSvg, pinHtml, type Michelin } from '../../lib/pinDraw'
 import { pinBadge, averageRating, type Verdict, type Review } from '../../lib/pinRules'
 import type { FoundPlace } from '../../lib/pins'
@@ -28,6 +28,8 @@ const MICHELIN: { m: Michelin; label: string }[] = [
   { m: null, label: 'None' }, { m: 'mentioned', label: 'Mentioned' }, { m: '1', label: '★' }, { m: '2', label: '★★' }, { m: '3', label: '★★★' }
 ]
 const FOOD = categoryOf('food')!
+// The cuisine picker is A–Z (session 11, Hanh); the dish picker keeps catalogue order.
+const CUISINES = [...FOOD.subs].sort(byLabel)
 
 export default function SavorForm({
   userId,
@@ -143,7 +145,7 @@ export default function SavorForm({
         <legend>Cuisine &amp; dish</legend>
         <select aria-label="Cuisine (country)" value={cuisine} onChange={e => { setCuisine(e.target.value); setDish('') }}>
           <option value="">Pick a cuisine</option>
-          {FOOD.subs.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+          {CUISINES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
         </select>
         {subObj?.leaves && (
           <select aria-label="Main dish" value={dish} onChange={e => setDish(e.target.value)}>
