@@ -23,3 +23,11 @@ test('every non-food category, group and type has its line-art icon', async () =
   expect(missing).toEqual([])
   expect(checked).toBe(46)
 })
+
+test('popup name lines: English over local, one name stays the main line (session 11)', async () => {
+  const { popupLines } = await import('../../src/lib/placeName')
+  expect(popupLines('Notre-Dame Cathedral Basilica : Nhà thờ Đức Bà')).toEqual(['Notre-Dame Cathedral Basilica', 'Nhà thờ Đức Bà'])
+  expect(popupLines('Meiji Shrine : 明治神宮 (Meiji Jingū)')).toEqual(['Meiji Shrine', '明治神宮 (Meiji Jingū)'])
+  expect(popupLines('Hotel Nikko')).toEqual(['Hotel Nikko', null])
+  expect(popupLines('Chợ Bến Thành')).toEqual(['Chợ Bến Thành', null])
+})

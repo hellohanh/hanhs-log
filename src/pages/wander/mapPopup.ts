@@ -23,7 +23,7 @@ export function useMapPopup(
   useEffect(() => {
     if (!map) return
     const div = document.createElement('div')
-    const w = new google.maps.InfoWindow({ content: div, headerDisabled: true, disableAutoPan: true, pixelOffset: new google.maps.Size(0, -PIN_RISE), maxWidth: 360 })
+    const w = new google.maps.InfoWindow({ content: div, headerDisabled: true, disableAutoPan: true, pixelOffset: new google.maps.Size(0, -PIN_RISE), maxWidth: 400 })
     const l = w.addListener('closeclick', () => closeRef.current())
     win.current = w
     setEl(div)
