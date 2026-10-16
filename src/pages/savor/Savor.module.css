@@ -37,6 +37,8 @@
 .search { display: flex; align-items: center; gap: 8px; padding: 0 6px 0 12px; border: 1px solid var(--rule); border-radius: var(--pill); background: var(--ground); color: var(--muted); }
 .search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; height: 46px; outline: none; }
 .search:focus-within { border-color: var(--accent); }
+.locField { margin-bottom: 10px; }
+.locField .results { margin-top: 6px; }
 .results { list-style: none; margin: 12px 0 0; padding: 0; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
 .results li + li { border-top: 1px solid var(--rule); }
 .res { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 14px; border: 0; background: var(--surface); color: var(--ink); text-align: left; font: inherit; cursor: pointer; }

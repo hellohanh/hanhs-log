@@ -117,7 +117,12 @@ function SavorLoaded({ userId }: { userId: string }) {
   const active = Boolean(scope) || byView
   const hasMichelin = shown.some(e => e.michelin)
   const michelinCount = shown.filter(e => e.michelin).length
-  const frame: Frame | null = scope ? (scope.kind === 'country' ? { bounds: scope.bounds, center: scope.center } : { center: scope.center, zoom: 13 }) : null
+  // Memoised: a new frame object refits the map, so only a new pick may make one
+  // (otherwise every pan's re-render would snap the map back to the place).
+  const frame = useMemo<Frame | null>(
+    () => (scope ? (scope.kind === 'country' ? { bounds: scope.bounds, center: scope.center } : { center: scope.center, zoom: 13 }) : null),
+    [scope]
+  )
 
   const mapPins = useMemo<MapPin[]>(
     () =>
@@ -204,6 +209,7 @@ function SavorLoaded({ userId }: { userId: string }) {
             />
           ) : (
             <>
+              <LocationField onPick={h => chooseScope(resolveScope(h))} />
               <form className={styles.search} role="search" onSubmit={search}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
                 <input type="search" value={query} onChange={e => { setQuery(e.target.value); if (!e.target.value) setFound(null) }} placeholder="Search Google to add an eatery" aria-label="Search Google for an eatery to add" />
@@ -318,7 +324,8 @@ function SavorLoaded({ userId }: { userId: string }) {
   )
 }
 
-function LocationPicker({ onPick, onClose }: { onPick: (hit: LocationHit) => void; onClose: () => void }) {
+// Country/city search as you type; only the latest answer counts.
+function useLocationSearch() {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<LocationHit[]>([])
   const [searching, setSearching] = useState(false)
@@ -328,13 +335,50 @@ function LocationPicker({ onPick, onClose }: { onPick: (hit: LocationHit) => voi
   function run(q: string) {
     setQuery(q)
     const n = ++seq.current
-    if (!q.trim()) { setHits([]); setErr(''); return }
+    if (!q.trim()) { setHits([]); setErr(''); setSearching(false); return }
     setSearching(true)
     searchLocations(q).then(
       r => { if (n === seq.current) { setHits(r); setErr(''); setSearching(false) } },
       e => { if (n === seq.current) { setHits([]); setErr((e as Error).message); setSearching(false) } }
     )
   }
+  return { query, hits, searching, err, run }
+}
+
+function LocationHits({ hits, onPick }: { hits: LocationHit[]; onPick: (hit: LocationHit) => void }) {
+  return (
+    <ul className={styles.results} aria-label="Places">
+      {hits.map(h => (
+        <li key={h.id}>
+          <button type="button" className={styles.res} onClick={() => onPick(h)}>
+            <span><b>{h.name}</b>{h.kind === 'city' && h.sub ? <span className={styles.resSub}> {h.sub}</span> : null}</span>
+            <span className={styles.kind}>{h.kind}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// Session 11: a City/Country field above the eatery search. Picking a match
+// does what the startup popup does (scope + map fit), then clears the field.
+function LocationField({ onPick }: { onPick: (hit: LocationHit) => void }) {
+  const { query, hits, searching, err, run } = useLocationSearch()
+  return (
+    <div className={styles.locField}>
+      <form className={styles.search} role="search" aria-label="Go to a city or country" onSubmit={e => { e.preventDefault(); if (hits[0]) { onPick(hits[0]); run('') } }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+        <input type="search" value={query} onChange={e => run(e.target.value)} placeholder="City/Country" aria-label="City or country" />
+      </form>
+      {err && <p className={styles.error} role="alert">{err}</p>}
+      {hits.length > 0 && <LocationHits hits={hits} onPick={h => { onPick(h); run('') }} />}
+      {query.trim() && !searching && hits.length === 0 && !err && <p className={styles.muted}>Nothing found. Try another name.</p>}
+    </div>
+  )
+}
+
+function LocationPicker({ onPick, onClose }: { onPick: (hit: LocationHit) => void; onClose: () => void }) {
+  const { query, hits, searching, err, run } = useLocationSearch()
 
   // Closable (session 10): ×, Escape, or a click outside the box.
   useEffect(() => {
@@ -356,18 +400,7 @@ function LocationPicker({ onPick, onClose }: { onPick: (hit: LocationHit) => voi
           <input autoFocus type="search" value={query} onChange={e => run(e.target.value)} placeholder="Search a country or city" aria-label="Search a country or city" />
         </form>
         {err && <p className={styles.error} role="alert">{err}</p>}
-        {hits.length > 0 && (
-          <ul className={styles.results} aria-label="Places">
-            {hits.map(h => (
-              <li key={h.id}>
-                <button type="button" className={styles.res} onClick={() => onPick(h)}>
-                  <span><b>{h.name}</b>{h.kind === 'city' && h.sub ? <span className={styles.resSub}> {h.sub}</span> : null}</span>
-                  <span className={styles.kind}>{h.kind}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        {hits.length > 0 && <LocationHits hits={hits} onPick={onPick} />}
         {query.trim() && !searching && hits.length === 0 && !err && <p className={styles.muted}>Nothing found. Try another name.</p>}
       </div>
     </div>
