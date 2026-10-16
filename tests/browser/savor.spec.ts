@@ -60,6 +60,29 @@ test('the gate opens first, then filters to the chosen country', async ({ page }
   await expect(side.getByRole('button', { name: /Anan Saigon/ }).first()).toBeVisible()
 })
 
+test('the City/Country field in the panel picks a place like the popup does', async ({ page }) => {
+  await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
+  await fakeGoogle(page)
+  await page.goto('./savor')
+  await page.getByRole('dialog', { name: 'Where to see eateries' }).getByRole('button', { name: 'Close' }).click()
+
+  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const field = side.getByRole('searchbox', { name: 'City or country' })
+  await expect(field).toHaveAttribute('placeholder', 'City/Country')
+  await field.fill('viet')
+  await side.getByRole('button', { name: /Vietnam/ }).click()
+
+  await expect(page.getByText(/Showing/)).toContainText('Vietnam')
+  await expect(field).toHaveValue('') // cleared, ready for the next place
+  await expect(side.getByRole('list', { name: 'Places' })).toHaveCount(0)
+  await expect(side.getByText('2', { exact: true }).first()).toBeVisible()
+
+  // A second pick moves on to the new place.
+  await field.fill('ital')
+  await side.getByRole('button', { name: /Italy/ }).click()
+  await expect(page.getByText(/Showing/)).toContainText('Italy')
+})
+
 test('search-to-add opens the add card and saves a new eatery', async ({ page }) => {
   const db = await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
