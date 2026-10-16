@@ -86,3 +86,34 @@ test('a catalogue eatery can be scheduled onto an itinerary day (M5.4)', async (
   expect(st.eatery_id).toBe('e1')
   expect(st.pin_id ?? null).toBeNull()
 })
+
+// Session 13 (E101): a trip shows the whole catalogue, not just its cities.
+// The test build has no map key, so the list shows everything; the on-screen
+// filter itself is checked in the helper test below.
+const FAR = {
+  ...EATERY, id: 'e9', google_place_id: 'gp9', name: 'Sushi Saito', address: 'Tokyo', lat: 35.67, lng: 139.74,
+  cuisine: 'japanese', dish: null, michelin: null, michelin_year: null, street_food: false
+}
+
+test('a Saigon trip shows a far eatery from the catalogue too (session 13)', async ({ page }) => {
+  await fakeSupabase(page, { eateries: [EATERY, FAR] })
+  await page.goto('./wander/trip/trip-saigon')
+  const places = page.getByRole('complementary', { name: 'Places' })
+  await places.getByRole('button', { name: /^Nom-Nom, 2 pins/ }).click()
+  await expect(places.getByRole('button', { name: /^Japanese/ })).toBeVisible()
+  await expect(places.getByRole('button', { name: /^Vietnamese/ })).toBeVisible()
+})
+
+test('the Nom-Nom list follows the map view (session 13)', async () => {
+  const { onScreen } = await import('../../src/lib/countryBounds')
+  const all = [EATERY, FAR]
+  const saigonView = { south: 10.6, west: 106.5, north: 10.95, east: 106.9 }
+  const tokyoView = { south: 35.5, west: 139.5, north: 35.9, east: 140 }
+  const asia = { south: 0, west: 95, north: 45, east: 150 }
+  expect(onScreen(all, saigonView, true).map(e => e.id)).toEqual(['e1'])
+  expect(onScreen(all, tokyoView, true).map(e => e.id)).toEqual(['e9'])
+  expect(onScreen(all, asia, true)).toHaveLength(2)
+  // Before the map reports a view: nothing; with no map at all: everything.
+  expect(onScreen(all, null, true)).toHaveLength(0)
+  expect(onScreen(all, null, false)).toHaveLength(2)
+})

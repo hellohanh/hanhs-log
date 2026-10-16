@@ -42,3 +42,13 @@ export function inView(b: Bounds, lat: number, lng: number): boolean {
   if (lat < b.south || lat > b.north) return false
   return b.west <= b.east ? lng >= b.west && lng <= b.east : lng >= b.west || lng <= b.east
 }
+
+/**
+ * The places to list for the map's visible area (Munch List, and a trip's
+ * Nom-Nom since session 13): those inside the view; before the map reports a
+ * view, nothing — or everything when there's no map at all (no key).
+ */
+export function onScreen<T extends { lat: number; lng: number }>(items: T[], view: Bounds | null, hasMap: boolean): T[] {
+  if (view) return items.filter(i => inView(view, i.lat, i.lng))
+  return hasMap ? [] : items
+}

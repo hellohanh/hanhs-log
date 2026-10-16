@@ -12,8 +12,8 @@ import styles from './Places.module.css'
 
 // The Places panel (left of the map). Pins are the trip's non-food places;
 // dining lives in Savorlog, so the Nom-Nom section shows the catalogue's
-// eateries within 20 km of the trip's cities (M5), and picking Nom-Nom while
-// adding hands off to the full Savorlog add panel.
+// eateries on screen (session 13, E101: it follows the map like Munch List),
+// and picking Nom-Nom while adding hands off to the full Savorlog add panel.
 
 export type Editing = { mode: 'add'; place: FoundPlace } | { mode: 'edit'; pinId: string } | null
 export type EateryEditing = { mode: 'add'; place: FoundPlace } | { mode: 'edit'; id: string } | null
@@ -25,6 +25,7 @@ export default function PlacesPanel({
   pins,
   reviews,
   eateries,
+  eateriesInView,
   eateryReviews,
   loadError,
   showAll,
@@ -51,6 +52,8 @@ export default function PlacesPanel({
   pins: Pin[]
   reviews: Review[]
   eateries: Eatery[]
+  /** The eateries on screen: the Nom-Nom list, counts and MICHELIN chip (defaults to all). */
+  eateriesInView?: Eatery[]
   eateryReviews: EateryReview[]
   loadError: string
   showAll: boolean
@@ -78,8 +81,9 @@ export default function PlacesPanel({
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
 
-  const hasMichelin = pins.some(p => p.michelin) || eateries.some(e => e.michelin)
-  const michelinCount = pins.filter(p => p.michelin).length + eateries.filter(e => e.michelin).length
+  const listed = eateriesInView ?? eateries
+  const hasMichelin = pins.some(p => p.michelin) || listed.some(e => e.michelin)
+  const michelinCount = pins.filter(p => p.michelin).length + listed.filter(e => e.michelin).length
 
   async function search(e: FormEvent) {
     e.preventDefault()
@@ -158,7 +162,7 @@ export default function PlacesPanel({
     )
   }
 
-  const total = pins.length + eateries.length
+  const total = pins.length + listed.length
   return (
     <aside className={styles.side} aria-label="Places">
       <div className={styles.head}>
@@ -218,18 +222,18 @@ export default function PlacesPanel({
         <p className={styles.muted}>No places on this trip yet. Search above to add one.</p>
       )}
 
-      {(pins.length > 0 || eateries.length > 0) && (
+      {(pins.length > 0 || listed.length > 0) && (
         <div className={styles.list}>
           <PinTree
             pins={pins}
             nomNom={
-              eateries.length > 0
+              listed.length > 0
                 ? {
-                    count: eateries.length,
-                    ids: eateries.map(e => e.id),
+                    count: listed.length,
+                    ids: listed.map(e => e.id),
                     content: (
                       <EateryTree
-                        eateries={eateries}
+                        eateries={listed}
                         reviews={eateryReviews}
                         openDay={openDay}
                         onOpen={e => {

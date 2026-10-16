@@ -6,7 +6,7 @@ import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, requestEa
 import { searchPlaces, type FoundPlace } from '../../lib/pins'
 import { fetchMyName, type Person } from '../../lib/trips'
 import { searchLocations, resolveScope, type LocationHit, type Scope } from '../../lib/savorLocation'
-import { inView, type Bounds } from '../../lib/countryBounds'
+import { onScreen, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml, flowerSvg, popupIconHtml } from '../../lib/pinDraw'
 import { pinBadge, pinFaded, togglePicks } from '../../lib/pinRules'
@@ -112,7 +112,7 @@ function SavorLoaded({ userId }: { userId: string }) {
 
   // What's on the map; with no map (no key) everything.
   const shown = useMemo(
-    () => (view ? eateries.filter(e => inView(view, e.lat, e.lng)) : hasMap ? [] : eateries),
+    () => onScreen(eateries, view, hasMap),
     [eateries, view, hasMap]
   )
   const hasMichelin = shown.some(e => e.michelin)
@@ -180,7 +180,9 @@ function SavorLoaded({ userId }: { userId: string }) {
           <h1 className={styles.h1}>Munch List</h1>
         </div>
         <div className={styles.where}>
-          <button type="button" className={styles.change} onClick={openShare}>Family</button>
+          {/* Family is the circle's own: trip co-travelers can browse the
+              catalogue (E101) but don't see the circle or its invite. */}
+          {people.length > 0 && <button type="button" className={styles.change} onClick={openShare}>Family</button>}
         </div>
       </div>
       <div className={styles.body}>

@@ -4,8 +4,8 @@ import type { Review } from './pinRules'
 
 // The shared Savorlog eatery catalogue (migration 0007). Unlike pins, an
 // eatery belongs to no trip: there is one catalogue, held by the Savorlog
-// circle, browsed whole here and surfaced on a trip within 20 km of its
-// cities. Each person keeps their own WTG / VIS review (eatery_reviews,
+// circle and seen whole by anyone on a trip (0015, E101): browsed here and
+// on every trip's map. Each person keeps their own WTG / VIS review (eatery_reviews,
 // the same shape as pin_reviews).
 
 export interface Eatery {
@@ -50,7 +50,7 @@ export async function fetchCatalogue(): Promise<Eatery[]> {
   return ((data ?? []) as Eatery[]).sort((a, b) => a.name.localeCompare(b.name))
 }
 
-/** The catalogue eateries a trip shows: within 20 km of one of its cities (E60). */
+/** The catalogue eateries a trip shows: every live one, for anyone on the trip (0015, E101). */
 export async function fetchTripEateries(tripId: string): Promise<Eatery[]> {
   const { data, error } = await client().rpc('trip_eateries', { _trip: tripId })
   if (error) throw new Error(error.message)
