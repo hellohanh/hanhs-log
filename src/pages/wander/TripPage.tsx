@@ -32,6 +32,7 @@ import { useBackStep } from '../../lib/useBackStep'
 /** How far above the middle a place sits when its phone card opens, so the card doesn't cover it. */
 const PHONE_CARD_LIFT = 170
 import { togglePicks } from '../../lib/pinRules'
+import { onScreen, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml, popupIconHtml } from '../../lib/pinDraw'
 import ItineraryPanel, { ItineraryOpener, PANEL_WIDTH } from './ItineraryPanel'
@@ -144,8 +145,9 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
     loadPins()
   }, [loadPins])
 
-  // The catalogue eateries this trip shows (within 20 km of its cities, E60),
-  // and the Savorlog add/edit panel reached from the Places panel (M5).
+  // The whole Savorlog catalogue (session 13, E101: anyone on the trip sees it
+  // all; the map shows every eatery, the Nom-Nom list what's on screen), and
+  // the Savorlog add/edit panel reached from the Places panel (M5).
   const [eateries, setEateries] = useState<Eatery[]>([])
   const [eateryReviews, setEateryReviews] = useState<EateryReview[]>([])
   const [eateryEdit, setEateryEdit] = useState<EateryEditing>(null)
@@ -162,6 +164,14 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   useEffect(() => {
     loadEateries()
   }, [loadEateries])
+  // What's on the map (session 13): the Nom-Nom list follows it like Munch
+  // List. Without a map (no key) the list shows everything.
+  const [view, setView] = useState<Bounds | null>(null)
+  const hasMapKey = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
+  const eateriesInView = useMemo(
+    () => onScreen(eateries, view, hasMapKey),
+    [eateries, view, hasMapKey]
+  )
   // OTD Pins (itinerary open, toggle on) overrides Show all pins and the
   // MICHELIN filter: the day's pins stay bright, the rest fade (Hanh, session 4).
   // Day route on: only the day's places stay bright. On the computer that's
@@ -355,6 +365,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               if (at) showPlace(kind, at)
             }}
             onMapClick={() => { setPopup(null); setSnap('peek'); setTripMenu(false) }}
+            onView={setView}
           />
           <BottomSheet label="Places" snap={snap} onSnap={setSnap} hidden={tab !== 'places' || !!card}>
             <PlacesPanel
@@ -364,6 +375,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               pins={pins}
               reviews={reviews}
               eateries={eateries}
+              eateriesInView={eateriesInView}
               eateryReviews={eateryReviews}
               loadError={pinsError}
               showAll={showAll}
@@ -507,6 +519,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           pins={pins}
           reviews={reviews}
           eateries={eateries}
+          eateriesInView={eateriesInView}
           eateryReviews={eateryReviews}
           loadError={pinsError}
           showAll={showAll}
@@ -533,6 +546,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             rightInset={panel.open ? (panel.wide ? 2 : 1) * PANEL_WIDTH : 0}
             pins={allMapPins}
             route={panel.open ? dayRoute : null}
+            onView={setView}
             focus={focus}
             onPinClick={id => setPopup({ kind: eateries.some(e => e.id === id) ? 'eatery' : 'pin', id })}
             popupAt={popupItem ? { lat: popupItem.lat, lng: popupItem.lng } : null}

@@ -6,6 +6,7 @@ import { loadGoogleMaps } from '../../lib/googleMaps'
 import { MAP_LOOKS, canHidePins, lookOptions, mapKind, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
 import { type City } from '../../lib/city'
 import { anyDistrictInView } from '../../lib/districts'
+import { type Bounds } from '../../lib/countryBounds'
 import { MODE_COLOR, type RouteSeg } from '../../lib/directions'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from './CameraControl'
@@ -45,7 +46,8 @@ export default function TripMap({
   routeOn,
   onRouteToggle,
   onMapClick,
-  openLook = 0
+  openLook = 0,
+  onView
 }: {
   city: CityState
   rightInset?: number
@@ -71,6 +73,8 @@ export default function TripMap({
   onMapClick?: () => void
   /** Bumped by the phone's ⋯ menu to open the Map look panel. */
   openLook?: number
+  /** The visible map area after each move (session 13: Nom-Nom follows the map). */
+  onView?: (b: Bounds) => void
 }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -225,7 +229,10 @@ export default function TripMap({
     }
   }, [map, route])
 
-  // Watch the view: is any HCMC district on screen?
+  // Watch the view: is any HCMC district on screen? And tell the page what's
+  // on screen, so the Nom-Nom list follows the map (session 13).
+  const onViewRef = useRef(onView)
+  onViewRef.current = onView
   useEffect(() => {
     if (!map) return
     const check = () => {
@@ -233,7 +240,9 @@ export default function TripMap({
       if (!b) return
       const ne = b.getNorthEast()
       const sw = b.getSouthWest()
-      setDistrictsInView(anyDistrictInView({ north: ne.lat(), south: sw.lat(), east: ne.lng(), west: sw.lng() }))
+      const view = { north: ne.lat(), south: sw.lat(), east: ne.lng(), west: sw.lng() }
+      setDistrictsInView(anyDistrictInView(view))
+      onViewRef.current?.(view)
     }
     const l = map.addListener('idle', check)
     check()

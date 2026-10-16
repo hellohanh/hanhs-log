@@ -2,6 +2,7 @@
 -- Cast: A owns the circle and a HCMC trip; B is a stranger (no circle, no
 -- trip); C is a co-traveler who joined A's trip by link (anonymous, not in the
 -- circle). HCMC ≈ (10.78, 106.69); Paris ≈ (48.85, 2.35) is far from the trip.
+-- Since 0015 anyone on a trip sees the whole catalogue (near or far).
 
 insert into auth.users (id, email, is_anonymous) values
   ('00000000-0000-0000-0000-00000000000a', 'owner@test.local', false),
@@ -40,18 +41,18 @@ select test.refused($$insert into eatery_reviews (eatery_id, status) values ('e1
 -- ===== C: a co-traveler who joined the trip by link =====
 select test.act_as('00000000-0000-0000-0000-00000000000c', true);
 select join_trip_via_invite('88888888-8888-8888-8888-888888888888');
-select test.ok(test.visible('select * from eateries') = 1, 'a co-traveler sees only eateries in the trip''s city');
+select test.ok(test.visible('select * from eateries') = 2, 'a co-traveler sees the whole catalogue, near or far (0015)');
 insert into eatery_reviews (eatery_id, status, verdict, rating) values ('e1000000-0000-0000-0000-000000000001', 'vis', 'revisit', 4.5);
 select test.ok(test.visible('select * from eatery_reviews') = 2, 'a co-traveler adds their own review');
 insert into eateries (id, google_place_id, name, lat, lng, cuisine, dish)
 values ('e3000000-0000-0000-0000-000000000003', 'gp-pho', 'Phở Hòa Pasteur', 10.782, 106.686, 'vietnamese', 'pho');
-select test.ok(test.visible('select * from eateries') = 2, 'a co-traveler adds an eatery in the trip''s city');
-select test.ok((select count(*) from trip_eateries('66666666-6666-6666-6666-666666666666')) = 2,
-  'trip_eateries returns the two in the city, not the far one');
+select test.ok(test.visible('select * from eateries') = 3, 'a co-traveler adds an eatery in the trip''s city');
+select test.ok((select count(*) from trip_eateries('66666666-6666-6666-6666-666666666666')) = 3,
+  'trip_eateries returns every live eatery, near or far (0015)');
 
 -- Two-stage delete: C can queue one (anyone who can see it)…
 select request_eatery_deletion('e1000000-0000-0000-0000-000000000001');
-select test.ok(test.visible('select * from eateries') = 1, 'a queued eatery hides from everyone but the owner');
+select test.ok(test.visible('select * from eateries') = 2, 'a queued eatery hides from everyone but the owner');
 select test.refused($$select finalize_eatery_deletion('e1000000-0000-0000-0000-000000000001')$$,
   'a co-traveler can''t finalize a deletion');
 select test.refused($$select restore_eatery('e1000000-0000-0000-0000-000000000001')$$,

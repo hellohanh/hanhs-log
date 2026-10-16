@@ -1,6 +1,6 @@
 -- Migration 0010 (an itinerary stop can be a trip pin or a catalogue eatery).
 -- A owns a HCMC trip + the circle. HCMC ≈ (10.78,106.69); an eatery there is
--- schedulable, a far one (Tokyo) is not.
+-- schedulable, and since 0015 so is a far one (Tokyo).
 
 insert into auth.users (id, email, is_anonymous) values
   ('00000000-0000-0000-0000-00000000000a', 'owner@test.local', false);
@@ -22,9 +22,9 @@ select test.ok(test.visible('select * from itinerary_stops') = 1, 'a pin can sti
 insert into itinerary_stops (day_id, eatery_id, start_time, end_time) values ('d0000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', '12:00', '13:00');
 select test.ok(test.visible('select * from itinerary_stops') = 2, 'an eatery in the city can be scheduled');
 
--- A far eatery can't.
-select test.refused($$insert into itinerary_stops (day_id, eatery_id, start_time, end_time) values ('d0000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000002', '14:00', '15:00')$$,
-  'a far eatery can''t be scheduled on this trip');
+-- A far eatery can too (0015: any eatery you can see).
+insert into itinerary_stops (day_id, eatery_id, start_time, end_time) values ('d0000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000002', '14:00', '15:00');
+select test.ok(test.visible('select * from itinerary_stops') = 3, 'a far eatery can be scheduled (0015)');
 
 -- Exactly one of pin / eatery.
 select test.refused($$insert into itinerary_stops (day_id, pin_id, eatery_id, start_time, end_time) values ('d0000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', '16:00', '17:00')$$,
@@ -35,4 +35,4 @@ select test.refused($$insert into itinerary_stops (day_id, start_time, end_time)
 -- Finalizing the eatery removes its stop.
 select request_eatery_deletion('e1000000-0000-0000-0000-000000000001');
 select finalize_eatery_deletion('e1000000-0000-0000-0000-000000000001');
-select test.ok(test.visible('select * from itinerary_stops') = 1, 'removing an eatery clears its stops');
+select test.ok(test.visible('select * from itinerary_stops') = 2, 'removing an eatery clears its stops');
