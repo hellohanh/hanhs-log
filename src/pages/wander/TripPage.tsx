@@ -184,7 +184,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           html: pinHtml({ color: look.color, icon: look.icon, michelin: p.michelin, badge: pinBadge(reviews.filter(r => r.pin_id === p.id)) }),
           width: box.width,
           height: box.height,
-          faded
+          faded,
+          keepApart: otdActive && otdSet.has(p.id)
         }
       }),
     [pins, reviews, showAll, michelinOnly, picked, pinEdit, otdActive, otdSet]
@@ -205,7 +206,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           html: pinHtml({ color: look.color, icon: look.icon, michelin: e.michelin, badge: pinBadge(asReviews(eateryReviews, e.id)) }),
           width: box.width,
           height: box.height,
-          faded
+          faded,
+          keepApart: otdActive && otdSet.has(e.id)
         }
       }),
     [eateries, eateryReviews, showAll, michelinOnly, picked, eateryEdit, otdActive, otdSet]
