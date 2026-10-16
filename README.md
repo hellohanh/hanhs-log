@@ -4,7 +4,7 @@ One app for trip planning (**Wanderlog**) and eateries (**Savorlog**), sharing o
 login and one database (its own Supabase project; the old Wanderlog site and
 database are separate and untouched). Live at https://hellohanh.github.io/hanhs-log/
 
-## Current state (Session 11, OCT 15 2026)
+## Current state (Session 12, OCT 16 2026)
 
 | Milestone | Status |
 |---|---|
@@ -19,7 +19,9 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 
 ## What's built
 - **Phones** (screens 760 px or narrower; monitor and laptop unchanged): a slim header with a ☰ menu; on a trip, one title bar, map buttons for Map look, My location and Day route, and **Places** / **Itinerary** as sheets that slide up from the bottom. The itinerary opens on today during the trip; tap a time block to edit its times; the back gesture steps back one layer. Day route fades the other pins as on the computer (E90, E91). Still to come: add/edit forms, the splash and Savorlog on phones.
-- **Savorlog City/Country field**: above the eatery search, type a city or country and pick it; the map fits that place and the catalogue shows it (E92).
+- **Savorlog (Munch List)**: the list and pins follow the map; move to the next city and it fills in. The City/Country field (and the startup popup) glide the map to a place (E92, E95). The cuisine menu in the add card is A–Z (E93).
+- **Maps**: crowded pins merge into red numbered bubbles that split when tapped (E96); picking a place, clicking a list row or tapping a bubble glides the map (E97).
+- **Pins and popup**: Hanh's own line-art icons for every non-food category in the pins and the popup (E98, E99). The popup is 350 px, with ✕ / ✎ / bin down the right and the English name over the local name in red italic (E100).
 - **Nom-Nom** is an ordinary A–Z category in a trip's Places list (E89).
 - **Splash (`/`)**:
   - Hanh's watercolor hero (Amalfi, phở, Eiffel Tower, bánh mì) in a 1080 × 800 container; its edge fades into the page's paper colour.
@@ -36,7 +38,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 - **Places panel** (left of the map): a Google search box adds a place; the add/edit card sets the category by hand (category › sub › sub-sub), each person's **WTG / VIS** status (visited gets a verdict — revisit, 2nd chance, don't go back — and an optional half-star rating), **MICHELIN** (mentioned / 1–3 stars + year, food and drink only) and Street food / Fine dining. The list groups pins by category (a category shows only when it has pins). **Show all pins** and a **MICHELIN** chip fade the map's pins.
 - **Pins on the map**: teardrops carrying the pin's icon, colour and a status badge (orange WTG, or green ✓ / yellow – / red ✗ for visited); MICHELIN places are the red flower pin with a stars chip.
 - **Itinerary panel**: on the map's right edge (closed by default; 320 or 640 px, remembered): day tabs for the trip's dates plus extra days, day notes, travel legs (flight, train, bus, own transport), activity blocks, and **places scheduled onto the day** as time blocks. A scheduled place can be a **trip pin or a Savorlog eatery** (M5): add one by dragging a Places or Nom-Nom row onto a day tab or timeline slot, the Add popup's **Place** picker, a **+** on a list row, or (pins) the card's **Add to day**. **Day route** draws the day's route on the map across pins and eateries alike and fades the rest. Click a time to add; drag an item's edges or middle to change its time.
-- **Savorlog (`/savor`)**: one shared eatery catalogue, filed cuisine-country → main dish, held by a single family **circle** and belonging to no trip. Opening it asks **where** first — a country (framed to its mainland) or a city (zoom 13); the catalogue tree and the map then show only that place's eateries. A Google **search-to-add** opens the add/edit card: cuisine → dish, **price $–$$$$**, MICHELIN, Street food / Fine dining, your WTG/VIS + rating, a note, and up to **3 photos** (uploads → a Google place photo → a "Photo coming soon" placeholder). **Remove** sends an eatery to a pending-deletion queue the owner confirms. A **Family** button shares a signed-in-family-only invite (`/savor/join/<code>`) with owner-only reset/remove. The same eatery shows on any trip within 20 km of its cities (M5): a trip's Places panel lists them under **Nom-Nom** (an A–Z category), the map draws them, picking the Nom-Nom category while adding a place on a trip opens this same add panel (saving to the catalogue, not a trip pin), and an eatery can be scheduled onto an itinerary day like a pin.
+- **Savorlog (`/savor`)**: one shared eatery catalogue, filed cuisine-country → main dish, held by a single family **circle** and belonging to no trip. Opening it asks **where** first (closable) — a country (framed to its mainland) or a city (zoom 13); the map glides there, and the catalogue tree and the pins always show what's on the map (E95). A Google **search-to-add** opens the add/edit card: cuisine → dish, **price $–$$$$**, MICHELIN, Street food / Fine dining, your WTG/VIS + rating, a note, and up to **3 photos** (uploads → a Google place photo → a "Photo coming soon" placeholder). **Remove** sends an eatery to a pending-deletion queue the owner confirms. A **Family** button shares a signed-in-family-only invite (`/savor/join/<code>`) with owner-only reset/remove. The same eatery shows on any trip within 20 km of its cities (M5): a trip's Places panel lists them under **Nom-Nom** (an A–Z category), the map draws them, picking the Nom-Nom category while adding a place on a trip opens this same add panel (saving to the catalogue, not a trip pin), and an eatery can be scheduled onto an itinerary day like a pin.
 - **Invite links (`/wander/join/<code>`)**: signed-in people join straight away; others tap Join trip (no email) and are asked for a first name.
 - **City search (`/search?city=…`)**: one results page per city; trips and eateries fill in later.
 - **Sign in (`/signin`)**: email link through Hanh's Log's own Supabase project.
@@ -73,7 +75,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
 
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E92, Q1–Q10, L1–L55), README.md, SESSION_LEDGER.md and docs/pin-standard.md
+> Read SKILL.md (E1–E100, Q1–Q10, L1–L59), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project and
 > started from a clean slate (live Wanderlog is never touched). M3, M4 and M5 are live: trips +
 > map + itinerary, all of Savorlog (catalogue, location gate, add/edit + photos, family invite),
@@ -86,7 +88,9 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
 > repeat days (E80), 24-hour time menus (E81), one pin per place per trip (E82), a closable Savorlog
 > place popup (E83), eyes on Places rows (E84), the map pin popup (E85), badges inside pins (E86),
 > centring beside the itinerary panel (E87), and Title Case A–Z lists (E88). Session 11: Nom-Nom as an A–Z category (E89),
-> the phone layout steps 1–2 (E90) and its Day route (E91), and Savorlog's City/Country field (E92). Next: phone step 3
+> the phone layout steps 1–2 (E90) and its Day route (E91), and Savorlog's City/Country field (E92). Session 12: cuisine menu A–Z (E93), Munch List (E94),
+> Savorlog pins follow the map (E95), numbered bubbles (E96), smooth fly-over (E97), Hanh's line-art icons (E98, E99) and
+> the new pin popup (E100). Next: phone step 3
 > (add/edit forms, mockup first at 412 × 891), or the Map check results. Help me with the import as I work through it; the only deferred M5
 > piece is **M5.2b** (now migration 0015, forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
 > infer, always show the merge link when something's ready to merge, and don't leave red build
