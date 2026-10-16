@@ -1,3 +1,8 @@
+/* The computer popup is always a white card (Google's InfoWindow), so it keeps
+   the light colours in dark mode too: without this its note box turned dark
+   with dark text and no visible cursor, and Cancel's light text sat on white
+   (session 13). The phone card (.fill) follows the theme. */
+.pop:not(.fill) { color-scheme: light; --ink: #1B1A18; --muted: #5E5A54; --rule: #E2DDD5; --accent: #9E2A2B; --accent-ink: #FFFFFF; }
 .pop { position: relative; box-sizing: border-box; width: 350px; max-width: calc(100vw - 80px); padding: 2px 2px 4px; color: #1f1d1a; font-family: 'Segoe UI Web', 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
 .actions { position: absolute; top: -2px; right: -4px; display: flex; flex-direction: column; gap: 4px; z-index: 1; }
 .title { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
@@ -17,7 +22,8 @@
 .hr { border-top: 1px solid #e6e1d8; margin: 10px 0 8px; }
 .add { border: 0; background: none; padding: 0; color: #1a6fd1; font: inherit; cursor: pointer; }
 .noteText { display: block; width: 100%; text-align: left; border: 0; border-radius: 8px; background: #f6f3ee; padding: 7px 9px; color: inherit; font: inherit; cursor: text; white-space: pre-wrap; }
-.note { font-family: inherit; width: 100%; box-sizing: border-box; border: 1px solid #d9d3c8; border-radius: 8px; padding: 7px 9px; font: inherit; resize: vertical; }
+.note { font-family: inherit; width: 100%; box-sizing: border-box; border: 1px solid #d9d3c8; border-radius: 8px; padding: 7px 9px; font: inherit; resize: vertical; background: #fff; color: #1f1d1a; caret-color: #1f1d1a; }
+.note::placeholder { color: #8a8780; }
 .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: #fbeceb; border-radius: 8px; padding: 8px; margin: 6px 0; font-size: 13px; }
 .err { color: #b2433f; font-size: 13px; margin: 6px 0 0; }
@@ -30,3 +36,4 @@
 .fill .line { margin-top: 8px; }
 .fill .line a, .fill .add { color: #1a6fd1; }
 .fill .noteText { background: var(--ground); }
+.fill .note { background: var(--surface); color: var(--ink); caret-color: var(--ink); border-color: var(--rule); }
