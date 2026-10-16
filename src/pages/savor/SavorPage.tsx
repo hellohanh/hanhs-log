@@ -45,7 +45,7 @@ function Message({ text, children }: { text: string; children?: React.ReactNode 
   return (
     <main className="page segoe">
       <p className="eyebrow">Savorlog</p>
-      <h1 style={{ fontSize: 48, margin: '12px 0 16px' }}>Eateries</h1>
+      <h1 style={{ fontSize: 48, margin: '12px 0 16px' }}>Munch List</h1>
       <p className="lede" role="status">{text}</p>
       {children}
     </main>
@@ -177,7 +177,7 @@ function SavorLoaded({ userId }: { userId: string }) {
       <div className={styles.bar}>
         <div className={styles.titles}>
           <p className={styles.eyebrow}>Savorlog</p>
-          <h1 className={styles.h1}>Eateries</h1>
+          <h1 className={styles.h1}>Munch List</h1>
         </div>
         <div className={styles.where}>
           {scope && (

@@ -80,7 +80,7 @@ test('header links move between sections', async ({ page }) => {
   await page.goto('./')
   await openMenuOnPhone(page)
   await page.getByRole('link', { name: 'Savorlog' }).first().click()
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Eateries')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Munch List')
   await openMenuOnPhone(page)
   await page.getByRole('link', { name: 'Wanderlog' }).first().click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your trips')
