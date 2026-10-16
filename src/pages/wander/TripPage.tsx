@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
@@ -37,7 +37,10 @@ import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml, popupIconHtml } from '../../lib/pinDraw'
 import ItineraryPanel, { ItineraryOpener, PANEL_WIDTH } from './ItineraryPanel'
 import { readPanelState, savePanelState, type PanelState } from '../../lib/itinerary'
-import { ensureTripCity, type City } from '../../lib/city'
+import { ensureTripCity, lookupCity, type City } from '../../lib/city'
+import { dayCityName, dayForCity } from '../../lib/dayCity'
+import { fetchDays, fetchLegs, fetchLegLinks, fetchLegsByIds, type ItineraryDay, type TravelLeg } from '../../lib/itinerary'
+import { type DayCity } from './TripMap'
 import TripForm from './TripForm'
 import styles from './TripPage.module.css'
 
@@ -172,6 +175,40 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
     () => onScreen(eateries, view, hasMapKey),
     [eateries, view, hasMapKey]
   )
+  // The day's city (session 13, E102): the open itinerary day (or today during
+  // the trip) is in the home city until a travel leg lands somewhere else. The
+  // home_pin map button glides there, and Reset goes there too.
+  const homeName = load.state === 'ready' ? load.trip.city_primary : ''
+  const [dayCity, setDayCity] = useState<DayCity | null>(null)
+  const cityCache = useRef(new Map<string, { lat: number; lng: number } | null>())
+  const openDayId = panel.open ? openDay?.id ?? null : null
+  const resolveDayCity = useCallback(async (): Promise<DayCity | null> => {
+    if (city.state !== 'ready' || !homeName) return null
+    const home: DayCity = { name: homeName, lat: city.city.lat, lng: city.city.lng }
+    try {
+      const days = await fetchDays(tripId)
+      const legs = await fetchTripLegs(tripId, days)
+      const name = dayCityName(dayForCity(days, openDayId), legs, homeName)
+      if (name === homeName) return home
+      if (!cityCache.current.has(name)) {
+        cityCache.current.set(name, await lookupCity(name).then(c => (c ? { lat: c.lat, lng: c.lng } : null), () => null))
+      }
+      const at = cityCache.current.get(name)
+      return at ? { name, ...at } : home
+    } catch {
+      return home
+    }
+  }, [city, homeName, tripId, openDayId])
+  useEffect(() => {
+    let live = true
+    resolveDayCity().then(c => { if (live) setDayCity(c) })
+    return () => { live = false }
+  }, [resolveDayCity])
+  const refreshDayCity = useCallback(async () => {
+    const c = await resolveDayCity()
+    setDayCity(c)
+    return c
+  }, [resolveDayCity])
   // OTD Pins (itinerary open, toggle on) overrides Show all pins and the
   // MICHELIN filter: the day's pins stay bright, the rest fade (Hanh, session 4).
   // Day route on: only the day's places stay bright. On the computer that's
@@ -547,6 +584,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             pins={allMapPins}
             route={panel.open ? dayRoute : null}
             onView={setView}
+            dayCity={dayCity}
+            onDayCity={refreshDayCity}
             focus={focus}
             onPinClick={id => setPopup({ kind: eateries.some(e => e.id === id) ? 'eatery' : 'pin', id })}
             popupAt={popupItem ? { lat: popupItem.lat, lng: popupItem.lng } : null}
@@ -654,4 +693,13 @@ function EditTrip({ trip, onCancel, onSaved }: { trip: Trip; onCancel: () => voi
       />
     </div>
   )
+}
+
+/** The trip's own legs plus legs linked in from other trips (as the itinerary shows them). */
+async function fetchTripLegs(tripId: string, days: ItineraryDay[]): Promise<TravelLeg[]> {
+  const own = await fetchLegs(days.map(d => d.id))
+  const links = await fetchLegLinks(tripId).catch(() => [])
+  const incoming = links.filter(k => k.direction === 'in').map(k => k.leg_id)
+  const linked = await fetchLegsByIds(incoming).catch(() => [] as TravelLeg[])
+  return [...own, ...linked]
 }
