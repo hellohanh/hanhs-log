@@ -116,10 +116,10 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
    Check it on your phone and laptop.
 3. Click **Merge** (use "Create a merge commit"). The live site updates in about two minutes.
 
-Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S010 OCT 14 2026).
+Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S012 OCT 16 2026).
 
 ## Database
-The database is shared with Wanderlog, so it has its own rules, nightly
+Hanh's Log has its own Supabase project (live Wanderlog's database is never touched). It has its own rules, nightly
 encrypted backups and an approval step before any change runs. See
 [docs/database.md](docs/database.md).
 

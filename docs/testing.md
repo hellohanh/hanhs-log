@@ -36,7 +36,7 @@ invited member can.
 ## Browser tests
 
 Pages are listed at the top of `tests/browser/smoke.spec.ts`; every page is
-opened at all three sizes. **Rule:** a new screen gets a line there in the
+opened at all four sizes (phone, laptop, laptop at 150% zoom, monitor). **Rule:** a new screen gets a line there in the
 same pull request. Screenshots appear under the run's **Artifacts**
 (`screenshots`), handy for checking sizes you don't have in front of you.
 

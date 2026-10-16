@@ -23,7 +23,7 @@ separate boxes.
   MICHELIN Guide logo itself.
 - **MICHELIN stars**: 1–3 small red stars in a white chip above the pin. Bib
   Gourmand places are just "Mentioned": the MICHELIN pin with no chip (E52).
-- **Status badge** (E51): top-right of every pin. Blank orange `#E8862A` for WTG;
+- **Status badge** (E51, placed by E86): a 9 px badge inside every pin, centred, 11.5 px above the point (12.5 px on a MICHELIN pin). Blank orange `#E8862A` for WTG;
   for VIS, green `#2F8A3E` with a white ✓ (revisit), yellow `#F2C230` with a
   black dash (2nd chance), red `#C8352F` with a white ✗ (don't go back).
 - **Filtered out**: the pin fades to 10%.
@@ -37,7 +37,7 @@ vein `M50 36 L50 25`, centre circle r = 7.
 - **Google Material Symbols** (Outlined), white in the disc. Names are checked
   against Google's official codepoints list before use (L16). The app will ship
   only the icons it uses.
-- **Hanh's own drawings**, traced to SVG, in `src/assets/pin-icons/` (43 files,
+- **Hanh's own drawings**, traced to SVG, in `src/assets/pin-icons/` (43 files besides the 46 line-art `ls_*.svg` below,
   `fill="currentColor"`):
   - Set 1 (animals): cow, pig, chicken, turkey, fish, shrimp, crab, sheep, duck, egg
   - Set 2: banh_mi, rice_chopsticks, bus, spring_rolls, fish_striped, shrimp_2,
@@ -49,7 +49,7 @@ vein `M50 36 L50 25`, centre circle r = 7.
   - Fish: `fish_striped` replaces the first `fish`; `catfish` for catfish dishes.
     Shrimp and crab: both versions stay available. No lobster yet (Q7).
 - Every pin colour keeps the white icon at ≥ 3:1 contrast.
-- **Line-art set (session 11)**: Hanh's Icon Set 1 (46 drawings, from two
+- **Line-art set (session 12)**: Hanh's Icon Set 1 (46 drawings, from two
   sheets) for every non-food category, group and type — Accommodation … Parking,
   Airport, and the category / group levels too. Extracted white on transparent,
   redrawn at one even line weight (Hanh picked "medium" from a side-by-side),
