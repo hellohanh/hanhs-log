@@ -29,6 +29,13 @@ export type { MapPin } from './mapPinLayer'
 
 export type CityState = { state: 'loading' } | { state: 'ready'; city: City } | { state: 'missing'; query: string } | { state: 'error'; message: string }
 
+/** A day's city on the map (E102). */
+export interface DayCity {
+  name: string
+  lat: number
+  lng: number
+}
+
 const WORLD = { center: { lat: 20, lng: 0 }, zoom: 2 }
 const OPENING_ZOOM = 13
 
@@ -47,7 +54,9 @@ export default function TripMap({
   onRouteToggle,
   onMapClick,
   openLook = 0,
-  onView
+  onView,
+  dayCity,
+  onDayCity
 }: {
   city: CityState
   rightInset?: number
@@ -75,6 +84,10 @@ export default function TripMap({
   openLook?: number
   /** The visible map area after each move (session 13: Nom-Nom follows the map). */
   onView?: (b: Bounds) => void
+  /** The open day's city (session 13, E102): Reset goes here instead of the Primary City. */
+  dayCity?: DayCity | null
+  /** The home_pin button: work the day's city out afresh, then glide there. */
+  onDayCity?: () => Promise<DayCity | null>
 }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -95,6 +108,14 @@ export default function TripMap({
   // trip; it disappears once none are (Hanh, session 4).
   const [districtsInView, setDistrictsInView] = useState(false)
   const home = city.state === 'ready' ? { center: { lat: city.city.lat, lng: city.city.lng }, zoom: OPENING_ZOOM } : WORLD
+  // Reset (camera control) goes to the open day's city when there is one (E102).
+  const resetView = dayCity ? { center: { lat: dayCity.lat, lng: dayCity.lng }, zoom: OPENING_ZOOM } : home
+  const goDayCity = async () => {
+    if (!map) return
+    const c = (await onDayCity?.()) ?? dayCity
+    if (!c) return
+    glideTo(map, { center: centreFor({ lat: c.lat, lng: c.lng }, OPENING_ZOOM, insetRef.current / 2), zoom: OPENING_ZOOM })
+  }
   const mapId = import.meta.env.VITE_GOOGLE_MAP_ID
   const [pins, setPins] = useState(readPins)
   const noPinsId = import.meta.env.VITE_GOOGLE_MAP_ID_NOPINS
@@ -330,7 +351,7 @@ export default function TripMap({
       {popupEl && popup ? createPortal(popup, popupEl) : null}
       <div ref={box} className={styles.map} role="region" aria-label="Map" />
       {notice && <p className={styles.notice} role="status">{notice}</p>}
-      {map && !phone && <CameraControl map={map} home={home} tiltable={tiltable} right={rightInset + 16} inset={rightInset} />}
+      {map && !phone && <CameraControl map={map} home={resetView} tiltable={tiltable} right={rightInset + 16} inset={rightInset} />}
       {ready && phone && (
         <div className={styles.phoneCtl}>
           <button type="button" className={styles.chip} aria-expanded={open} aria-controls="map-look-panel" aria-label={`Map look: ${look.name}`} onClick={() => setOpen(o => !o)}>
@@ -376,6 +397,17 @@ export default function TripMap({
           >
             {pinsLocked || pins ? 'GPins ON' : 'GPins OFF'}
           </button>
+          {dayCity && (
+            <button
+              type="button"
+              className={styles.chip}
+              onClick={goDayCity}
+              aria-label={`Go to this day's city: ${dayCity.name}`}
+              title={`Go to this day's city: ${dayCity.name}`}
+            >
+              <HomePinIcon />
+            </button>
+          )}
           {districtsInView && (
             <button
               type="button"
@@ -483,6 +515,15 @@ function Tile({ s }: { s: Swatch }) {
       <path d="M40 -5 L52 40 L46 85" stroke={s.road} strokeWidth="3" fill="none" />
       <path d="M-5 70 L50 20 L125 -2" stroke={s.highway} strokeWidth="4" fill="none" />
       <path d="M78 -5 C70 20 92 40 80 60 C74 70 82 78 86 85" stroke={s.water} strokeWidth="9" fill="none" />
+    </svg>
+  )
+}
+
+/** Material Symbols "home_pin" (Outlined 400, Apache 2.0, Google), Hanh's pick (session 13). */
+function HomePinIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true">
+      <path d="M360-440h80v-110h80v110h80v-190l-120-80-120 80v190Zm120 254q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Zm0 106Q319-217 239.5-334.5T160-552q0-150 96.5-239T480-880q127 0 223.5 89T800-552q0 100-79.5 217.5T480-80Zm0-480Z" />
     </svg>
   )
 }
