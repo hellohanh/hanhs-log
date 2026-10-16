@@ -90,8 +90,9 @@ export function pinHtml(p: PinDrawing): string {
   const disc = p.michelin ? 12.5 : 11.5
   const color = p.michelin ? MICHELIN_RED : p.color
   const left = (width - w) / 2
-  const icon = p.michelin ? flowerSvg(20) : iconSvg(p.icon, 15)
-  const iconSize = p.michelin ? 20 : 15
+  // Hanh's line-art icons (ls_*) sit a little larger, as approved in the pin test.
+  const iconSize = p.michelin ? 20 : p.icon.startsWith('ls_') ? 17 : 15
+  const icon = p.michelin ? flowerSvg(20) : iconSvg(p.icon, iconSize)
   const stars = p.michelin && p.michelin !== 'mentioned' ? '★'.repeat(Number(p.michelin)) : ''
   const shape = `M${r} ${h - 1.5} C${r} ${h - 1.5} 2 ${h * 0.62} 2 ${r} A${r - 2} ${r - 2} 0 1 1 ${w - 2} ${r} C${w - 2} ${h * 0.62} ${r} ${h - 1.5} ${r} ${h - 1.5}Z`
   return (
@@ -105,4 +106,18 @@ export function pinHtml(p: PinDrawing): string {
     `<span style="position:absolute;left:${left + r - BADGE_SIZE / 2}px;top:${top + h - 1.5 - badgeRise(w) - BADGE_SIZE / 2}px;display:flex">${badgeSvg(p.badge, BADGE_SIZE)}</span>` +
     `</div>`
   )
+}
+
+/**
+ * The icon at the top of the pin popup (Hanh, session 11, tuned with a
+ * slider: a 65 px circle in the pin's colour with a 52 px white drawing,
+ * 12 px from the name). MICHELIN places show the red disc and flower, as on
+ * the pin.
+ */
+export const POPUP_ICON = { circle: 65, drawing: 52, gap: 12 }
+export function popupIconHtml(look: { color: string; icon: string }, michelin: Michelin): string {
+  const { circle, drawing } = POPUP_ICON
+  const bg = michelin ? MICHELIN_RED : look.color
+  const inner = michelin ? flowerSvg(Math.round(drawing * 0.9)) : iconSvg(look.icon, drawing)
+  return `<span style="width:${circle}px;height:${circle}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center">${inner}</span>`
 }

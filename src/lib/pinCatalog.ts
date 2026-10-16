@@ -287,11 +287,27 @@ export const byLabel = (a: { label: string }, b: { label: string }) => collator.
 export const byPlaceName = (a: unknown, b: unknown) => collator.compare((a as { name?: string }).name ?? '', (b as { name?: string }).name ?? '')
 
 /** What a pin looks like from its category path: colour, icon and a label like "Nom-Nom › Vietnamese › Phở". */
-export function pinLook(p: CategoryPath): { color: string; icon: string; label: string; parts: string[] } {
+/**
+ * Hanh's line-art icon (session 11, Icon Set 1 at the medium even line
+ * weight, in assets/pin-icons as ls_<key>.svg) for every non-food category,
+ * group and type. Used inside the map pins and the pin popup only; small UI
+ * (list rows, itinerary blocks) keeps `icon`. Nom-Nom has none yet.
+ */
+export function artFor(category: string, key: string): string | null {
+  return category === 'food' ? null : `ls_${key.replace(/-/g, '_')}`
+}
+
+export function pinLook(p: CategoryPath): { color: string; icon: string; art: string | null; label: string; parts: string[] } {
   const c = categoryOf(p.category)
-  if (!c) return { color: '#5F5E5A', icon: 'location_on', label: p.category, parts: [p.category] }
+  if (!c) return { color: '#5F5E5A', icon: 'location_on', art: null, label: p.category, parts: [p.category] }
   const sub = c.subs.find(x => x.key === p.subcategory)
   const leaf = sub?.leaves?.find(x => x.key === p.subsubcategory)
   const parts = [c.label, sub?.label, leaf?.label].filter(Boolean) as string[]
-  return { color: sub?.color ?? c.color, icon: leaf?.icon ?? sub?.icon ?? c.icon, label: parts.join(' › '), parts }
+  return {
+    color: sub?.color ?? c.color,
+    icon: leaf?.icon ?? sub?.icon ?? c.icon,
+    art: artFor(c.key, leaf?.key ?? sub?.key ?? c.key),
+    label: parts.join(' › '),
+    parts
+  }
 }

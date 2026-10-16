@@ -49,6 +49,16 @@ vein `M50 36 L50 25`, centre circle r = 7.
   - Fish: `fish_striped` replaces the first `fish`; `catfish` for catfish dishes.
     Shrimp and crab: both versions stay available. No lobster yet (Q7).
 - Every pin colour keeps the white icon at ≥ 3:1 contrast.
+- **Line-art set (session 11)**: Hanh's Icon Set 1 (46 drawings, from two
+  sheets) for every non-food category, group and type — Accommodation … Parking,
+  Airport, and the category / group levels too. Extracted white on transparent,
+  redrawn at one even line weight (Hanh picked "medium" from a side-by-side),
+  traced to SVG as `src/assets/pin-icons/ls_<key>.svg` (key = the catalogue key
+  with `_`). Used **in the map pins (17 px in the disc) and the pin popup** (a
+  65 px circle with a 52 px drawing, 12 px from the name). The Places panel,
+  itinerary blocks and pickers keep the Material icons. Nom-Nom keeps its
+  current icons. `pinLook().art` gives the name; `popupIconHtml` draws the popup
+  icon.
 
 ## Pinned list (E30)
 
