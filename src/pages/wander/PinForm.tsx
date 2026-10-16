@@ -89,7 +89,7 @@ export default function PinForm({
     ...reviews.filter(r => r.user_id !== userId),
     { pin_id: '', user_id: userId, ...review, updated_at: changedMine ? '9999' : mine.updated_at }
   ]
-  const preview = pinHtml({ color: look.color, icon: look.icon, michelin: isFood ? michelin : null, badge: pinBadge(asSaved) })
+  const preview = pinHtml({ color: look.color, icon: look.art ?? look.icon, michelin: isFood ? michelin : null, badge: pinBadge(asSaved) })
 
   async function submit(e: FormEvent) {
     e.preventDefault()

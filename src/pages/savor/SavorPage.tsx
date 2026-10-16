@@ -8,7 +8,7 @@ import { fetchMyName, type Person } from '../../lib/trips'
 import { searchLocations, resolveScope, type LocationHit, type Scope } from '../../lib/savorLocation'
 import { inView, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
-import { pinBox, pinHtml, flowerSvg } from '../../lib/pinDraw'
+import { pinBox, pinHtml, flowerSvg, popupIconHtml } from '../../lib/pinDraw'
 import { pinBadge, pinFaded, togglePicks } from '../../lib/pinRules'
 import EateryTree from './EateryTree'
 import PlacePopup from '../../components/PlacePopup'
@@ -276,7 +276,8 @@ function SavorLoaded({ userId }: { userId: string }) {
                     lat: popupEatery.lat,
                     lng: popupEatery.lng,
                     note: popupEatery.note,
-                    deleteText: "Remove this eatery? It goes to the owner's pending-deletion list."
+                    deleteText: "Remove this eatery? It goes to the owner's pending-deletion list.",
+                    iconHtml: popupIconHtml(pinLook(asLook(popupEatery)), popupEatery.michelin)
                   }}
                   onClose={() => setPopupId(null)}
                   onEdit={() => { setPopupId(null); setEditing({ mode: 'edit', id: popupEatery.id }) }}

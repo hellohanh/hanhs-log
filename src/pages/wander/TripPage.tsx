@@ -33,7 +33,7 @@ import { useBackStep } from '../../lib/useBackStep'
 const PHONE_CARD_LIFT = 170
 import { togglePicks } from '../../lib/pinRules'
 import { pinLook } from '../../lib/pinCatalog'
-import { pinBox, pinHtml } from '../../lib/pinDraw'
+import { pinBox, pinHtml, popupIconHtml } from '../../lib/pinDraw'
 import ItineraryPanel, { ItineraryOpener, PANEL_WIDTH } from './ItineraryPanel'
 import { readPanelState, savePanelState, type PanelState } from '../../lib/itinerary'
 import { ensureTripCity, type City } from '../../lib/city'
@@ -181,7 +181,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           lat: p.lat,
           lng: p.lng,
           title: `${p.name} (${look.label})`,
-          html: pinHtml({ color: look.color, icon: look.icon, michelin: p.michelin, badge: pinBadge(reviews.filter(r => r.pin_id === p.id)) }),
+          html: pinHtml({ color: look.color, icon: look.art ?? look.icon, michelin: p.michelin, badge: pinBadge(reviews.filter(r => r.pin_id === p.id)) }),
           width: box.width,
           height: box.height,
           faded,
@@ -215,6 +215,17 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const allMapPins = useMemo(() => [...mapPins, ...eateryMapPins], [mapPins, eateryMapPins])
 
   const popupItem = popup ? (popup.kind === 'pin' ? pins.find(p => p.id === popup.id) : eateries.find(e => e.id === popup.id)) ?? null : null
+  const popupIcon = (() => {
+    if (!popup || !popupItem) return undefined
+    if (popup.kind === 'pin') {
+      const p = popupItem as Pin
+      const look = pinLook(p)
+      return popupIconHtml({ color: look.color, icon: look.art ?? look.icon }, p.michelin)
+    }
+    const e = popupItem as Eatery
+    const look = pinLook({ category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
+    return popupIconHtml(look, e.michelin)
+  })()
   // Without a map (no Google key) a list click still opens the edit panel.
   const hasMap = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
 
@@ -269,7 +280,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             lat: popupItem.lat,
             lng: popupItem.lng,
             note: popupItem.note,
-            deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list."
+            deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list.",
+            iconHtml: popupIcon
           }}
           onClose={() => setPopup(null)}
           onEdit={() => {
@@ -534,7 +546,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
                     lat: popupItem.lat,
                     lng: popupItem.lng,
                     note: popupItem.note,
-                    deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list."
+                    deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list.",
+                    iconHtml: popupIcon
                   }}
                   onClose={() => setPopup(null)}
                   onEdit={() => {
