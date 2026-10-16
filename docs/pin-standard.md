@@ -54,7 +54,7 @@ vein `M50 36 L50 25`, centre circle r = 7.
   Airport, and the category / group levels too. Extracted white on transparent,
   redrawn at one even line weight (Hanh picked "medium" from a side-by-side),
   traced to SVG as `src/assets/pin-icons/ls_<key>.svg` (key = the catalogue key
-  with `_`). Used **in the map pins (17 px in the disc) and the pin popup** (a
+  with `_`). Used **in the map pins (12 px in the disc: 70% of the first 17 px) and the pin popup** (a
   65 px circle with a 52 px drawing, 12 px from the name). The Places panel,
   itinerary blocks and pickers keep the Material icons. Nom-Nom keeps its
   current icons. `pinLook().art` gives the name; `popupIconHtml` draws the popup

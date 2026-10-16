@@ -84,14 +84,17 @@ export function pinBox(p: Pick<PinDrawing, 'michelin'>) {
  * The whole pin as HTML. The pin's point is at the bottom centre of the
  * returned box (left = width / 2, top = height).
  */
+/** Size of Hanh's line-art icons inside a pin: 70% of 17 px (session 11). */
+export const LINE_ART_PIN_SIZE = 12
+
 export function pinHtml(p: PinDrawing): string {
   const { w, h, top, width, height } = pinBox(p)
   const r = w / 2
   const disc = p.michelin ? 12.5 : 11.5
   const color = p.michelin ? MICHELIN_RED : p.color
   const left = (width - w) / 2
-  // Hanh's line-art icons (ls_*) sit a little larger, as approved in the pin test.
-  const iconSize = p.michelin ? 20 : p.icon.startsWith('ls_') ? 17 : 15
+  // Hanh's line-art icons (ls_*): 70% of the first 17 px (Hanh, session 11).
+  const iconSize = p.michelin ? 20 : p.icon.startsWith('ls_') ? LINE_ART_PIN_SIZE : 15
   const icon = p.michelin ? flowerSvg(20) : iconSvg(p.icon, iconSize)
   const stars = p.michelin && p.michelin !== 'mentioned' ? '★'.repeat(Number(p.michelin)) : ''
   const shape = `M${r} ${h - 1.5} C${r} ${h - 1.5} 2 ${h * 0.62} 2 ${r} A${r - 2} ${r - 2} 0 1 1 ${w - 2} ${r} C${w - 2} ${h * 0.62} ${r} ${h - 1.5} ${r} ${h - 1.5}Z`
