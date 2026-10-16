@@ -389,3 +389,33 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 **Stop Protocol completed:** zip `S010 OCT 14 2026 Hanhs Log.zip` produced and presented (remade at the second stop to include #72–#80).
 
 **Next session starts at:** the Map check results (Terrain / Satellite), then the old-pin import, M5.2b (migration 0015), Q6/Q7, M6, M7. After Oct 19, 2026 check a run on Ubuntu 26.
+
+---
+
+## Session 11 — 2026-10-15
+
+**Goal:**
+- Tidy the Nom-Nom row in a trip's Places list.
+- Start the phone layout without changing the monitor layout: talk it through, mockups at Galaxy S25 Ultra size (412 × 891), then build in steps.
+- Add a City/Country field to Savorlog.
+
+**Decisions made:** E89 (Nom-Nom as an A–Z category, no chip), E90 (phone layout steps 1–2), E91 (phone Day route fade), E92 (Savorlog City/Country field). Q1 now sits in phone step 4.
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #81: "from Savorlog" chip removed; Nom-Nom an A–Z category in the trip Places tree.
+- #82: phone layout steps 1–2: slim header + ☰ menu, trip title bar, map button column, Places / Itinerary bottom sheets, today's day, tap-to-edit times, back-gesture steps. Monitor, laptop and 150% zoom proved unchanged by before/after screenshots.
+- #83: on phones the Day route button fades the other pins and keeps the day's pins at 100%.
+- #84: Savorlog City/Country field in the left panel; map frame memoised so the map no longer snaps back after a pan.
+- #85: this Session 11 Stop Protocol docs.
+
+**Done outside code:** Hanh's report that the day's pins were faded on the phone was the phone's cached old version (L54); a refresh fixed it, no code change.
+
+**Design work:** talked the phone layout through first (what opens and closes each screen); inline mockups at 412 × 891 for step 1 (title bar, map buttons) and step 2 (Itinerary sheet, tap to edit times); mockup of the Savorlog City/Country field (typing, after a pick).
+
+**Lessons:** L52 (stand-in Google Maps for tests), L53 (before/after screenshots prove a layout unchanged), L54 (phone keeps the old version until refreshed), L55 (memoise the map frame or it snaps back).
+
+**Open questions:** Q1 (splash on phones, step 4), Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S011 OCT 15 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:** phone step 3 (add/edit forms, mockup first), then steps 4–5; or the Map check results, the old-pin import, M5.2b (migration 0015), Q6/Q7, M6, M7. Optional: the site switching to a new version on its own after a merge. After Oct 19, 2026 check a run on Ubuntu 26.
