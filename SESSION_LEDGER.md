@@ -462,3 +462,42 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 - Or: the Map check results, the old-pin import, M5.2b (migration 0015), Q6/Q7, M6, M7.
 - Optional: the site switching to a new version on its own.
 - After Oct 19, 2026, check a run on Ubuntu 26.
+
+---
+
+## Session 13 — 2026-10-16
+
+**Goal:**
+- Get caught up from the S012 zip and bring every doc up to date with the code.
+- Show eateries on trips the way Munch List does; a button for the day's city; dark-mode popup fix; a new-version notice.
+- Walk through the whole phone journey screen by screen, approve each stage, and build the approved set together.
+
+**Decisions made:** E101 (whole catalogue on trips, migration 0015), E102 (day's-city button, Reset goes there), E103 (new-version notice), E104 (phone sheets: closed / half / full, cherry-red / mustard handle, one-line bottom bar), E105 (phone splash; Q1 resolved), E106 (GPins icon everywhere), E107 (Munch List on phones), E108 (no Munch List startup popup). Approved unchanged on phones: Your trips list, Itinerary and Places contents. M5.2b moves to migration **0016**.
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #92: Session 12 Stop Protocol docs, plus a doc tidy-up against the code (migration numbers, icon counts, badge position, Q6 names, latest zip, own database).
+- #93: migration **0015** `trip_members_see_catalogue` (+ new `trip_catalogue` security test; `eateries` / `eatery_stops` tests updated) — applied; trip map draws every eatery; Nom-Nom list follows the map (`onScreen`).
+- #94: `home_pin` day's-city button; Reset to the day's city; `lib/dayCity.ts` + tests.
+- #95: pin popup note box and buttons readable in dark mode (also Munch List).
+- #96: "new version ready · Reload" notice (checked end to end locally: old version open → new deploy → return → notice → Reload); lowered for the new phone bar.
+- #97: phone set 1 (E104–E108): sheets and handles, one-line bottom bar, phone splash, Munch List on phones with top search and bottom Catalogue handles, GPins icon, no startup popup; new `savor-phone.spec.ts`.
+
+**Done outside code:**
+- Read past chats for the Vietnam trip's legs (no live data access); phone mockups used sample Saigon places.
+- Screenshots of every phone stage at 412 × 891 (splash, sign in, ☰ menu, Your trips, trip sheets, ⋯ menu, Munch List) in light and dark; mockups rendered as images with Hanh's real hero and plane.
+- GPins icon options (six, on/off, light/dark); Hanh chose A.
+- Actions: 0 failed runs.
+
+**Design work:** mockups for eateries following the map on trips, the day's-city icon list (Hanh chose `home_pin`), the update notice, stage 1 splash, the trip opening screen, the handle and bottom bar (light/dark, open/closed), and Munch List on phones.
+
+**Lessons:** L60 (S25 Ultra size, not "Note 25"), L61 (Playwright browser version mismatch: symlink, don't install), L62 (`const top` blanks a mockup page).
+
+**Open questions:** Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S013 OCT 16 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:**
+- After merging #96 once: Ctrl+Shift+R on the computer and fully reopen the phone app; afterwards the notice handles new versions.
+- Phone step 3 (add/edit forms, mockup first at 412 × 891).
+- Or: the Map check results, the old-pin import, M5.2b (migration 0016), Q6/Q7, M6, M7.
+- After Oct 19, 2026, check a run on Ubuntu 26.
