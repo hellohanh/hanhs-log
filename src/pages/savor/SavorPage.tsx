@@ -18,8 +18,16 @@ import SavorShareDialog from './SavorShareDialog'
 import NamePrompt from '../wander/NamePrompt'
 import { type MapPin } from '../wander/mapPinLayer'
 import styles from './Savor.module.css'
+import tstyles from '../wander/TripPage.module.css'
+import BottomSheet, { type Snap } from '../../components/BottomSheet'
+import PhoneMenu from '../../components/PhoneMenu'
+import { useIsPhone } from '../../lib/usePhone'
+import { useBackStep } from '../../lib/useBackStep'
 
-// The Savorlog page (/savor): the shared eatery catalogue by country → dish on
+// The Savorlog page (/savor). Session 13 (E108): no startup "where" popup —
+// it opens on the map; the City/Country field (computer) or the top search
+// sheet (phone) glides the map to a place.
+// Earlier notes: the shared eatery catalogue by country → dish on
 // the left and the map on the right. Session 11: the list and the pins always
 // show what's on the map, so exploring one city and dragging to the next fills
 // in by itself; picking a place (the startup popup or the City/Country field)
@@ -68,8 +76,6 @@ function SavorLoaded({ userId }: { userId: string }) {
   const [editing, setEditing] = useState<Editing>(null)
   // The last place picked: only where the map glides to (session 11).
   const [scope, setScope] = useState<Scope | null>(null)
-  // The startup popup can be closed (session 10); it shows until a pick or a close.
-  const [closed, setClosed] = useState(false)
   const [view, setView] = useState<Bounds | null>(null)
   const [query, setQuery] = useState('')
   const [found, setFound] = useState<FoundPlace[] | null>(null)
@@ -81,6 +87,15 @@ function SavorLoaded({ userId }: { userId: string }) {
   const [nameLater, setNameLater] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [inviteToken, setInviteToken] = useState('')
+  // Phones (session 13, E107, approved mockup): the map fills the screen; a
+  // top sheet holds one search box (a place to go to, or an eatery to add) and
+  // opens pulled down instead of the startup popup; the Catalogue is a bottom
+  // sheet; Family and Map look sit in the ⋯ menu.
+  const phone = useIsPhone()
+  const [topSnap, setTopSnap] = useState<Snap>('half')
+  const [catSnap, setCatSnap] = useState<Snap>('closed')
+  const [savorMenu, setSavorMenu] = useState(false)
+  const [lookReq, setLookReq] = useState(0)
 
   const loadCircle = useCallback(() => savorlogPeople().then(setPeople, () => setPeople([])), [])
   const load = useCallback(async () => {
@@ -171,6 +186,150 @@ function SavorLoaded({ userId }: { userId: string }) {
 
   const popupEatery = popupId ? eateries.find(e => e.id === popupId) ?? null : null
   const editingEatery = editing?.mode === 'edit' ? eateries.find(e => e.id === editing.id) : undefined
+
+  // Phone back gesture: close the top layer first.
+  const phoneLayer = !phone ? null : editing ? 'form' : popupEatery ? 'card' : savorMenu ? 'menu' : catSnap === 'full' ? 'full' : null
+  useBackStep(phone, phoneLayer, () => {
+    if (editing) setEditing(null)
+    else if (popupEatery) setPopupId(null)
+    else if (savorMenu) setSavorMenu(false)
+    else setCatSnap('half')
+  })
+
+  if (phone) {
+    const catalogue = editing ? (
+      <SavorForm
+        key={editing.mode === 'edit' ? editing.id : editing.place.id}
+        userId={userId}
+        place={editing.mode === 'add' ? editing.place : undefined}
+        eatery={editingEatery}
+        reviews={editingEatery ? reviews.filter(r => r.eatery_id === editingEatery.id) : []}
+        onCancel={() => setEditing(null)}
+        onSaved={() => { setEditing(null); load() }}
+      />
+    ) : (
+      <div className={styles.phoneCat}>
+        <div className={styles.head}>
+          <strong>Catalogue</strong>
+          <span className={styles.count}>{shown.length > 0 ? `${shown.length} on screen` : ''}</span>
+        </div>
+        {error && <p className={styles.error} role="alert">Couldn't load the catalogue: {error}</p>}
+        {shown.length > 0 && (
+          <div className={styles.filters}>
+            <label className={styles.showAll}>
+              <input type="checkbox" checked={showAll} onChange={e => { setShowAll(e.target.checked); if (e.target.checked) setPicked(new Set()) }} /> Show all
+            </label>
+            {hasMichelin && (
+              <button type="button" className={styles.chip} aria-pressed={michelinOnly} onClick={() => setMichelinOnly(v => !v)} title="Show only MICHELIN eateries on the map">
+                <span dangerouslySetInnerHTML={{ __html: flowerSvg(13, '#9E2A2B') }} /> MICHELIN {michelinCount}
+              </button>
+            )}
+          </div>
+        )}
+        {shown.length === 0 && !error && <p className={styles.muted}>No eateries in this part of the map. Move the map, or pull the search down to add one.</p>}
+        {shown.length > 0 && (
+          <EateryTree
+            key="map-view"
+            eateries={shown}
+            reviews={reviews}
+            onOpen={e => {
+              if (!hasMap) { setEditing({ mode: 'edit', id: e.id }); setCatSnap('full'); return }
+              setCatSnap('closed')
+              setFocus({ lat: e.lat, lng: e.lng })
+              setPopupId(e.id)
+            }}
+            picked={picked}
+            showAll={showAll}
+            onPick={ids => { setPicked(p => togglePicks(p, ids, showAll)); setShowAll(false) }}
+          />
+        )}
+      </div>
+    )
+    return (
+      <main className={`segoe ${tstyles.pPage}`}>
+        <header className={tstyles.pBar}>
+          <Link to="/" className={tstyles.pBack} aria-label="Home">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
+          </Link>
+          <div className={tstyles.pTitles}>
+            <span className={styles.phoneEyebrow}>Savorlog</span>
+            <h1 className={tstyles.pH1}>Munch List</h1>
+          </div>
+          <div className={tstyles.pMenuWrap}>
+            <button type="button" className={tstyles.pIcon} aria-label="Munch List menu" aria-expanded={savorMenu} onClick={() => setSavorMenu(m => !m)}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+            </button>
+            {savorMenu && (
+              <div className={tstyles.pMenu} role="menu">
+                {people.length > 0 && <button type="button" role="menuitem" onClick={() => { setSavorMenu(false); openShare() }}>Family</button>}
+                <button type="button" role="menuitem" onClick={() => { setSavorMenu(false); setLookReq(n => n + 1) }}>Map look &amp; GPins</button>
+              </div>
+            )}
+          </div>
+          <PhoneMenu />
+        </header>
+        <div className={tstyles.pBody}>
+          <SavorMap
+            phone
+            openLook={lookReq}
+            pins={mapPins}
+            frame={frame}
+            onView={setView}
+            focus={focus}
+            onPinClick={id => { if (shown.some(e => e.id === id)) { setPopupId(id); setCatSnap('closed') } }}
+            onMapClick={() => { setPopupId(null); setSavorMenu(false) }}
+          />
+          <BottomSheet edge="top" fit label="Search" snap={topSnap} onSnap={setTopSnap}>
+            <PhoneSearch
+              near={view ? { lat: (view.south + view.north) / 2, lng: (view.west + view.east) / 2 } : scope?.center}
+              isIn={id => eateries.some(e => e.google_place_id === id)}
+              onPlace={h => { chooseScope(resolveScope(h)); setTopSnap('closed') }}
+              onEatery={f => { setTopSnap('closed'); pick(f); setCatSnap('full') }}
+            />
+          </BottomSheet>
+          <BottomSheet label="Catalogue" snap={editing ? 'full' : catSnap} onSnap={s => { if (!editing) setCatSnap(s) }} hidden={!!popupEatery}>
+            {catalogue}
+          </BottomSheet>
+          {popupEatery && (
+            <div className={tstyles.pCard}>
+              <PlacePopup
+                fill
+                place={{
+                  name: popupEatery.name,
+                  googlePlaceId: popupEatery.google_place_id,
+                  lat: popupEatery.lat,
+                  lng: popupEatery.lng,
+                  note: popupEatery.note,
+                  deleteText: "Remove this eatery? It goes to the owner's pending-deletion list.",
+                  iconHtml: popupIconHtml(pinLook(asLook(popupEatery)), popupEatery.michelin)
+                }}
+                onClose={() => setPopupId(null)}
+                onEdit={() => { setPopupId(null); setEditing({ mode: 'edit', id: popupEatery.id }); setCatSnap('full') }}
+                onDelete={async () => { await requestEateryDeletion(popupEatery.id); setPopupId(null); await load() }}
+                onSaveNote={async note => { await saveEateryNote(popupEatery.id, note); await load() }}
+              />
+            </div>
+          )}
+        </div>
+        {sharing && (
+          <SavorShareDialog
+            token={inviteToken}
+            people={people}
+            isOwner={isOwner}
+            myName={myName ?? null}
+            userId={userId}
+            onTokenChange={setInviteToken}
+            onPeopleChange={loadCircle}
+            onNameChange={name => { setMyName(name); loadCircle() }}
+            onClose={() => setSharing(false)}
+          />
+        )}
+        {myName === null && !nameLater && !sharing && (
+          <NamePrompt userId={userId} onSaved={name => { setMyName(name); loadCircle() }} onLater={() => setNameLater(true)} />
+        )}
+      </main>
+    )
+  }
 
   return (
     <main className={`segoe ${styles.page}`}>
@@ -291,7 +450,6 @@ function SavorLoaded({ userId }: { userId: string }) {
           />
         </div>
       </div>
-      {!scope && !closed && !sharing && <LocationPicker onPick={h => chooseScope(resolveScope(h))} onClose={() => setClosed(true)} />}
       {sharing && (
         <SavorShareDialog
           token={inviteToken}
@@ -305,7 +463,7 @@ function SavorLoaded({ userId }: { userId: string }) {
           onClose={() => setSharing(false)}
         />
       )}
-      {myName === null && !nameLater && !sharing && (scope || closed) && (
+      {myName === null && !nameLater && !sharing && (
         <NamePrompt userId={userId} onSaved={name => { setMyName(name); loadCircle() }} onLater={() => setNameLater(true)} />
       )}
     </main>
@@ -365,33 +523,65 @@ function LocationField({ onPick }: { onPick: (hit: LocationHit) => void }) {
   )
 }
 
-function LocationPicker({ onPick, onClose }: { onPick: (hit: LocationHit) => void; onClose: () => void }) {
-  const { query, hits, searching, err, run } = useLocationSearch()
 
-  // Closable (session 10): ×, Escape, or a click outside the box.
+
+// Phones (session 13, E107): one search box in the top sheet. As you type it
+// lists places to go to (country or city, live) and, after a short pause,
+// Google eateries to add (or open, if already in the catalogue).
+function PhoneSearch({ near, isIn, onPlace, onEatery }: {
+  near?: { lat: number; lng: number }
+  isIn: (googlePlaceId: string) => boolean
+  onPlace: (hit: LocationHit) => void
+  onEatery: (place: FoundPlace) => void
+}) {
+  const { query, hits, err, run } = useLocationSearch()
+  const [found, setFound] = useState<FoundPlace[]>([])
+  const [eatErr, setEatErr] = useState('')
+  const seq = useRef(0)
+  const nearRef = useRef(near)
+  nearRef.current = near
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
+    const q = query.trim()
+    const n = ++seq.current
+    if (q.length < 3) { setFound([]); setEatErr(''); return }
+    const t = window.setTimeout(() => {
+      searchPlaces(q, nearRef.current).then(
+        r => { if (n === seq.current) { setFound(r); setEatErr('') } },
+        e => { if (n === seq.current) { setFound([]); setEatErr((e as Error).message) } }
+      )
+    }, 600)
+    return () => window.clearTimeout(t)
+  }, [query])
+  const reset = () => { run(''); setFound([]) }
   return (
-    <div className={styles.scrim} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={`${styles.modal} ${styles.modalClosable}`} role="dialog" aria-modal="true" aria-label="Where to see eateries">
-        <button type="button" className={styles.modalX} aria-label="Close" onClick={onClose}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-        </button>
-        <h2 className={styles.modalH}>Where do you want to see eateries?</h2>
-        <p className={styles.modalP}>Pick a country or a city, or close this to move the map yourself.</p>
-        <form className={styles.search} role="search" onSubmit={e => e.preventDefault()}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-          <input autoFocus type="search" value={query} onChange={e => run(e.target.value)} placeholder="Search a country or city" aria-label="Search a country or city" />
-        </form>
-        {err && <p className={styles.error} role="alert">{err}</p>}
-        {hits.length > 0 && <LocationHits hits={hits} onPick={onPick} />}
-        {query.trim() && !searching && hits.length === 0 && !err && <p className={styles.muted}>Nothing found. Try another name.</p>}
-      </div>
+    <div className={styles.phoneSearch}>
+      <form className={styles.search} role="search" aria-label="Search a place or an eatery" onSubmit={e => { e.preventDefault(); if (hits[0]) { onPlace(hits[0]); reset() } }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <input type="search" value={query} onChange={e => run(e.target.value)} placeholder="A city, a country or an eatery" aria-label="City, country or eatery" />
+      </form>
+      {err && <p className={styles.error} role="alert">{err}</p>}
+      {hits.length > 0 && (
+        <>
+          <p className={styles.phoneHd}>Go to a place</p>
+          <LocationHits hits={hits} onPick={h => { onPlace(h); reset() }} />
+        </>
+      )}
+      {eatErr && <p className={styles.error} role="alert">{eatErr}</p>}
+      {found.length > 0 && (
+        <>
+          <p className={styles.phoneHd}>Add an eatery</p>
+          <ul className={styles.results} aria-label="Eateries">
+            {found.map(f => (
+              <li key={f.id}>
+                <button type="button" className={styles.res} onClick={() => { onEatery(f); reset() }}>
+                  <span><b>{f.name}</b>{f.address ? <span className={styles.resSub}> {f.address}</span> : null}</span>
+                  <span className={styles.kind}>{isIn(f.id) ? 'Already in · open' : '+ Add'}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   )
 }
-

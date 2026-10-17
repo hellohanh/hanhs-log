@@ -352,14 +352,17 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
     // A place from the list or a pin: the sheet drops, the map centres the
     // place above its card, and the card opens.
     const showPlace = (kind: 'pin' | 'eatery', at: { id: string; lat: number; lng: number }) => {
-      setSnap('peek')
+      setSnap('closed')
       setFocus({ lat: at.lat, lng: at.lng, dy: -PHONE_CARD_LIFT })
       setPopup({ kind, id: at.id })
     }
     const pickTab = (t: 'places' | 'itinerary') => {
       setPopup(null)
-      if (t !== tab) { setTab(t); setSnap('half') }
-      else setSnap(snap === 'peek' ? 'half' : 'peek')
+      // Session 13 (E104): closed → that section opens full screen; open →
+      // the other tab swaps in at the same height; the open tab again closes it.
+      if (snap === 'closed') { setTab(t); setSnap('full') }
+      else if (t !== tab) setTab(t)
+      else setSnap('closed')
     }
     return (
       <main className={`segoe ${styles.pPage}`}>
@@ -401,7 +404,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               const at = kind === 'eatery' ? eateries.find(e => e.id === id) : pins.find(p => p.id === id)
               if (at) showPlace(kind, at)
             }}
-            onMapClick={() => { setPopup(null); setSnap('peek'); setTripMenu(false) }}
+            onMapClick={() => { setPopup(null); setSnap('closed'); setTripMenu(false) }}
             onView={setView}
           />
           <BottomSheet label="Places" snap={snap} onSnap={setSnap} hidden={tab !== 'places' || !!card}>
@@ -448,7 +451,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               eateryReviews={eateryReviews}
               addRequest={addReq}
               onWide={() => undefined}
-              onClose={() => setSnap('peek')}
+              onClose={() => setSnap('closed')}
               onOpenDay={setOpenDay}
               onOtdPins={setOtdPinIds}
               onDayRoute={setDayRoute}
@@ -458,11 +461,11 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
         </div>
 
         <nav className={styles.pNav} aria-label="Trip views">
-          <button type="button" aria-pressed={tab === 'places'} onClick={() => pickTab('places')}>
+          <button type="button" aria-pressed={snap !== 'closed' && tab === 'places'} onClick={() => pickTab('places')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
             Places
           </button>
-          <button type="button" aria-pressed={tab === 'itinerary'} onClick={() => pickTab('itinerary')}>
+          <button type="button" aria-pressed={snap !== 'closed' && tab === 'itinerary'} onClick={() => pickTab('itinerary')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></svg>
             Itinerary
           </button>

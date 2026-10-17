@@ -1,21 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 import styles from './BottomSheet.module.css'
 
-// The phone bottom sheet (session 10, approved): three heights — peek (just
-// its header), half (list and map together), full. Drag the handle up or
-// down and it settles on the nearest height; a tap on the handle steps up
-// (peek → half → full → half). It never hides fully, so its header is
-// always there to grab. Sits in a positioned parent (between the title bar
-// and the bottom bar) and measures it.
+// The phone sheet (session 10; reworked session 13, E104, approved mockup):
+// three stops — closed (only the coloured handle shows), half, full. Swipe
+// the handle toward the middle of the screen to open it a stop further
+// (closed → half → full); swipe it back toward its edge to close it
+// completely. A tap on the handle steps open (closed → half → full → half).
+// The handle is deep cherry red in light mode and mustard in dark mode.
+// edge="bottom" (Places / Itinerary / Munch List catalogue) sits on the bottom
+// of its positioned parent; edge="top" (Munch List search) hangs from the top.
 
-export type Snap = 'peek' | 'half' | 'full'
-export const PEEK_PX = 76
+export type Snap = 'closed' | 'half' | 'full'
+/** The closed sheet: just its handle. */
+export const HANDLE_PX = 30
+/** How far a swipe must travel to count as a swipe (px). */
+const SWIPE_PX = 24
 
 export default function BottomSheet({
   snap,
   onSnap,
   label,
   hidden,
+  edge = 'bottom',
+  fit = false,
   children
 }: {
   snap: Snap
@@ -23,12 +30,26 @@ export default function BottomSheet({
   label: string
   /** Kept mounted but not shown (the other tab's sheet). */
   hidden?: boolean
+  edge?: 'bottom' | 'top'
+  /** Half = as tall as its contents, up to half the room (Munch List search). */
+  fit?: boolean
   children: React.ReactNode
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [room, setRoom] = useState(600)
   const [live, setLive] = useState<number | null>(null)
   const drag = useRef<{ y: number; h: number; moved: boolean } | null>(null)
+  const top = edge === 'top'
+  const inner = useRef<HTMLDivElement>(null)
+  const [content, setContent] = useState(0)
+  useEffect(() => {
+    if (!fit || !inner.current || typeof ResizeObserver === 'undefined') return
+    const el = inner.current
+    const ro = new ResizeObserver(() => setContent(el.scrollHeight))
+    ro.observe(el)
+    setContent(el.scrollHeight)
+    return () => ro.disconnect()
+  }, [fit])
 
   useEffect(() => {
     const parent = ref.current?.parentElement
@@ -41,60 +62,70 @@ export default function BottomSheet({
     return () => ro.disconnect()
   }, [])
 
-  const heights: Record<Snap, number> = { peek: PEEK_PX, half: Math.round(room * 0.5), full: Math.max(PEEK_PX, room - 8) }
+  const halfPx = Math.round(room * 0.5)
+  const heights: Record<Snap, number> = { closed: HANDLE_PX, half: fit && content > 0 ? Math.min(halfPx, content + HANDLE_PX) : halfPx, full: Math.max(HANDLE_PX, room - (top ? 0 : 8)) }
   const height = live ?? heights[snap]
+  const closed = snap === 'closed' && live === null
+  const stepOpen = (s: Snap): Snap => (s === 'closed' ? 'half' : s === 'half' ? 'full' : 'half')
+  const opener = (s: Snap): Snap => (s === 'closed' ? 'half' : 'full')
+  // Finger travel toward the middle of the screen (opening) is positive.
+  const openBy = (startY: number, y: number) => (top ? y - startY : startY - y)
 
-  const nearest = (h: number): Snap =>
-    (Object.keys(heights) as Snap[]).reduce((best, k) => (Math.abs(heights[k] - h) < Math.abs(heights[best] - h) ? k : best), 'peek')
+  const handle = (
+    <div
+      className={styles.grabZone}
+      role="button"
+      tabIndex={0}
+      aria-label={`${label}: ${snap === 'full' ? 'make smaller' : 'make bigger'}`}
+      onPointerDown={e => {
+        ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+        drag.current = { y: e.clientY, h: height, moved: false }
+      }}
+      onPointerMove={e => {
+        const d = drag.current
+        if (!d) return
+        const by = openBy(d.y, e.clientY)
+        if (Math.abs(by) > 4) d.moved = true
+        if (d.moved) setLive(Math.min(heights.full, Math.max(HANDLE_PX, d.h + by)))
+      }}
+      onPointerUp={e => {
+        const d = drag.current
+        drag.current = null
+        setLive(null)
+        if (!d) return
+        const by = openBy(d.y, e.clientY)
+        if (!d.moved) onSnap(stepOpen(snap))
+        else if (by >= SWIPE_PX) onSnap(opener(snap))
+        else if (by <= -SWIPE_PX) onSnap('closed')
+      }}
+      onPointerCancel={() => { drag.current = null; setLive(null) }}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSnap(stepOpen(snap))
+        } else if (e.key === 'Escape' && snap !== 'closed') {
+          e.preventDefault()
+          onSnap('closed')
+        }
+      }}
+    >
+      <span className={styles.grab} aria-hidden="true" />
+    </div>
+  )
 
   return (
     <section
       ref={ref}
-      className={`${styles.sheet} ${live !== null ? styles.dragging : ''}`}
+      className={`${styles.sheet} ${top ? styles.top : ''} ${closed ? styles.closed : ''} ${live !== null ? styles.dragging : ''}`}
       style={{ height, display: hidden ? 'none' : undefined }}
       aria-label={label}
       data-snap={snap}
     >
-      <div
-        className={styles.grabZone}
-        role="button"
-        tabIndex={0}
-        aria-label={`${label}: ${snap === 'full' ? 'make smaller' : 'make bigger'}`}
-        onPointerDown={e => {
-          ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-          drag.current = { y: e.clientY, h: height, moved: false }
-        }}
-        onPointerMove={e => {
-          const d = drag.current
-          if (!d) return
-          const dy = d.y - e.clientY
-          if (Math.abs(dy) > 4) d.moved = true
-          if (d.moved) setLive(Math.min(heights.full, Math.max(PEEK_PX, d.h + dy)))
-        }}
-        onPointerUp={e => {
-          const d = drag.current
-          drag.current = null
-          if (!d) return
-          if (!d.moved) {
-            onSnap(snap === 'peek' ? 'half' : snap === 'half' ? 'full' : 'half')
-          } else {
-            onSnap(nearest(Math.min(heights.full, Math.max(PEEK_PX, d.h + (d.y - e.clientY)))))
-          }
-          setLive(null)
-        }}
-        onPointerCancel={() => { drag.current = null; setLive(null) }}
-        onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            onSnap(snap === 'peek' ? 'half' : snap === 'half' ? 'full' : 'half')
-          }
-        }}
-      >
-        <span className={styles.grab} aria-hidden="true" />
+      {!top && handle}
+      <div className={styles.body} style={{ overflowY: closed ? 'hidden' : 'auto', visibility: closed ? 'hidden' : undefined }}>
+        <div ref={inner}>{children}</div>
       </div>
-      <div className={styles.body} style={{ overflowY: snap === 'peek' && live === null ? 'hidden' : 'auto' }}>
-        {children}
-      </div>
+      {top && handle}
     </section>
   )
 }

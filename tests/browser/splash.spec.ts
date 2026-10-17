@@ -33,7 +33,9 @@ test('scrolling flies the paper plane, turns it into the jet, hands over to the 
   await expect(paper).toHaveAttribute('opacity', '1.000')
   await expect(flying).toHaveAttribute('opacity', '0.000')
   await expect(page.getByText('Scroll to fly')).toBeVisible()
-  await expect(searchCard).toHaveCSS('opacity', '0')
+  // Phones show the search card from the start (session 13, E105).
+  const phone = (page.viewportSize()?.width ?? 0) <= 760
+  await expect(searchCard).toHaveCSS('opacity', phone ? '1' : '0')
   const choose = page.locator('#choose')
   await expect(choose).toHaveCSS('background-color', 'rgb(246, 239, 226)')
   const start = await paper.getAttribute('transform')
