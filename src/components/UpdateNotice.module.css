@@ -8,7 +8,7 @@
 }
 .reload { border: 0; border-radius: var(--pill); height: 34px; padding: 0 16px; background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer; }
 .x { border: 0; background: transparent; color: var(--ground); opacity: 0.7; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; }
-/* Phones: above the Places / Itinerary bar, shorter text. */
-.phone { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); gap: 6px; padding: 6px 6px 6px 12px; font-size: 12px; }
+/* Phones: just above the Places / Itinerary bar (46 px since session 13) and the sheet handles, shorter text. */
+.phone { bottom: calc(56px + env(safe-area-inset-bottom, 0px)); gap: 6px; padding: 6px 6px 6px 12px; font-size: 12px; }
 .phone .reload { height: 30px; padding: 0 12px; font-size: 12px; }
 .phone .x { width: 24px; }
