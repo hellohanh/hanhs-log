@@ -181,7 +181,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const homeName = load.state === 'ready' ? load.trip.city_primary : ''
   const [dayCity, setDayCity] = useState<DayCity | null>(null)
   const cityCache = useRef(new Map<string, { lat: number; lng: number } | null>())
-  const openDayId = panel.open ? openDay?.id ?? null : null
+  // Phones: the Itinerary sheet is always there, so its open day counts.
+  const openDayId = phone || panel.open ? openDay?.id ?? null : null
   const resolveDayCity = useCallback(async (): Promise<DayCity | null> => {
     if (city.state !== 'ready' || !homeName) return null
     const home: DayCity = { name: homeName, lat: city.city.lat, lng: city.city.lng }
@@ -399,6 +400,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             openLook={lookReq}
             routeOn={routeOn}
             onRouteToggle={() => setRouteOn(r => !r)}
+            dayCity={dayCity}
+            onDayCity={refreshDayCity}
             onPinClick={id => {
               const kind = eateries.some(e => e.id === id) ? 'eatery' : 'pin'
               const at = kind === 'eatery' ? eateries.find(e => e.id === id) : pins.find(p => p.id === id)

@@ -366,6 +366,12 @@ export default function TripMap({
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="2" /><circle cx="18" cy="5" r="2" /><path d="M8 19h7a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7" /></svg>
             </button>
           )}
+          {/* Session 13 (E102 on phones): the day's city, under Day route. */}
+          {dayCity && (
+            <button type="button" className={styles.chip} onClick={goDayCity} aria-label={`Go to this day's city: ${dayCity.name}`} title={`Go to this day's city: ${dayCity.name}`}>
+              <HomePinIcon />
+            </button>
+          )}
         </div>
       )}
       {locating && <p className={styles.notice} role="status">{locating}</p>}
