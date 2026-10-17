@@ -67,7 +67,7 @@ test.describe('phone', () => {
     await expect(page.getByRole('region', { name: 'Itinerary' })).toBeHidden()
     await expect(places.getByRole('button', { name: /^Accommodation, 1 pin/ })).toBeVisible()
     await views.getByRole('button', { name: 'Places' }).click()
-    await expect(places).toHaveAttribute('data-snap', 'peek')
+    await expect(places).toHaveAttribute('data-snap', 'closed')
     await places.getByRole('button', { name: /Places: make bigger/ }).click()
     await expect(places).toHaveAttribute('data-snap', 'half')
     await places.getByRole('button', { name: /Places: make bigger/ }).click()

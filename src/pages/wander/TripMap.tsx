@@ -11,6 +11,7 @@ import { MODE_COLOR, type RouteSeg } from '../../lib/directions'
 import { useIsDark } from '../../lib/theme'
 import CameraControl from './CameraControl'
 import MapCheck from '../../components/MapCheck'
+import GPinsIcon from '../../components/GPinsIcon'
 import { glideTo } from '../../lib/glide'
 import { makePinLayer, type MapPin, type PinLayer } from './mapPinLayer'
 import styles from './TripMap.module.css'
@@ -384,7 +385,7 @@ export default function TripMap({
           </button>
           <button
             type="button"
-            className={`${styles.chip} ${styles.chipText} ${pinsLocked ? styles.chipOff : ''}`}
+            className={`${styles.chip} ${pinsLocked ? styles.chipOff : ''}`}
             aria-pressed={pinsLocked ? true : pins}
             aria-disabled={pinsLocked || undefined}
             aria-label={pinsLocked ? "GPins ON: Google's place pins can't be hidden on Google dark yet" : pins ? "GPins ON: showing Google's place pins. Click to hide them" : "GPins OFF: Google's place pins hidden. Click to show them"}
@@ -395,7 +396,7 @@ export default function TripMap({
               setPins(!pins)
             }}
           >
-            {pinsLocked || pins ? 'GPins ON' : 'GPins OFF'}
+            <GPinsIcon off={!(pinsLocked || pins)} />
           </button>
           {dayCity && (
             <button
@@ -437,16 +438,18 @@ export default function TripMap({
             <div className={styles.phoneRow}>
               <button
                 type="button"
-                className={`${styles.chip} ${styles.chipText} ${pinsLocked ? styles.chipOff : ''}`}
+                className={`${styles.chip} ${pinsLocked ? styles.chipOff : ''}`}
                 aria-pressed={pinsLocked ? true : pins}
                 aria-disabled={pinsLocked || undefined}
+                aria-label={pinsLocked || pins ? 'GPins ON' : 'GPins OFF'}
+                title={pinsLocked || pins ? "GPins ON: Google's place pins showing" : "GPins OFF: Google's place pins hidden"}
                 onClick={() => {
                   if (pinsLocked) return
                   savePins(!pins)
                   setPins(!pins)
                 }}
               >
-                {pinsLocked || pins ? 'GPins ON' : 'GPins OFF'}
+                <GPinsIcon off={!(pinsLocked || pins)} />
               </button>
               {districtsInView && (
                 <button type="button" className={`${styles.chip} ${styles.chipText}`} aria-pressed={showDistricts} onClick={() => setShowDistricts(s => !s)}>

@@ -36,24 +36,23 @@ async function fakeGoogle(page: Page) {
   })
 }
 
+// The computer layout; phones have their own Munch List (savor-phone.spec.ts).
+test.beforeEach(({}, info) => { test.skip(info.project.name === 'phone', 'computer layout; phone layout in savor-phone.spec.ts') })
+
+// Session 13 (E108): no startup popup; the City/Country field picks a place.
 async function enter(page: Page, type: string, name: RegExp) {
   await fakeGoogle(page)
   await page.goto('./savor')
-  const dialog = page.getByRole('dialog', { name: 'Where to see eateries' })
-  await dialog.getByRole('searchbox').fill(type)
-  await dialog.getByRole('button', { name }).click()
+  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  await side.getByRole('searchbox', { name: 'City or country' }).fill(type)
+  await side.getByRole('list', { name: 'Places' }).getByRole('button', { name }).click()
 }
 
-test('the startup popup opens first; a pick closes it and the top bar has no place line (session 11)', async ({ page }) => {
+test('Munch List opens on the map with no startup popup (session 13); the top bar has no place line', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await page.goto('./savor')
-  await expect(page.getByRole('dialog', { name: 'Where to see eateries' })).toBeVisible()
-  await fakeGoogle(page)
-  const dialog = page.getByRole('dialog', { name: 'Where to see eateries' })
-  await dialog.getByRole('searchbox').fill('viet')
-  await dialog.getByRole('button', { name: /Vietnam/ }).click()
-
-  await expect(dialog).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Munch List' })).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByText(/Showing/)).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Family' })).toBeVisible()
@@ -68,7 +67,6 @@ test('the City/Country field in the panel picks a place like the popup does', as
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await fakeGoogle(page)
   await page.goto('./savor')
-  await page.getByRole('dialog', { name: 'Where to see eateries' }).getByRole('button', { name: 'Close' }).click()
 
   const side = page.getByRole('complementary', { name: 'Catalogue' })
   const field = side.getByRole('searchbox', { name: 'City or country' })
@@ -189,18 +187,6 @@ test('scope resolution and membership', async () => {
   expect(inScope({ lat: 10.78, lng: 106.69 }, tok)).toBe(false)
 })
 
-test('the startup popup can be closed with × or Escape (session 10)', async ({ page }) => {
-  await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
-  await fakeGoogle(page)
-  await page.goto('./savor')
-  const dialog = page.getByRole('dialog', { name: 'Where to see eateries' })
-  await dialog.getByRole('button', { name: 'Close' }).click()
-  await expect(dialog).toHaveCount(0)
-  await page.reload()
-  await expect(dialog).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(dialog).toHaveCount(0)
-})
 
 test('numbered bubbles: crowded pins merge, the Day route stops never do, street level never merges (session 11)', async () => {
   const { clusterPins, bubbleSize, NO_MERGE_ZOOM } = await import('../../src/lib/pinClusters')

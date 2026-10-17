@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useMapPopup } from '../wander/mapPopup'
+import GPinsIcon from '../../components/GPinsIcon'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
 import { MAP_LOOKS, canHidePins, lookOptions, mapKind, readLook, readPins, saveLook, savePins, DEFAULT_LOOK, type MapLook, type Mode, type Swatch } from '../../lib/mapStyles'
@@ -34,7 +35,10 @@ export default function SavorMap({
   focus,
   popup,
   popupAt,
-  onPopupClose
+  onPopupClose,
+  phone = false,
+  openLook = 0,
+  onMapClick
 }: {
   pins: MapPin[]
   frame?: Frame | null
@@ -47,6 +51,12 @@ export default function SavorMap({
   popup?: React.ReactNode
   popupAt?: { lat: number; lng: number } | null
   onPopupClose?: () => void
+  /** Phones (session 13, E107): Map look and GPins stacked on the right; no camera control. */
+  phone?: boolean
+  /** Bumped by the phone's ⋯ menu to open the Map look panel. */
+  openLook?: number
+  /** A tap on the map itself (not a pin). */
+  onMapClick?: () => void
 }) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -126,6 +136,16 @@ export default function SavorMap({
     map.setOptions(kind === 'flat' ? { mapTypeId: opts.mapTypeId, styles: opts.styles } : { mapTypeId: opts.mapTypeId })
   }, [map, kind, opts.mapTypeId, opts.styles])
 
+  useEffect(() => { if (openLook) setOpen(true) }, [openLook])
+  // A tap on the map (not a pin): the phone closes its card and sheets.
+  const mapClickRef = useRef(onMapClick)
+  mapClickRef.current = onMapClick
+  useEffect(() => {
+    if (!map) return
+    const l = map.addListener('click', () => mapClickRef.current?.())
+    return () => l.remove()
+  }, [map])
+
   // Tell the page what's in view once the map settles after a pan or zoom.
   const onViewRef = useRef(onView)
   onViewRef.current = onView
@@ -202,9 +222,9 @@ export default function SavorMap({
       {popupEl && popup ? createPortal(popup, popupEl) : null}
       <div ref={box} className={styles.map} role="region" aria-label="Map" />
       {notice && <p className={styles.notice} role="status">{notice}</p>}
-      {map && <CameraControl map={map} home={home} tiltable={tiltable} right={16} />}
+      {map && !phone && <CameraControl map={map} home={home} tiltable={tiltable} right={16} />}
       {ready && (
-        <div className={styles.controls}>
+        <div className={phone ? styles.phoneCtl : styles.controls}>
           <button
             ref={lookBtnRef}
             type="button"
@@ -219,7 +239,7 @@ export default function SavorMap({
           </button>
           <button
             type="button"
-            className={`${styles.chip} ${styles.chipText} ${pinsLocked ? styles.chipOff : ''}`}
+            className={`${styles.chip} ${pinsLocked ? styles.chipOff : ''}`}
             aria-pressed={pinsLocked ? true : showPins}
             aria-disabled={pinsLocked || undefined}
             aria-label={pinsLocked ? "GPins ON: Google's place pins can't be hidden on Google dark yet" : showPins ? "GPins ON: showing Google's place pins. Click to hide them" : "GPins OFF: Google's place pins hidden. Click to show them"}
@@ -230,7 +250,7 @@ export default function SavorMap({
               setShowPins(!showPins)
             }}
           >
-            {pinsLocked || showPins ? 'GPins ON' : 'GPins OFF'}
+            <GPinsIcon off={!(pinsLocked || showPins)} />
           </button>
         </div>
       )}
