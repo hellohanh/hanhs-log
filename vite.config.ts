@@ -10,7 +10,10 @@ export default defineConfig(({ command }) => ({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate', // a new deploy takes over on the next load
+      // Session 13: a new deploy waits until you press Reload on the
+      // "new version" notice (src/components/UpdateNotice.tsx), so nothing
+      // half-typed is lost; the app checks each time you return to it.
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: "Hanh's Log",
@@ -28,7 +31,6 @@ export default defineConfig(({ command }) => ({
         ]
       },
       workbox: {
-        skipWaiting: true,
         clientsClaim: true,
         navigateFallback: 'index.html',
         // The live site's service worker must never answer for a preview

@@ -6,6 +6,7 @@ import Savorlog from './pages/Savorlog'
 import SignIn from './pages/SignIn'
 import Search from './pages/Search'
 import NotFound from './pages/NotFound'
+import UpdateNotice from './components/UpdateNotice'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <UpdateNotice />
     </>
   )
 }
