@@ -33,7 +33,9 @@ export default function SiteHeader() {
   // merges into the trip's own title bar, so it isn't drawn at all.
   const phone = useIsPhone()
   const { pathname } = useLocation()
-  const hidden = phone && /^\/wander\/trip\//.test(pathname)
+  // Munch List (/savor) too since session 13 when signed in: it has its own
+  // title bar on phones (signed out it shows a sign-in message, so keep the header).
+  const hidden = phone && (/^\/wander\/trip\//.test(pathname) || (!!session && /^\/savor\/?$/.test(pathname)))
 
   // The header wraps to two rows on phones; publish its real height so
   // pinned content (the splash picture) sits just below it.

@@ -168,3 +168,9 @@
   .mapArea { min-height: 360px; }
 }
 @media (max-width: 760px) { .node, .row { min-height: 48px; } .addDay { width: 36px; height: 36px; } }
+
+/* Phones (session 13, E107): Munch List as map + sheets. */
+.phoneEyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); line-height: 1.1; }
+.phoneSearch { padding: 12px 14px 6px; }
+.phoneHd { margin: 12px 4px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.phoneCat { padding: 0 14px 16px; }

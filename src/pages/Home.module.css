@@ -135,7 +135,7 @@
 
 /* On narrow screens the search card sits under the picture instead of over it. */
 @media (max-width: 760px) {
-  /* Phones (to be finalised later): full-width picture, panel below it. */
+  /* Phones: full-width picture, panel below it (shown from the start, E105). */
   .heroBand { display: block; height: auto; padding-top: 40px; }
   .column { width: 100%; height: auto; transform: none; }
   .art { position: relative; top: auto; width: 100%; }
@@ -237,6 +237,13 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal, .choose { transition: none; }
+}
+/* Phones (session 13, E105, approved mockup; Q1 resolved): the search panel,
+   Where to? and the cards show from the start under the picture, so the
+   first screen isn't half empty; the plane still flies over the picture as
+   you scroll. */
+@media (max-width: 760px) {
+  .reveal { opacity: 1; transform: none; transition: none; }
 }
 
 .footer {
