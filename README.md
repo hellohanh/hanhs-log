@@ -20,7 +20,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 ## What's built
 - **Session 13:**
   - Everyone on a trip (link guests and past trips too) sees and can edit the whole Munch List catalogue; a trip's map shows every eatery and its Nom-Nom list follows the map (E101, migration 0015).
-  - A **home_pin** map button (computer) glides to the day's city; Reset goes there too (E102).
+  - A **home_pin** map button glides to the day's city (computer; on phones under Day route); Reset goes there too (E102).
   - A "new version ready · Reload" notice after each deploy (E103).
   - Phones: sheets close to just a cherry-red (light) / mustard (dark) handle, swipe up to half and full; one-line bottom bar (E104). The splash shows its search panel from the start (E105). Munch List is a map with a top search handle (go to a place or add an eatery) and a bottom Catalogue handle (E107).
   - GPins is a pin-with-G icon everywhere (E106). Munch List has no startup popup (E108). The pin popup's note box is readable in dark mode.

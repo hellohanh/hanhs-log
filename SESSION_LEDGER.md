@@ -480,6 +480,7 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 - #94: `home_pin` day's-city button; Reset to the day's city; `lib/dayCity.ts` + tests.
 - #95: pin popup note box and buttons readable in dark mode (also Munch List).
 - #96: "new version ready · Reload" notice (checked end to end locally: old version open → new deploy → return → notice → Reload); lowered for the new phone bar.
+- #99: the day's-city button on phones, under Day route (E102).
 - #97: phone set 1 (E104–E108): sheets and handles, one-line bottom bar, phone splash, Munch List on phones with top search and bottom Catalogue handles, GPins icon, no startup popup; new `savor-phone.spec.ts`.
 
 **Done outside code:**
