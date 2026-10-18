@@ -413,6 +413,7 @@ function SavorLoaded({ userId }: { userId: string }) {
                     setFocus({ lat: e.lat, lng: e.lng })
                     setPopupId(e.id)
                   }}
+                  onEdit={e => { setPopupId(null); setEditing({ mode: 'edit', id: e.id }) }}
                   picked={picked}
                   showAll={showAll}
                   onPick={ids => { setPicked(p => togglePicks(p, ids, showAll)); setShowAll(false) }}

@@ -581,6 +581,11 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           onEateriesSaved={() => loadEateries()}
           onFocus={at => setFocus({ lat: at.lat, lng: at.lng })}
           onOpenPlace={hasMap ? (kind, item) => { setFocus({ lat: item.lat, lng: item.lng }); setPopup({ kind, id: item.id }) } : undefined}
+          onEditPlace={(kind, id) => {
+            setPopup(null)
+            if (kind === 'eatery') setEateryEdit({ mode: 'edit', id })
+            else setPinEdit({ mode: 'edit', pinId: id })
+          }}
           near={city.state === 'ready' ? { lat: city.city.lat, lng: city.city.lng } : undefined}
           openDay={panel.open ? openDay : null}
           onAddToDay={(id, kind) => setAddReq(r => ({ id, kind, n: (r?.n ?? 0) + 1 }))}

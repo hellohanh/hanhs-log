@@ -24,7 +24,8 @@ export default function PinTree({
   onAddToDay,
   picked,
   showAll,
-  onPick
+  onPick,
+  onEdit
 }: {
   pins: Pin[]
   reviews: Review[]
@@ -35,6 +36,8 @@ export default function PinTree({
   picked: Set<string>
   showAll: boolean
   onPick: (ids: string[]) => void
+  /** Double-click a place → its edit panel (computer, session 14). */
+  onEdit?: (pin: Pin) => void
   /**
    * The trip's Savorlog eateries as the Nom-Nom category, in its A–Z place
    * with the others (Hanh, session 10): their count and ids for the row and
@@ -104,6 +107,7 @@ export default function PinTree({
             e.dataTransfer.effectAllowed = 'copy'
           }}
           onClick={() => onOpen(p)}
+          onDoubleClick={onEdit ? () => onEdit(p) : undefined}
         >
           <span className={styles.status} style={{ background: BADGE[badge].fill }} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" />
           <span className={styles.name}>{p.name}</span>
