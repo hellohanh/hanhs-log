@@ -5,7 +5,8 @@ import { MICHELIN_RED } from './pinCatalog'
 // - a white teardrop with a 1.5 px black outline, its point on the exact
 //   spot, a colour disc and a white icon (33 px wide);
 // - MICHELIN places (mentioned, Bib Gourmand or starred): 36 px, deep red
-//   disc and our own six-petal flower; 1–3 stars in a white chip above;
+//   disc and our own six-petal flower; 1–3 stars (or, for Bib Gourmand, our
+//   smiling face, session 14) in a white chip above;
 // - the status badge inside the pin, centred in the white tail just above the
 //   point (Hanh, session 10, placed with the positioner: 9 px, centre 11.5 px
 //   above the point on a 33 px pin, scaled with the pin): blank orange for
@@ -65,6 +66,16 @@ export function badgeSvg(b: Badge, size = 13): string {
 export const BADGE_SIZE = 9
 export const badgeRise = (pinWidth: number) => Math.round((11.5 * pinWidth) / 33 * 10) / 10
 
+/**
+ * The Bib Gourmand face (Hanh's pick A, session 14): our own simple smile —
+ * never the MICHELIN man. Red on the white chip above the pin, and in lists.
+ */
+export function bibFaceSvg(size: number, color = '#C8102E'): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">` +
+    `<circle cx="12" cy="12" r="9.5"/><circle cx="8.6" cy="9.6" r="1.1" fill="${color}" stroke="none"/><circle cx="15.4" cy="9.6" r="1.1" fill="${color}" stroke="none"/>` +
+    `<path d="M7.5 14.2c1.2 1.9 2.8 2.8 4.5 2.8s3.3-.9 4.5-2.8"/></svg>`
+}
+
 export interface PinDrawing {
   color: string
   icon: string
@@ -76,7 +87,7 @@ export interface PinDrawing {
 export function pinBox(p: Pick<PinDrawing, 'michelin'>) {
   const w = p.michelin ? 36 : 33
   const h = Math.round(w * 1.3)
-  const top = p.michelin && p.michelin !== 'mentioned' && p.michelin !== 'bib' ? 20 : 6 // stars chip or the badge's overhang
+  const top = p.michelin && p.michelin !== 'mentioned' ? 20 : 6 // stars / Bib chip, or the badge's overhang
   return { w, h, top, width: w + 12, height: h + top }
 }
 
@@ -96,12 +107,13 @@ export function pinHtml(p: PinDrawing): string {
   // Hanh's line-art icons (ls_*): 70% of the first 17 px (Hanh, session 11).
   const iconSize = p.michelin ? 20 : p.icon.startsWith('ls_') ? LINE_ART_PIN_SIZE : 15
   const icon = p.michelin ? flowerSvg(20) : iconSvg(p.icon, iconSize)
-  const stars = p.michelin && p.michelin !== 'mentioned' && p.michelin !== 'bib' ? '★'.repeat(Number(p.michelin)) : ''
+  // The chip above the pin: 1–3 stars, or the Bib Gourmand face (session 14).
+  const stars = p.michelin === 'bib' ? bibFaceSvg(12) : p.michelin && p.michelin !== 'mentioned' ? '★'.repeat(Number(p.michelin)) : ''
   const shape = `M${r} ${h - 1.5} C${r} ${h - 1.5} 2 ${h * 0.62} 2 ${r} A${r - 2} ${r - 2} 0 1 1 ${w - 2} ${r} C${w - 2} ${h * 0.62} ${r} ${h - 1.5} ${r} ${h - 1.5}Z`
   return (
     `<div style="position:relative;width:${width}px;height:${height}px;pointer-events:none">` +
     (stars
-      ? `<span style="position:absolute;left:50%;top:0;transform:translateX(-50%);background:#fff;border:1px solid #111;border-radius:999px;padding:0 5px;font:700 11px/16px system-ui,sans-serif;color:#C8102E;white-space:nowrap">${stars}</span>`
+      ? `<span style="position:absolute;left:50%;top:0;transform:translateX(-50%);background:#fff;border:1px solid #111;border-radius:999px;padding:0 5px;font:700 11px/16px system-ui,sans-serif;color:#C8102E;white-space:nowrap;display:flex;align-items:center;height:16px">${stars}</span>`
       : '') +
     `<svg style="position:absolute;left:${left}px;top:${top}px" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">` +
     `<path d="${shape}" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/><circle cx="${r}" cy="${r}" r="${disc}" fill="${color}"/></svg>` +

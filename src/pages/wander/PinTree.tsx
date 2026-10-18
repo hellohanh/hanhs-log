@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useCustomDishes } from '../../lib/customDishes'
 import { buildPinTree, byLabel, categoryOf, type PinNode } from '../../lib/pinCatalog'
-import { flowerSvg, BADGE } from '../../lib/pinDraw'
+import { bibFaceSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
 import { isStarred, michelinWords } from '../../lib/vibe'
 import { pinBadge, type Pin, type Review } from '../../lib/pins'
 import type { StopKind } from '../../lib/itinerary'
@@ -115,7 +115,7 @@ export default function PinTree({
           <span className={styles.name}>{p.name}</span>
           {p.michelin && (
             <span className={styles.mich} title={michelinWords(p.michelin)}>
-              {!isStarred(p.michelin) ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(p.michelin))}
+              {p.michelin === 'bib' ? <span dangerouslySetInnerHTML={{ __html: bibFaceSvg(12) }} /> : !isStarred(p.michelin) ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(p.michelin))}
             </span>
           )}
         </button>

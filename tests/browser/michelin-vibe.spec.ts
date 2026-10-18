@@ -66,3 +66,22 @@ test('the card: Selected / Bib / stars and the Vibe box save', async ({ page }, 
   const patch = db.calls.find(c => c.method === 'PATCH' && c.path === '/rest/v1/pins')!
   expect(JSON.parse(patch.body!)).toMatchObject({ michelin: 'bib', street_food: false, food_truck: true, community_seating: true, takeaway: false })
 })
+
+test('Bib Gourmand: the face chip on the pin and in the list (session 14)', async ({ page }, info) => {
+  test.skip(info.project.name === 'phone', 'desktop Places panel')
+  await fakeSupabase(page, { pins: [{ ...PIN, michelin: 'bib' }] })
+  await page.goto('./wander/trip/trip-saigon')
+  const places = page.getByRole('complementary', { name: 'Places' })
+  await places.getByRole('button', { name: /^Nom-Nom,/ }).click()
+  await places.getByRole('button', { name: /^Vietnamese,/ }).click()
+  await places.getByRole('button', { name: /^Phở,/ }).click()
+  // The list row shows the face, not the flower.
+  const mark = places.getByTitle('MICHELIN Bib Gourmand')
+  await expect(mark.locator('svg circle')).toHaveCount(3)
+  // The pin preview: red MICHELIN pin with the face in the chip above, no stars.
+  await places.getByText('Phở Hòa Pasteur', { exact: true }).click()
+  const html = await places.locator('[class*="preview"]').innerHTML()
+  expect(html).toContain('fill="#9E2A2B"')
+  expect(html).toContain('d="M7.5 14.2c1.2 1.9 2.8 2.8 4.5 2.8s3.3-.9 4.5-2.8"')
+  expect(html).not.toContain('★')
+})
