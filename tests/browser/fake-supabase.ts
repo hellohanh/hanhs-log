@@ -53,6 +53,8 @@ export interface FakeDb {
   legLinks: { leg_id: string; trip_id: string }[]
   savorPeople: FakePerson[]
   savorToken: string
+  /** Dishes people added (0017). */
+  customDishes: FakeRow[]
   /** People per trip id. Trips missing here answer "not allowed". */
   people: Record<string, FakePerson[]>
   myName: string | null
@@ -112,7 +114,7 @@ const deny = (route: Route, message: string) =>
  */
 export async function fakeSupabase(
   page: Page,
-  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[]; importItems?: FakeRow[]; savorPeople?: FakePerson[] } = {}
+  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[]; importItems?: FakeRow[]; savorPeople?: FakePerson[]; customDishes?: FakeRow[] } = {}
 ): Promise<FakeDb> {
   const me = opts.signedInAs === undefined ? ME : opts.signedInAs
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00'))
@@ -137,6 +139,7 @@ export async function fakeSupabase(
     legLinks: [],
     savorPeople: structuredClone(opts.savorPeople ?? [{ user_id: ME, display_name: 'Hanh', is_owner: true, joined_at: null }]),
     savorToken: 'savor-tok',
+    customDishes: structuredClone(opts.customDishes ?? []),
     calls: []
   }
   let currentUser = me
@@ -318,6 +321,13 @@ export async function fakeSupabase(
       if (req.method() === 'PATCH') {
         db.eateries = db.eateries.map(e => (e.id === idEq ? { ...e, ...args } : e))
         return route.fulfill({ status: 204, body: '' })
+      }
+    }
+    if (path === '/rest/v1/custom_dishes') {
+      if (req.method() === 'GET') return route.fulfill({ json: db.customDishes })
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) db.customDishes.push(r)
+        return route.fulfill({ status: 201, body: '' })
       }
     }
     if (path === '/rest/v1/eatery_reviews') {

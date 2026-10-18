@@ -124,7 +124,7 @@ test('the main dish picker in the add card is A–Z (session 14)', async ({ page
   await side.getByRole('button', { name: 'Search' }).click()
   await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first().click()
   await side.getByLabel('Cuisine (country)').selectOption({ label: 'Vietnamese' })
-  const dishes = (await side.getByLabel('Main dish').locator('option').allTextContents()).slice(1)
+  const dishes = (await side.getByLabel('Main dish').locator('option').allTextContents()).slice(1, -1) // minus the placeholder and "+ Add a new dish…"
   expect(dishes.length).toBe(28)
   const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
   expect(dishes).toEqual([...dishes].sort(collator.compare))
