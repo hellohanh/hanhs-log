@@ -8,6 +8,7 @@ import { fetchMyName, type Person } from '../../lib/trips'
 import { searchLocations, resolveScope, type LocationHit, type Scope } from '../../lib/savorLocation'
 import { onScreen, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
+import { vibeLabels } from '../../lib/vibe'
 import { pinBox, pinHtml, flowerSvg, popupIconHtml } from '../../lib/pinDraw'
 import { pinBadge, pinFaded, togglePicks } from '../../lib/pinRules'
 import EateryTree from './EateryTree'
@@ -301,7 +302,8 @@ function SavorLoaded({ userId }: { userId: string }) {
                   lng: popupEatery.lng,
                   note: popupEatery.note,
                   deleteText: "Remove this eatery? It goes to the owner's pending-deletion list.",
-                  iconHtml: popupIconHtml(pinLook(asLook(popupEatery)), popupEatery.michelin)
+                  iconHtml: popupIconHtml(pinLook(asLook(popupEatery)), popupEatery.michelin),
+                  vibes: vibeLabels(popupEatery)
                 }}
                 onClose={() => setPopupId(null)}
                 onEdit={() => { setPopupId(null); setEditing({ mode: 'edit', id: popupEatery.id }); setCatSnap('full') }}
@@ -438,7 +440,8 @@ function SavorLoaded({ userId }: { userId: string }) {
                     lng: popupEatery.lng,
                     note: popupEatery.note,
                     deleteText: "Remove this eatery? It goes to the owner's pending-deletion list.",
-                    iconHtml: popupIconHtml(pinLook(asLook(popupEatery)), popupEatery.michelin)
+                    iconHtml: popupIconHtml(pinLook(asLook(popupEatery)), popupEatery.michelin),
+                    vibes: vibeLabels(popupEatery)
                   }}
                   onClose={() => setPopupId(null)}
                   onEdit={() => { setPopupId(null); setEditing({ mode: 'edit', id: popupEatery.id }) }}

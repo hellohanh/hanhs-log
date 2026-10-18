@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { CATEGORIES, categoryOf, pinLook } from '../../lib/pinCatalog'
-import { BADGE, flowerSvg, pinHtml, type Michelin } from '../../lib/pinDraw'
+import { BADGE, pinHtml, type Michelin } from '../../lib/pinDraw'
+import { MICHELIN_ROWS, noVibes, vibesOf, type Vibes } from '../../lib/vibe'
+import VibeFields from '../../components/VibeFields'
 import { averageRating, deletePin, pinBadge, saveMyReview, savePin, type FoundPlace, type MyReview, type Pin, type PinFields, type Review, type Verdict } from '../../lib/pins'
 import type { Person } from '../../lib/trips'
 import styles from './Places.module.css'
@@ -11,21 +13,14 @@ import ImportButtons, { type ImportActions } from '../../components/ImportButton
 
 // The add / edit card (approved inline mockups, session 4): the place from
 // Google, its category picked by hand, your WTG / VIS (VIS needs a verdict;
-// a 1–5 rating in half stars), MICHELIN and the Street food / Fine dining
-// badges for food and drink, and a note. Editing also lists everyone's
+// a 1–5 rating in half stars), MICHELIN (None / Selected / Bib, then the
+// stars) and the Vibe ticks for food and drink (session 14), and a note. Editing also lists everyone's
 // status and the average rating (shown here only, never on the pin).
 
 const VERDICTS: { v: Verdict; mark: string; label: string }[] = [
   { v: 'revisit', mark: '✓', label: 'Revisit' },
   { v: 'second', mark: '–', label: '2nd chance' },
   { v: 'no', mark: '✗', label: "Don't go back" }
-]
-const MICHELIN: { m: Michelin; label: string }[] = [
-  { m: null, label: 'None' },
-  { m: 'mentioned', label: 'Mentioned' },
-  { m: '1', label: '★' },
-  { m: '2', label: '★★' },
-  { m: '3', label: '★★★' }
 ]
 
 export default function PinForm({
@@ -71,8 +66,7 @@ export default function PinForm({
   const [review, setReview] = useState<MyReview>({ status: mine?.status ?? 'wtg', verdict: mine?.verdict ?? null, rating: mine?.rating ?? null })
   const [michelin, setMichelin] = useState<Michelin>(pin?.michelin ?? prefill?.michelin ?? null)
   const [year, setYear] = useState(String(pin?.michelin_year ?? prefill?.michelin_year ?? new Date().getFullYear()))
-  const [streetFood, setStreetFood] = useState(pin?.street_food ?? prefill?.street_food ?? false)
-  const [fineDining, setFineDining] = useState(pin?.fine_dining ?? prefill?.fine_dining ?? false)
+  const [vibes, setVibes] = useState<Vibes>(() => vibesOf(pin ?? prefill))
   const [note, setNote] = useState(pin?.note ?? prefill?.note ?? '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -110,8 +104,7 @@ export default function PinForm({
       subsubcategory: leaf || null,
       michelin: isFood ? michelin : null,
       michelin_year: isFood && michelin ? y : null,
-      street_food: isFood && streetFood,
-      fine_dining: isFood && fineDining,
+      ...(isFood ? vibes : noVibes()),
       note: note.trim() || null
     }
     setBusy(true)
@@ -257,20 +250,16 @@ export default function PinForm({
       {isFood && (
         <fieldset className={styles.group}>
           <legend>MICHELIN Guide</legend>
-          <div className={styles.seg} role="radiogroup" aria-label="MICHELIN">
-            {MICHELIN.map(({ m, label }) => (
-              <button
-                key={label}
-                type="button"
-                role="radio"
-                aria-checked={michelin === m}
-                aria-label={m === null ? 'None' : m === 'mentioned' ? 'Mentioned' : `${m} star${m === '1' ? '' : 's'}`}
-                className={`${styles.segBtn} ${styles.michBtn}`}
-                onClick={() => setMichelin(m)}
-              >
-                {m === 'mentioned' && <span dangerouslySetInnerHTML={{ __html: flowerSvg(14, '#9E2A2B') }} />}
-                {label}
-              </button>
+          <div role="radiogroup" aria-label="MICHELIN" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {MICHELIN_ROWS.map((row, i) => (
+              <div key={i} className={styles.seg}>
+                {row.map(({ m, label, aria }) => (
+                  <button key={aria} type="button" role="radio" aria-checked={michelin === m} aria-label={aria}
+                    className={`${styles.segBtn} ${styles.michBtn}`} onClick={() => setMichelin(m)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
           {michelin && (
@@ -278,11 +267,11 @@ export default function PinForm({
               Year <input inputMode="numeric" value={year} onChange={e => setYear(e.target.value)} maxLength={4} />
             </label>
           )}
-          <div className={styles.seg}>
-            <label className={styles.check}><input type="checkbox" checked={streetFood} onChange={e => setStreetFood(e.target.checked)} /> Street food</label>
-            <label className={styles.check}><input type="checkbox" checked={fineDining} onChange={e => setFineDining(e.target.checked)} /> Fine dining</label>
-          </div>
         </fieldset>
+      )}
+
+      {isFood && (
+        <VibeFields className={styles.group} value={vibes} onChange={setVibes} />
       )}
 
       <label className={styles.field}>

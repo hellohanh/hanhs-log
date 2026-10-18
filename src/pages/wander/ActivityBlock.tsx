@@ -5,6 +5,7 @@ import type { Activity, StopItem, StopKind } from '../../lib/itinerary'
 import { dragTimes, hhmm, toMin } from '../../lib/itineraryDays'
 import { HOUR_PX } from '../../lib/itineraryLayout'
 import { pinLook } from '../../lib/pinCatalog'
+import { isStarred } from '../../lib/vibe'
 import styles from './Itinerary.module.css'
 
 // Activity blocks and the "Add at …" popup (approved inline mockup,
@@ -110,7 +111,7 @@ function PinPicker({ items, onPick, onCancel }: { items: StopItem[]; onPick: (id
       <ul className={styles.pickList}>
         {shown.map(p => {
           const look = pinLook(p)
-          const star = p.michelin && p.michelin !== 'mentioned' ? ` ★${p.michelin}` : p.michelin === 'mentioned' ? ' ◈' : ''
+          const star = isStarred(p.michelin) ? ` ★${p.michelin}` : p.michelin ? ' ◈' : ''
           return (
             <li key={p.id}>
               <button type="button" className={styles.pickItem} onClick={() => onPick(p.id, p.kind)}>

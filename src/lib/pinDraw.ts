@@ -15,7 +15,7 @@ import { MICHELIN_RED } from './pinCatalog'
 // exactly the same pin.
 
 export type Badge = 'wtg' | 'revisit' | 'second' | 'no'
-export type Michelin = 'mentioned' | '1' | '2' | '3' | null
+export type Michelin = 'mentioned' | 'bib' | '1' | '2' | '3' | null
 
 export const BADGE: Record<Badge, { fill: string; ink: string; label: string }> = {
   wtg: { fill: '#E8862A', ink: '#E8862A', label: 'Want to go' },
@@ -76,7 +76,7 @@ export interface PinDrawing {
 export function pinBox(p: Pick<PinDrawing, 'michelin'>) {
   const w = p.michelin ? 36 : 33
   const h = Math.round(w * 1.3)
-  const top = p.michelin && p.michelin !== 'mentioned' ? 20 : 6 // stars chip or the badge's overhang
+  const top = p.michelin && p.michelin !== 'mentioned' && p.michelin !== 'bib' ? 20 : 6 // stars chip or the badge's overhang
   return { w, h, top, width: w + 12, height: h + top }
 }
 
@@ -96,7 +96,7 @@ export function pinHtml(p: PinDrawing): string {
   // Hanh's line-art icons (ls_*): 70% of the first 17 px (Hanh, session 11).
   const iconSize = p.michelin ? 20 : p.icon.startsWith('ls_') ? LINE_ART_PIN_SIZE : 15
   const icon = p.michelin ? flowerSvg(20) : iconSvg(p.icon, iconSize)
-  const stars = p.michelin && p.michelin !== 'mentioned' ? '★'.repeat(Number(p.michelin)) : ''
+  const stars = p.michelin && p.michelin !== 'mentioned' && p.michelin !== 'bib' ? '★'.repeat(Number(p.michelin)) : ''
   const shape = `M${r} ${h - 1.5} C${r} ${h - 1.5} 2 ${h * 0.62} 2 ${r} A${r - 2} ${r - 2} 0 1 1 ${w - 2} ${r} C${w - 2} ${h * 0.62} ${r} ${h - 1.5} ${r} ${h - 1.5}Z`
   return (
     `<div style="position:relative;width:${width}px;height:${height}px;pointer-events:none">` +

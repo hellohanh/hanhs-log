@@ -1,10 +1,11 @@
 import { supabase } from './supabase'
 import type { Michelin } from './pinDraw'
+import type { Vibes } from './vibe'
 
 // A trip's pins and everyone's WTG / VIS reviews (migration 0004), and the
 // Google search box that finds a place to pin (Places API (New) Text Search).
 
-export interface Pin {
+export interface Pin extends Vibes {
   id: string
   trip_id: string
   google_place_id: string | null
@@ -17,8 +18,6 @@ export interface Pin {
   subsubcategory: string | null
   michelin: Michelin
   michelin_year: number | null
-  street_food: boolean
-  fine_dining: boolean
   note: string | null
   created_at?: string
 }
@@ -33,7 +32,7 @@ function client() {
 }
 
 const PIN_COLUMNS =
-  'id, trip_id, google_place_id, name, address, lat, lng, category, subcategory, subsubcategory, michelin, michelin_year, street_food, fine_dining, note, created_at'
+  'id, trip_id, google_place_id, name, address, lat, lng, category, subcategory, subsubcategory, michelin, michelin_year, street_food, fine_dining, dine_in, food_truck, outdoor_seating, community_seating, food_court, counter_seating, takeaway, note, created_at'
 
 export async function fetchPins(tripId: string): Promise<Pin[]> {
   const { data, error } = await client().from('pins').select(PIN_COLUMNS).eq('trip_id', tripId)

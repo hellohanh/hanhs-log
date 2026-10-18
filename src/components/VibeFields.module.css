@@ -1,0 +1,5 @@
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.tick { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 8px; font-size: 13px; line-height: 1.25; color: var(--ink); cursor: pointer; min-width: 0; }
+.tick input { flex: none; margin: 0; accent-color: #9E2A2B; }
+.line { display: block; white-space: nowrap; }
+@media (max-width: 760px) { .tick { min-height: 44px; } }
