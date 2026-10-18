@@ -10,7 +10,7 @@ import { onScreen, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
 import { vibeLabels } from '../../lib/vibe'
 import { pinBox, pinHtml, flowerSvg, popupIconHtml } from '../../lib/pinDraw'
-import { pinBadge, pinFaded, togglePicks } from '../../lib/pinRules'
+import { michelinHidden, pinBadge, pinFaded, togglePicks } from '../../lib/pinRules'
 import EateryTree from './EateryTree'
 import PlacePopup from '../../components/PlacePopup'
 import SavorMap, { type Frame } from './SavorMap'
@@ -142,7 +142,7 @@ function SavorLoaded({ userId }: { userId: string }) {
 
   const mapPins = useMemo<MapPin[]>(
     () =>
-      shown.map(e => {
+      shown.filter(e => !michelinHidden(e, { editing: false, otdPins: null, michelinOnly })).map(e => {
         const look = pinLook(asLook(e))
         const box = pinBox(e)
         return {

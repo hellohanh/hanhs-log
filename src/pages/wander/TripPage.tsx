@@ -31,7 +31,7 @@ import { useBackStep } from '../../lib/useBackStep'
 
 /** How far above the middle a place sits when its phone card opens, so the card doesn't cover it. */
 const PHONE_CARD_LIFT = 170
-import { togglePicks } from '../../lib/pinRules'
+import { michelinHidden, togglePicks } from '../../lib/pinRules'
 import { onScreen, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
 import { vibeLabels } from '../../lib/vibe'
@@ -212,7 +212,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
     return c
   }, [resolveDayCity])
   // OTD Pins (itinerary open, toggle on) overrides Show all pins and the
-  // MICHELIN filter: the day's pins stay bright, the rest fade (Hanh, session 4).
+  // MICHELIN filter: the day's pins stay bright, the rest fade (Hanh, session 4);
+  // since session 14 the MICHELIN chip hides non-MICHELIN pins (michelinHidden).
   // Day route on: only the day's places stay bright. On the computer that's
   // while the itinerary panel is open; on the phone the itinerary is always
   // there (its sheet) and the route button decides (session 10).
@@ -220,7 +221,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const otdSet = useMemo(() => new Set(otdPinIds ?? []), [otdPinIds])
   const mapPins = useMemo<MapPin[]>(
     () =>
-      pins.map(p => {
+      pins.filter(p => !michelinHidden(p, { editing: pinEdit?.mode === 'edit' && pinEdit.pinId === p.id, otdPins: otdActive ? otdSet : null, michelinOnly })).map(p => {
         const look = pinLook(p)
         const box = pinBox(p)
         const editingThis = pinEdit?.mode === 'edit' && pinEdit.pinId === p.id
@@ -242,7 +243,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   // The trip's catalogue eateries as map pins (same drawing as pins).
   const eateryMapPins = useMemo<MapPin[]>(
     () =>
-      eateries.map(e => {
+      eateries.filter(e => !michelinHidden(e, { editing: eateryEdit?.mode === 'edit' && eateryEdit.id === e.id, otdPins: otdActive ? otdSet : null, michelinOnly })).map(e => {
         const look = pinLook({ category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
         const box = pinBox(e)
         const editingThis = eateryEdit?.mode === 'edit' && eateryEdit.id === e.id
