@@ -21,7 +21,8 @@ export default function EateryTree({
   onAddToDay,
   picked,
   showAll,
-  onPick
+  onPick,
+  onEdit
 }: {
   eateries: Eatery[]
   reviews: EateryReview[]
@@ -32,6 +33,8 @@ export default function EateryTree({
   picked: Set<string>
   showAll: boolean
   onPick: (ids: string[]) => void
+  /** Double-click an eatery → its edit panel (computer, session 14). */
+  onEdit?: (e: Eatery) => void
 }) {
   const tree = buildCountryTree(eateries)
   const [open, setOpen] = useState<Set<string>>(new Set())
@@ -53,6 +56,7 @@ export default function EateryTree({
           draggable={canSchedule}
           onDragStart={canSchedule ? ev => { ev.dataTransfer.setData('text/plain', stopRef('eatery', e.id)); ev.dataTransfer.effectAllowed = 'copy' } : undefined}
           onClick={() => onOpen(e)}
+          onDoubleClick={onEdit ? () => onEdit(e) : undefined}
         >
           <span className={styles.status} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" dangerouslySetInnerHTML={{ __html: badgeSvg(badge, 12) }} />
           <span className={styles.name}>{e.name}</span>

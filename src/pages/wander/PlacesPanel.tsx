@@ -42,6 +42,7 @@ export default function PlacesPanel({
   onEateriesSaved,
   onFocus,
   onOpenPlace,
+  onEditPlace,
   near,
   openDay,
   onAddToDay
@@ -71,6 +72,8 @@ export default function PlacesPanel({
   onFocus: (at: { lat: number; lng: number }) => void
   /** A list click opens the map popup (session 10); absent → the edit panel. */
   onOpenPlace?: (kind: 'pin' | 'eatery', item: { id: string; lat: number; lng: number }) => void
+  /** Double-click a list row → straight to its edit panel (computer, session 14). */
+  onEditPlace?: (kind: 'pin' | 'eatery', id: string) => void
   near?: { lat: number; lng: number }
   /** The itinerary's open day, for "Add to day" and drag; null when it's closed. */
   openDay: { id: string; label: string } | null
@@ -241,6 +244,7 @@ export default function PlacesPanel({
                           onFocus(e)
                           onEateryEdit({ mode: 'edit', id: e.id })
                         }}
+                        onEdit={onEditPlace ? e => onEditPlace('eatery', e.id) : undefined}
                         onAddToDay={onAddToDay}
                         picked={picked}
                         showAll={showAll}
@@ -257,6 +261,7 @@ export default function PlacesPanel({
               onFocus(p)
               onEditing({ mode: 'edit', pinId: p.id })
             }}
+            onEdit={onEditPlace ? p => onEditPlace('pin', p.id) : undefined}
             onAddToDay={onAddToDay}
             picked={picked}
             showAll={showAll}
