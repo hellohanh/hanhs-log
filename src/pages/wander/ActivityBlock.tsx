@@ -59,7 +59,7 @@ export function AddPopup({
   start: number
   end: number
   items: StopItem[]
-  onAddActivity: (title: string, start: string, end: string) => Promise<void>
+  onAddActivity: (title: string, start: string, end: string, note: string | null) => Promise<void>
   onTravel: (start: string, end: string) => void
   onAddPlace: (id: string, kind: StopKind, start: string, end: string) => Promise<void>
   onCancel: () => void
@@ -87,9 +87,9 @@ export function AddPopup({
           initial={{ title: '', start: hhmm(start), end: hhmm(end) }}
           submitLabel="Add"
           onCancel={onCancel}
-          onSubmit={async (title, s, e) => {
+          onSubmit={async (title, s, e, note) => {
             if (kind === 'travel') return onTravel(s, e)
-            await onAddActivity(title, s, e)
+            await onAddActivity(title, s, e, note)
           }}
         />
       )}
@@ -148,15 +148,16 @@ export function ActivityFields({
   onDelete
 }: {
   kind?: AddKind
-  initial: { title: string; start: string; end: string }
+  initial: { title: string; start: string; end: string; note?: string | null }
   submitLabel: string
-  onSubmit: (title: string, start: string, end: string) => Promise<void> | void
+  onSubmit: (title: string, start: string, end: string, note: string | null) => Promise<void> | void
   onCancel: () => void
   onDelete?: () => Promise<void>
 }) {
   const [title, setTitle] = useState(initial.title)
   const [start, setStart] = useState(initial.start)
   const [end, setEnd] = useState(initial.end)
+  const [note, setNote] = useState(initial.note ?? '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(false)
@@ -170,7 +171,7 @@ export function ActivityFields({
     setBusy(true)
     setError('')
     try {
-      await onSubmit(title.trim(), start, end)
+      await onSubmit(title.trim(), start, end, note.trim() || null)
     } catch (err) {
       setError(`Couldn't save: ${(err as Error).message}`)
       setBusy(false)
@@ -190,6 +191,12 @@ export function ActivityFields({
         <TimeSelect className={styles.lf} label="Start" value={start} onChange={setStart} />
         <TimeSelect className={styles.lf} label="End" value={end} onChange={setEnd} />
       </div>
+      {kind === 'activity' && (
+        <label className={styles.lf}>
+          Note
+          <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} maxLength={4000} />
+        </label>
+      )}
       {error && <p className={styles.legError} role="alert">{error}</p>}
       {confirm && onDelete ? (
         <div className={styles.confirm} role="alert">
@@ -306,7 +313,7 @@ export function ActivityBlock({
       role="button"
       tabIndex={0}
       aria-label={`${label}. Drag to move, or press Enter to edit`}
-      title={label}
+      title={activity.note ? `${label}\n${activity.note}` : label}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -317,6 +324,7 @@ export function ActivityBlock({
       <span className={`${styles.handle} ${styles.handleTop}`} {...handlers('top')} aria-hidden="true" title="Drag to change the start" />
       <b>{activity.title}</b>
       <span className={styles.actTime}>{hhmm(shown.start)} – {hhmm(shown.end)}</span>
+      {activity.note && <span className={styles.blockNote}>{activity.note}</span>}
       <span className={`${styles.handle} ${styles.handleBottom}`} {...handlers('bottom')} aria-hidden="true" title="Drag to change the end" />
     </div>
   )

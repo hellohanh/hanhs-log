@@ -28,6 +28,8 @@ export interface TravelLeg {
   to_date: string | null
   to_time: string | null
   to_timezone: string | null
+  /** The leg's note (migration 0019, session 14); undefined before it's applied. */
+  note?: string | null
   /** Set when this leg belongs to another trip and is linked in (read only here). */
   linkedFrom?: string
 }
