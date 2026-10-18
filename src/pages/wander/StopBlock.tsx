@@ -5,6 +5,7 @@ export { STOP_MIN, nextStopStart } from '../../lib/itineraryDays'
 import { HOUR_PX } from '../../lib/itineraryLayout'
 import type { Stop, StopItem } from '../../lib/itinerary'
 import { pinLook } from '../../lib/pinCatalog'
+import { isStarred } from '../../lib/vibe'
 import { BADGE, badgeSvg, iconSvg, type Badge } from '../../lib/pinDraw'
 import { useTimeBlockDrag } from './ActivityBlock'
 import styles from './Itinerary.module.css'
@@ -34,7 +35,7 @@ export function StopBlock({
   const top = (shown.start / 60) * HOUR_PX
   const height = Math.max(18, ((shown.end - shown.start) / 60) * HOUR_PX)
   const short = height < 44
-  const stars = item.michelin && item.michelin !== 'mentioned' ? ` · ${'★'.repeat(Number(item.michelin))}` : ''
+  const stars = isStarred(item.michelin) ? ` · ${'★'.repeat(Number(item.michelin))}` : ''
   const label = `${item.name}, ${hhmm(shown.start)} to ${hhmm(shown.end)}`
   return (
     <div

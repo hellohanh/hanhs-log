@@ -31,6 +31,8 @@ export interface PopupPlace {
   deleteText: string
   /** The category icon beside the name (session 11): ready-made HTML from popupIconHtml. */
   iconHtml?: string
+  /** The ticked Vibe labels, shown under the name (session 14). */
+  vibes?: string[]
 }
 
 export default function PlacePopup({
@@ -130,6 +132,7 @@ export default function PlacePopup({
           <span ref={spacerRef} className={styles.spacer} aria-hidden="true" />
           <b className={styles.en}>{main}</b>
           {local && <span className={styles.local}>{local}</span>}
+          {place.vibes && place.vibes.length > 0 && <span className={styles.vibes}>{place.vibes.join(' · ')}</span>}
         </div>
       </div>
 

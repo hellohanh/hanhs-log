@@ -92,7 +92,7 @@ test('load the prepared file, save a place to the trip, skip an eatery for good'
   await expect(eat.getByLabel('Local title')).toHaveValue('Bánh Xèo 46A')
   await expect(eat.getByLabel('Cuisine (country)')).toHaveValue('vietnamese')
   await expect(eat.getByLabel('Main dish')).toHaveValue('banh-xeo')
-  await expect(eat.getByRole('radio', { name: 'Mentioned' })).toHaveAttribute('aria-checked', 'true')
+  await expect(eat.getByRole('radio', { name: 'Selected' })).toHaveAttribute('aria-checked', 'true')
   await expect(eat.getByLabel('Street food')).toBeChecked()
   await eat.getByRole('button', { name: 'Skip for good' }).click()
   await eat.getByRole('button', { name: 'Skip', exact: true }).click()

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { buildPinTree, byLabel, categoryOf, type PinNode } from '../../lib/pinCatalog'
 import { flowerSvg, BADGE } from '../../lib/pinDraw'
+import { isStarred, michelinWords } from '../../lib/vibe'
 import { pinBadge, type Pin, type Review } from '../../lib/pins'
 import type { StopKind } from '../../lib/itinerary'
 import { eyeState } from '../../lib/pinRules'
@@ -107,8 +108,8 @@ export default function PinTree({
           <span className={styles.status} style={{ background: BADGE[badge].fill }} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" />
           <span className={styles.name}>{p.name}</span>
           {p.michelin && (
-            <span className={styles.mich} title={p.michelin === 'mentioned' ? 'MICHELIN' : `MICHELIN ${p.michelin} star${p.michelin === '1' ? '' : 's'}`}>
-              {p.michelin === 'mentioned' ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(p.michelin))}
+            <span className={styles.mich} title={michelinWords(p.michelin)}>
+              {!isStarred(p.michelin) ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(p.michelin))}
             </span>
           )}
         </button>

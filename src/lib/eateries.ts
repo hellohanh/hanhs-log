@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { Michelin } from './pinDraw'
+import type { Vibes } from './vibe'
 import type { Review } from './pinRules'
 
 // The shared Savorlog eatery catalogue (migration 0007). Unlike pins, an
@@ -8,7 +9,7 @@ import type { Review } from './pinRules'
 // on every trip's map. Each person keeps their own WTG / VIS review (eatery_reviews,
 // the same shape as pin_reviews).
 
-export interface Eatery {
+export interface Eatery extends Vibes {
   id: string
   google_place_id: string | null
   name: string
@@ -21,8 +22,6 @@ export interface Eatery {
   dish: string | null
   michelin: Michelin
   michelin_year: number | null
-  street_food: boolean
-  fine_dining: boolean
   /** 1–4 → $–$$$$, or null. */
   price: number | null
   note: string | null
@@ -41,7 +40,7 @@ function client() {
 }
 
 const COLUMNS =
-  'id, google_place_id, name, address, lat, lng, cuisine, dish, michelin, michelin_year, street_food, fine_dining, price, note, created_at'
+  'id, google_place_id, name, address, lat, lng, cuisine, dish, michelin, michelin_year, street_food, fine_dining, dine_in, food_truck, outdoor_seating, community_seating, food_court, counter_seating, takeaway, price, note, created_at'
 
 /** Every live eatery in the catalogue (the queued-for-deletion ones are hidden). */
 export async function fetchCatalogue(): Promise<Eatery[]> {

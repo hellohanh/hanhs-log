@@ -3,6 +3,7 @@ import { buildCountryTree } from '../../lib/savorTree'
 import { asReviews, priceLabel, type Eatery, type EateryReview } from '../../lib/eateries'
 import { stopRef } from '../../lib/itinerary'
 import { badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
+import { isStarred, michelinWords } from '../../lib/vibe'
 import { eyeState, pinBadge } from '../../lib/pinRules'
 import EyeButton from '../../components/EyeButton'
 import styles from './Savor.module.css'
@@ -56,8 +57,8 @@ export default function EateryTree({
           <span className={styles.status} title={BADGE[badge].label} aria-label={BADGE[badge].label} role="img" dangerouslySetInnerHTML={{ __html: badgeSvg(badge, 12) }} />
           <span className={styles.name}>{e.name}</span>
           {e.michelin && (
-            <span className={styles.mich} title={e.michelin === 'mentioned' ? 'MICHELIN' : `MICHELIN ${e.michelin} star${e.michelin === '1' ? '' : 's'}`}>
-              {e.michelin === 'mentioned' ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(e.michelin))}
+            <span className={styles.mich} title={michelinWords(e.michelin)}>
+              {!isStarred(e.michelin) ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(e.michelin))}
             </span>
           )}
           {e.price != null && <span className={styles.price}>{priceLabel(e.price)}</span>}

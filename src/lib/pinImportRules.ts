@@ -91,7 +91,7 @@ export function parsePrepared(text: string): Row[] {
         category: p.category,
         sub: str(p.sub),
         leaf: str(p.leaf),
-        michelin: m === 'mentioned' || m === '1' || m === '2' || m === '3' ? m : null,
+        michelin: m === 'mentioned' || m === 'bib' || m === '1' || m === '2' || m === '3' ? m : null,
         michelin_year: typeof p.michelin_year === 'number' ? p.michelin_year : null,
         michelin_url: str(p.michelin_url),
         street_food: p.street_food === true,

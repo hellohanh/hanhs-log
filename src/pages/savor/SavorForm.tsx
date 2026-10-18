@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { byLabel, categoryOf, pinLook } from '../../lib/pinCatalog'
-import { BADGE, flowerSvg, pinHtml, type Michelin } from '../../lib/pinDraw'
+import { BADGE, pinHtml, type Michelin } from '../../lib/pinDraw'
+import { MICHELIN_ROWS, vibesOf, type Vibes } from '../../lib/vibe'
+import VibeFields from '../../components/VibeFields'
 import { pinBadge, averageRating, type Verdict, type Review } from '../../lib/pinRules'
 import type { FoundPlace } from '../../lib/pins'
 import {
@@ -15,17 +17,14 @@ import type { ImportPrefill } from '../../lib/pinImport'
 import ImportButtons, { type ImportActions } from '../../components/ImportButtons'
 
 // The add / edit eatery card (approved mockup, 4d): the place from Google, its
-// cuisine → dish picked by hand, price ($–$$$$), MICHELIN and street-food /
-// fine-dining, your WTG / VIS review, a note, and up to 3 photos (uploaded
+// cuisine → dish picked by hand, price ($–$$$$), MICHELIN (None / Selected / Bib, then the
+// stars), the Vibe ticks (session 14), your WTG / VIS review, a note, and up to 3 photos (uploaded
 // after the eatery exists; otherwise a Google photo, then a placeholder).
 
 const VERDICTS: { v: Verdict; mark: string; label: string }[] = [
   { v: 'revisit', mark: '✓', label: 'Revisit' },
   { v: 'second', mark: '–', label: '2nd chance' },
   { v: 'no', mark: '✗', label: "Don't go back" }
-]
-const MICHELIN: { m: Michelin; label: string }[] = [
-  { m: null, label: 'None' }, { m: 'mentioned', label: 'Mentioned' }, { m: '1', label: '★' }, { m: '2', label: '★★' }, { m: '3', label: '★★★' }
 ]
 const FOOD = categoryOf('food')!
 // The cuisine picker is A–Z (session 11, Hanh); the dish picker keeps catalogue order.
@@ -63,8 +62,7 @@ export default function SavorForm({
   const [price, setPrice] = useState<number | null>(eatery?.price ?? null)
   const [michelin, setMichelin] = useState<Michelin>(eatery?.michelin ?? pre?.michelin ?? null)
   const [year, setYear] = useState(String(eatery?.michelin_year ?? pre?.michelin_year ?? new Date().getFullYear()))
-  const [streetFood, setStreetFood] = useState(eatery?.street_food ?? pre?.street_food ?? false)
-  const [fineDining, setFineDining] = useState(eatery?.fine_dining ?? pre?.fine_dining ?? false)
+  const [vibes, setVibes] = useState<Vibes>(() => vibesOf(eatery ?? pre))
   const [note, setNote] = useState(eatery?.note ?? pre?.note ?? '')
   const [review, setReview] = useState({ status: mine?.status ?? ('wtg' as 'wtg' | 'vis'), verdict: mine?.verdict ?? null, rating: mine?.rating ?? null })
   const [error, setError] = useState('')
@@ -97,8 +95,7 @@ export default function SavorForm({
       dish: dish || null,
       michelin,
       michelin_year: michelin ? y : null,
-      street_food: streetFood,
-      fine_dining: fineDining,
+      ...vibes,
       price,
       note: note.trim() || null
     }
@@ -168,21 +165,22 @@ export default function SavorForm({
 
       <fieldset className={styles.group}>
         <legend>MICHELIN Guide</legend>
-        <div className={styles.seg} role="radiogroup" aria-label="MICHELIN">
-          {MICHELIN.map(({ m, label }) => (
-            <button key={label} type="button" role="radio" aria-checked={michelin === m}
-              aria-label={m === null ? 'None' : m === 'mentioned' ? 'Mentioned' : `${m} star${m === '1' ? '' : 's'}`}
-              className={`${styles.segBtn} ${styles.michBtn}`} onClick={() => setMichelin(m)}>
-              {m === 'mentioned' && <span dangerouslySetInnerHTML={{ __html: flowerSvg(14, '#9E2A2B') }} />}{label}
-            </button>
+        <div role="radiogroup" aria-label="MICHELIN" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {MICHELIN_ROWS.map((row, i) => (
+            <div key={i} className={styles.seg}>
+              {row.map(({ m, label, aria }) => (
+                <button key={aria} type="button" role="radio" aria-checked={michelin === m} aria-label={aria}
+                  className={`${styles.segBtn} ${styles.michBtn}`} onClick={() => setMichelin(m)}>
+                  {label}
+                </button>
+              ))}
+            </div>
           ))}
         </div>
         {michelin && <label className={styles.inline}>Year <input inputMode="numeric" value={year} onChange={e => setYear(e.target.value)} maxLength={4} /></label>}
-        <div className={styles.seg}>
-          <label className={styles.check}><input type="checkbox" checked={streetFood} onChange={e => setStreetFood(e.target.checked)} /> Street food</label>
-          <label className={styles.check}><input type="checkbox" checked={fineDining} onChange={e => setFineDining(e.target.checked)} /> Fine dining</label>
-        </div>
       </fieldset>
+
+      <VibeFields className={styles.group} value={vibes} onChange={setVibes} />
 
       <fieldset className={styles.group}>
         <legend>You</legend>

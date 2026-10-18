@@ -34,6 +34,7 @@ const PHONE_CARD_LIFT = 170
 import { togglePicks } from '../../lib/pinRules'
 import { onScreen, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
+import { vibeLabels } from '../../lib/vibe'
 import { pinBox, pinHtml, popupIconHtml } from '../../lib/pinDraw'
 import ItineraryPanel, { ItineraryOpener, PANEL_WIDTH } from './ItineraryPanel'
 import { readPanelState, savePanelState, type PanelState } from '../../lib/itinerary'
@@ -329,7 +330,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             lng: popupItem.lng,
             note: popupItem.note,
             deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list.",
-            iconHtml: popupIcon
+            iconHtml: popupIcon,
+            vibes: vibeLabels(popupItem)
           }}
           onClose={() => setPopup(null)}
           onEdit={() => {
@@ -606,7 +608,8 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
                     lng: popupItem.lng,
                     note: popupItem.note,
                     deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list.",
-                    iconHtml: popupIcon
+                    iconHtml: popupIcon,
+                    vibes: vibeLabels(popupItem)
                   }}
                   onClose={() => setPopup(null)}
                   onEdit={() => {
