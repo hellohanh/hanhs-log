@@ -214,3 +214,10 @@ export function initials(name: string | null): string {
 
 /** Avatar colours for people on a trip, in list order. */
 export const AVATAR_COLORS = ['#9E2A2B', '#378ADD', '#639922', '#BA7517', '#7F77DD', '#1D9E75']
+
+/** Copy all pins from one trip into another (0018, session 14). */
+export async function copyTripPins(from: string, to: string): Promise<{ copied: number; skipped: number }> {
+  const { data, error } = await client().rpc('copy_trip_pins', { _from: from, _to: to })
+  if (error) throw new Error(error.message)
+  return data as { copied: number; skipped: number }
+}

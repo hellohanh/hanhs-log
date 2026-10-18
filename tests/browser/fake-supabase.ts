@@ -216,6 +216,19 @@ export async function fakeSupabase(
         return route.fulfill({ status: 204, body: '' })
       }
     }
+    // Copy all pins from one trip to another (0018): skips places already there.
+    if (path === '/rest/v1/rpc/copy_trip_pins') {
+      const { _from, _to } = args as { _from: string; _to: string }
+      let copied = 0, skipped = 0
+      for (const p of db.pins.filter(x => x.trip_id === _from)) {
+        if (p.google_place_id && db.pins.some(x => x.trip_id === _to && x.google_place_id === p.google_place_id)) { skipped++; continue }
+        const id = `${p.id}-copy`
+        db.pins.push({ ...p, id, trip_id: _to })
+        for (const r of db.reviews.filter(r => r.pin_id === p.id)) db.reviews.push({ ...r, pin_id: id })
+        copied++
+      }
+      return route.fulfill({ json: { copied, skipped } })
+    }
     // Pins (step 4) and each person's WTG / VIS.
     if (path === '/rest/v1/pins') {
       const trip = url.searchParams.get('trip_id')?.replace('eq.', '')

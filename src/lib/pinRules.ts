@@ -86,3 +86,14 @@ export function michelinHidden(
   if (!s.michelinOnly || pin.michelin || s.editing) return false
   return !s.otdPins?.has(pin.id)
 }
+
+/**
+ * Copy pins (session 14): how many of another trip's pins would be copied
+ * here — a place already pinned here (same Google place) is skipped, as the
+ * database does (copy_trip_pins, 0018).
+ */
+export function copyCounts(theirs: { google_place_id: string | null }[], mine: { google_place_id: string | null }[]) {
+  const here = new Set(mine.map(p => p.google_place_id).filter(Boolean))
+  const already = theirs.filter(p => p.google_place_id && here.has(p.google_place_id)).length
+  return { total: theirs.length, already, toCopy: theirs.length - already }
+}

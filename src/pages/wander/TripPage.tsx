@@ -18,6 +18,7 @@ import {
   type TripPlace
 } from '../../lib/trips'
 import ShareDialog from './ShareDialog'
+import CopyPinsDialog from './CopyPinsDialog'
 import NamePrompt from './NamePrompt'
 import TripMap, { type CityState, type MapPin } from './TripMap'
 import PlacesPanel, { type Editing, type EateryEditing } from './PlacesPanel'
@@ -88,6 +89,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   const [nameLater, setNameLater] = useState(false)
   const [editing, setEditing] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [copying, setCopying] = useState(false)
   const [city, setCity] = useState<CityState>({ state: 'loading' })
   // Itinerary panel: closed by default; open/closed and width remembered on this device.
   const [panel, setPanelState] = useState<PanelState>(readPanelState)
@@ -386,6 +388,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               <div className={styles.pMenu} role="menu">
                 <button type="button" role="menuitem" onClick={() => { setTripMenu(false); setEditing(true) }}>Edit trip</button>
                 <button type="button" role="menuitem" onClick={() => { setTripMenu(false); setSharing(true) }}>Share &amp; people</button>
+                <button type="button" role="menuitem" onClick={() => { setTripMenu(false); setCopying(true) }}>Copy pins</button>
                 <button type="button" role="menuitem" onClick={() => { setTripMenu(false); setLookReq(n => n + 1) }}>Map look &amp; GPins</button>
               </div>
             )}
@@ -504,6 +507,9 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             onClose={() => setSharing(false)}
           />
         )}
+        {copying && (
+          <CopyPinsDialog tripId={trip.id} tripName={trip.name} pins={pins} onCopied={() => void loadPins()} onClose={() => setCopying(false)} />
+        )}
         {myName === null && !nameLater && !sharing && (
           <NamePrompt userId={userId} onSaved={name => { setMyName(name); loadPeople() }} onLater={() => setNameLater(true)} />
         )}
@@ -541,6 +547,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             Edit trip
           </button>
           <button type="button" className="btn" onClick={() => setSharing(true)}>Share &amp; people</button>
+          <button type="button" className="btn btn-quiet" onClick={() => setCopying(true)}>Copy pins</button>
         </div>
       </section>
 
@@ -675,6 +682,9 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
         />
       )}
 
+      {copying && (
+        <CopyPinsDialog tripId={trip.id} tripName={trip.name} pins={pins} onCopied={() => void loadPins()} onClose={() => setCopying(false)} />
+      )}
       {myName === null && !nameLater && !sharing && (
         <NamePrompt
           userId={userId}
