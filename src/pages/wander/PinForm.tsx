@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { googleName } from '../../lib/placeDetails'
 import { CATEGORIES, categoryOf, pinLook } from '../../lib/pinCatalog'
 import { BADGE, pinHtml, type Michelin } from '../../lib/pinDraw'
 import { MICHELIN_ROWS, noVibes, vibesOf, type Vibes } from '../../lib/vibe'
@@ -59,7 +60,15 @@ export default function PinForm({
   const [names, setNames] = useState(() =>
     prefill && !pin ? { en: prefill.name_en ?? '', local: prefill.name_local ?? '' } : splitName(pin?.name ?? place?.name)
   )
-  const name = joinName(names.en, names.local)
+  const name = joinName(names.en, names.local, names.exact)
+  // Google's spelling for the suggestion under the name boxes (session 14).
+  const [google, setGoogle] = useState<string | null>(place?.name ?? null)
+  useEffect(() => {
+    if (place || !pin?.google_place_id) return
+    let alive = true
+    googleName(pin.google_place_id).then(n => alive && setGoogle(n))
+    return () => { alive = false }
+  }, [place, pin?.google_place_id])
   const [category, setCategory] = useState(pin?.category ?? prefill?.category ?? '')
   const [sub, setSub] = useState(pin?.subcategory ?? prefill?.sub ?? '')
   const [leaf, setLeaf] = useState(pin?.subsubcategory ?? prefill?.leaf ?? '')
@@ -144,7 +153,7 @@ export default function PinForm({
         <button type="button" className={styles.x} aria-label="Close" onClick={onCancel}>×</button>
       </div>
 
-      <NameFields value={names} onChange={setNames} fieldClass={styles.field} hintClass={styles.address} />
+      <NameFields value={names} onChange={setNames} fieldClass={styles.field} hintClass={styles.address} google={google} />
       {address && <p className={styles.address}>{address}</p>}
 
       {pin && (

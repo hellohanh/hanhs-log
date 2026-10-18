@@ -221,11 +221,14 @@ export interface CategoryPath {
  * out on purpose — they're also Vietnamese name words (Hội An, Phở A Long).
  */
 const SMALL_WORDS = new Set(['of', 'the', 'and', 'in', 'on', 'at', 'by', 'for', 'to', 'de', 'la'])
+/** Words always written in capitals (Hanh, session 14). */
+const ALL_CAPS = new Set(['bbq'])
 export function titleCase(s: string): string {
   return s
     .toLocaleLowerCase()
     .replace(/(^|[\s\-/'(.&–—])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toLocaleUpperCase())
     .replace(/(?<=\s)(\p{L}+)(?=\s)/gu, w => (SMALL_WORDS.has(w.toLocaleLowerCase()) ? w.toLocaleLowerCase() : w))
+    .replace(/\p{L}+/gu, w => (ALL_CAPS.has(w.toLocaleLowerCase()) ? w.toLocaleUpperCase() : w))
 }
 
 export interface PinNode<T> {
