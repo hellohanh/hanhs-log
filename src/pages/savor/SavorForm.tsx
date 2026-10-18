@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { googleName } from '../../lib/placeDetails'
 import { byLabel, categoryOf, pinLook } from '../../lib/pinCatalog'
 import { BADGE, pinHtml, type Michelin } from '../../lib/pinDraw'
 import { MICHELIN_ROWS, vibesOf, type Vibes } from '../../lib/vibe'
@@ -56,7 +57,15 @@ export default function SavorForm({
   const [names, setNames] = useState(() =>
     pre ? { en: pre.name_en ?? '', local: pre.name_local ?? '' } : splitName(eatery?.name ?? place?.name)
   )
-  const name = joinName(names.en, names.local)
+  const name = joinName(names.en, names.local, names.exact)
+  // Google's spelling for the suggestion under the name boxes (session 14).
+  const [google, setGoogle] = useState<string | null>(place?.name ?? null)
+  useEffect(() => {
+    if (place || !eatery?.google_place_id) return
+    let alive = true
+    googleName(eatery.google_place_id).then(n => alive && setGoogle(n))
+    return () => { alive = false }
+  }, [place, eatery?.google_place_id])
   const [cuisine, setCuisine] = useState(eatery?.cuisine ?? pre?.sub ?? '')
   const [dish, setDish] = useState(eatery?.dish ?? pre?.leaf ?? '')
   const [price, setPrice] = useState<number | null>(eatery?.price ?? null)
@@ -135,7 +144,7 @@ export default function SavorForm({
         <button type="button" className={styles.x} aria-label="Close" onClick={onCancel}>×</button>
       </div>
 
-      <NameFields value={names} onChange={setNames} fieldClass={styles.field} hintClass={styles.path} />
+      <NameFields value={names} onChange={setNames} fieldClass={styles.field} hintClass={styles.path} google={google} />
       {address && <p className={styles.path}>{address}</p>}
 
       <fieldset className={styles.group}>

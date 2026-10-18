@@ -45,3 +45,19 @@ export async function placeDetails(placeId: string | null, at: { lat: number; ln
 export function siteLabel(url: string): string {
   return url.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
 }
+
+/** Google's own name for a saved place (session 14: the spelling suggestion on the edit cards). */
+export async function googleName(placeId: string | null): Promise<string | null> {
+  const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? ''
+  if (!placeId || !key) return null
+  try {
+    const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+      headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'displayName' }
+    })
+    if (!res.ok) return null
+    const p = (await res.json()) as { displayName?: { text?: string } }
+    return p.displayName?.text ?? null
+  } catch {
+    return null
+  }
+}

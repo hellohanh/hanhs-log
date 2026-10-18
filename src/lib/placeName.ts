@@ -12,12 +12,17 @@ export const NAME_SEP = ' : '
 export interface NameParts {
   en: string
   local: string
+  /**
+   * A box holding Google's exact spelling (tapped "Use it", session 14) is
+   * saved as is, capitals and all; typing in it clears the flag.
+   */
+  exact?: { en?: boolean; local?: boolean }
 }
 
-/** "English : Local", or whichever part is filled. Each part is title-cased (session 6). */
-export function joinName(en: string, local: string): string {
-  const e = en.trim() ? titleCase(en.trim()) : ''
-  const l = local.trim() ? titleCase(local.trim()) : ''
+/** "English : Local", or whichever part is filled. Each part is title-cased (session 6) unless it's Google's exact spelling. */
+export function joinName(en: string, local: string, exact?: NameParts['exact']): string {
+  const e = en.trim() ? (exact?.en ? en.trim() : titleCase(en.trim())) : ''
+  const l = local.trim() ? (exact?.local ? local.trim() : titleCase(local.trim())) : ''
   return e && l ? `${e}${NAME_SEP}${l}` : e || l
 }
 
@@ -43,4 +48,26 @@ export function splitName(name: string | null | undefined): NameParts {
 export function popupLines(name: string): [string, string | null] {
   const { en, local } = splitName(name)
   return en ? [en, local || null] : [local, null]
+}
+
+/** Letters only, no accents or capitals: "Bánh Xèo 46A" → "banh xeo 46a". */
+export function plainName(s: string): string {
+  return s.normalize('NFD').replace(/\p{M}/gu, '').replace(/[đĐ]/g, 'd').toLocaleLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * Google's spelling to suggest under a name box (session 14): when a box holds
+ * the same name as Google's, but with different accents or capitals, offer
+ * Google's exact text. Returns which box, or null when nothing to suggest.
+ */
+export function googleSuggestion(parts: NameParts, google: string | null | undefined): { side: 'en' | 'local'; text: string } | null {
+  const g = (google ?? '').trim()
+  if (!g) return null
+  for (const side of ['local', 'en'] as const) {
+    const typed = parts[side].trim()
+    if (!typed || plainName(typed) !== plainName(g)) continue
+    const saved = parts.exact?.[side] ? typed : titleCase(typed)
+    return saved === g ? null : { side, text: g }
+  }
+  return null
 }
