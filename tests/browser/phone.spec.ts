@@ -82,7 +82,7 @@ test.describe('phone', () => {
     await fakeSupabase(page)
     await openTrip(page)
     await page.getByRole('button', { name: 'Trip menu' }).click()
-    await expect(page.getByRole('menuitem')).toHaveText(['Edit trip', 'Share & people', 'Map look & GPins'])
+    await expect(page.getByRole('menuitem')).toHaveText(['Edit trip', 'Share & people', 'Copy pins', 'Map look & GPins'])
     await page.getByRole('menuitem', { name: 'Edit trip' }).click()
     await expect(page.getByRole('dialog', { name: 'Edit trip' })).toBeVisible()
     await page.getByRole('button', { name: 'Cancel' }).click()
