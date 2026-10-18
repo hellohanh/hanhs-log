@@ -56,8 +56,9 @@ export default function DishPicker({ cuisine, value, onChange }: {
   return (
     <select aria-label="Main dish" value={value} onChange={e => (e.target.value === ADD ? setAdding(true) : onChange(e.target.value))}>
       <option value="">Main dish (optional)</option>
-      {leaves.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
+      {/* "+ Add a new dish…" at the top of the list (Hanh, session 14). */}
       <option value={ADD}>+ Add a new dish…</option>
+      {leaves.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
     </select>
   )
 }

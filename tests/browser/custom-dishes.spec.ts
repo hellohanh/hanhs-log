@@ -64,7 +64,8 @@ test('type a new main dish on the eatery card', async ({ page }, info) => {
   await form.getByLabel('New dish').press('Enter')
   await expect(form.getByLabel('Main dish')).toHaveValue('x-bun-mam')
   expect(db.customDishes).toContainEqual({ cuisine: 'vietnamese', key: 'x-bun-mam', label: 'Bún Mắm' })
-  const opts = (await form.getByLabel('Main dish').locator('option').allTextContents()).slice(1, -1)
+  const opts = (await form.getByLabel('Main dish').locator('option').allTextContents()).slice(2) // after the placeholder and "+ Add a new dish…"
+  expect((await form.getByLabel('Main dish').locator('option').allTextContents())[1]).toBe('+ Add a new dish…')
   expect(opts).toContain('Bún Mắm')
   const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
   expect(opts).toEqual([...opts].sort(collator.compare))
