@@ -73,3 +73,16 @@ export function togglePicks(picked: Set<string>, ids: string[], showAll: boolean
   return next
 }
 
+
+/**
+ * The MICHELIN chip hides, not fades (Hanh, session 14): with it on, every
+ * non-MICHELIN pin leaves the map, so the numbered bubbles count MICHELIN
+ * places only. The pin being edited and the Day route's own stops stay.
+ */
+export function michelinHidden(
+  pin: { id: string; michelin: string | null },
+  s: { editing: boolean; otdPins: Set<string> | null; michelinOnly: boolean }
+): boolean {
+  if (!s.michelinOnly || pin.michelin || s.editing) return false
+  return !s.otdPins?.has(pin.id)
+}

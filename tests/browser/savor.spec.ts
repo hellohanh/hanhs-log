@@ -116,6 +116,20 @@ test('the cuisine picker in the add card is A–Z (session 11)', async ({ page }
   expect(labels).toEqual([...labels].sort(collator.compare))
 })
 
+test('the main dish picker in the add card is A–Z (session 14)', async ({ page }) => {
+  await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
+  await enter(page, 'viet', /Vietnam/)
+  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  await side.getByRole('searchbox', { name: /Search Google/ }).fill('bun')
+  await side.getByRole('button', { name: 'Search' }).click()
+  await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first().click()
+  await side.getByLabel('Cuisine (country)').selectOption({ label: 'Vietnamese' })
+  const dishes = (await side.getByLabel('Main dish').locator('option').allTextContents()).slice(1)
+  expect(dishes.length).toBe(28)
+  const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
+  expect(dishes).toEqual([...dishes].sort(collator.compare))
+})
+
 test('editing an eatery shows its fields and the photo placeholder', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)

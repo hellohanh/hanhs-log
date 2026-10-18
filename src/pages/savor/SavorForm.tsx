@@ -156,7 +156,8 @@ export default function SavorForm({
         {subObj?.leaves && (
           <select aria-label="Main dish" value={dish} onChange={e => setDish(e.target.value)}>
             <option value="">Main dish (optional)</option>
-            {subObj.leaves.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
+            {/* Main dish A–Z (Hanh, session 14; was catalogue order, E93). */}
+            {[...subObj.leaves].sort(byLabel).map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
           </select>
         )}
       </fieldset>
