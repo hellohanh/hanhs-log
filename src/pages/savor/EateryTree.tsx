@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { buildCountryTree } from '../../lib/savorTree'
 import { asReviews, priceLabel, type Eatery, type EateryReview } from '../../lib/eateries'
 import { stopRef } from '../../lib/itinerary'
-import { badgeSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
+import { badgeSvg, bibFaceSvg, flowerSvg, BADGE } from '../../lib/pinDraw'
 import { isStarred, michelinWords } from '../../lib/vibe'
 import { eyeState, pinBadge } from '../../lib/pinRules'
 import EyeButton from '../../components/EyeButton'
@@ -62,7 +62,7 @@ export default function EateryTree({
           <span className={styles.name}>{e.name}</span>
           {e.michelin && (
             <span className={styles.mich} title={michelinWords(e.michelin)}>
-              {!isStarred(e.michelin) ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(e.michelin))}
+              {e.michelin === 'bib' ? <span dangerouslySetInnerHTML={{ __html: bibFaceSvg(12) }} /> : !isStarred(e.michelin) ? <span dangerouslySetInnerHTML={{ __html: flowerSvg(12, '#9E2A2B') }} /> : '★'.repeat(Number(e.michelin))}
             </span>
           )}
           {e.price != null && <span className={styles.price}>{priceLabel(e.price)}</span>}
