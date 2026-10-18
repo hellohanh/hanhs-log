@@ -46,7 +46,7 @@ export function StopBlock({
       role="button"
       tabIndex={0}
       aria-label={`${label}. Drag to move, or press Enter to open`}
-      title={label}
+      title={stop.note ? `${label}\n${stop.note}` : label}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -61,6 +61,7 @@ export function StopBlock({
         <span className={styles.stopBadge} title={BADGE[badge].label} dangerouslySetInnerHTML={{ __html: badgeSvg(badge, 11) }} aria-hidden="true" />
       </span>
       <span className={styles.actTime}>{hhmm(shown.start)} – {hhmm(shown.end)}{stars}</span>
+      {stop.note && <span className={styles.blockNote}>{stop.note}</span>}
       <span className={`${styles.handle} ${styles.handleBottom}`} {...handlers('bottom')} aria-hidden="true" title="Drag to change the end" />
     </div>
   )
@@ -76,12 +77,13 @@ export function StopEdit({
 }: {
   stop: Stop
   item: StopItem
-  onSubmit: (start: string, end: string) => Promise<void>
+  onSubmit: (start: string, end: string, note: string | null) => Promise<void>
   onCancel: () => void
   onDelete: () => Promise<void>
 }) {
   const [start, setStart] = useState(stop.start_time.slice(0, 5))
   const [end, setEnd] = useState(stop.end_time.slice(0, 5))
+  const [note, setNote] = useState(stop.note ?? '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(false)
@@ -91,7 +93,7 @@ export function StopEdit({
     setBusy(true)
     setError('')
     try {
-      await onSubmit(start, end)
+      await onSubmit(start, end, note.trim() || null)
     } catch (err) {
       setError(`Couldn't save: ${(err as Error).message}`)
       setBusy(false)
@@ -104,6 +106,10 @@ export function StopEdit({
         <TimeSelect className={styles.lf} label="Start" value={start} onChange={setStart} />
         <TimeSelect className={styles.lf} label="End" value={end} onChange={setEnd} />
       </div>
+      <label className={styles.lf}>
+        Note
+        <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} maxLength={4000} />
+      </label>
       {error && <p className={styles.legError} role="alert">{error}</p>}
       {confirm ? (
         <div className={styles.confirm} role="alert">

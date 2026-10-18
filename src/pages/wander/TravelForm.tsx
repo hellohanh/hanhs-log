@@ -54,6 +54,7 @@ export default function TravelForm({
   const [toDate, setToDate] = useState(leg?.to_date ?? dayDate ?? '')
   const [toTime, setToTime] = useState(leg?.to_time?.slice(0, 5) ?? preset?.to ?? '')
   const [toZone, setToZone] = useState(leg?.to_timezone ?? '')
+  const [note, setNote] = useState(leg?.note ?? '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -78,7 +79,10 @@ export default function TravelForm({
     to_location: to.trim(),
     to_date: toDate || null,
     to_time: toTime || null,
-    to_timezone: toZone.trim() || null
+    to_timezone: toZone.trim() || null,
+    // The note (session 14). Sent only once there's one (or the leg already has
+    // the column), so saving still works before migration 0019 is applied.
+    ...(note.trim() || leg?.note !== undefined ? { note: note.trim() || null } : {})
   }
   const duration = legDurationParts({ ...fields, id: '' })
 
@@ -156,6 +160,10 @@ export default function TravelForm({
         <label className={styles.lf}>Time zone<input value={toZone} onChange={e => setToZone(e.target.value)} list="hl-zones" placeholder={isFlight ? 'Filled from the airport' : 'Optional'} /></label>
       </fieldset>
       {duration && <p className={styles.legDuration}>Takes {duration.hours}h {duration.minutes}m</p>}
+      <label className={styles.lf}>
+        Note
+        <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} maxLength={4000} placeholder="Seat 3A · bag drop closes 13:45" />
+      </label>
       <datalist id="hl-airlines">{AIRLINES.map(a => <option key={a.value} value={a.value}>{a.display}</option>)}</datalist>
       <datalist id="hl-airports">{AIRPORTS.map(a => <option key={a.code} value={airportLabel(a)} />)}</datalist>
       <datalist id="hl-zones">{ZONES.map(z => <option key={z} value={z} />)}</datalist>

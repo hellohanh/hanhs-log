@@ -81,15 +81,22 @@ export async function saveDayNote(dayId: string, note: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-const LEG_COLUMNS =
+const LEG_COLUMNS_OLD =
   'id, day_id, mode, title, carrier, reference, from_location, from_date, from_time, from_timezone, to_location, to_date, to_time, to_timezone'
+const LEG_COLUMNS = `${LEG_COLUMNS_OLD}, note`
+
+/** Loads legs with their note; before migration 0019 is applied there's no note column yet, so load as before. */
+async function selectLegs(col: 'day_id' | 'id', ids: string[]): Promise<TravelLeg[]> {
+  let { data, error } = await client().from('travel_legs').select(LEG_COLUMNS).in(col, ids).returns<TravelLeg[]>()
+  if (error && /note/.test(error.message)) ({ data, error } = await client().from('travel_legs').select(LEG_COLUMNS_OLD).in(col, ids).returns<TravelLeg[]>())
+  if (error) throw new Error(error.message)
+  return (data ?? []) as TravelLeg[]
+}
 
 /** Every travel leg on the trip's days (all days, so legs continuing past midnight show on the next day too). */
 export async function fetchLegs(dayIds: string[]): Promise<TravelLeg[]> {
   if (dayIds.length === 0) return []
-  const { data, error } = await client().from('travel_legs').select(LEG_COLUMNS).in('day_id', dayIds)
-  if (error) throw new Error(error.message)
-  return (data ?? []) as TravelLeg[]
+  return selectLegs('day_id', dayIds)
 }
 
 // ---- Legs linked to other trips (migration 0012, session 9) ----
@@ -112,9 +119,7 @@ export async function fetchLegLinks(tripId: string): Promise<LegLink[]> {
 /** Legs by id (for legs linked in from another trip). */
 export async function fetchLegsByIds(ids: string[]): Promise<TravelLeg[]> {
   if (ids.length === 0) return []
-  const { data, error } = await client().from('travel_legs').select(LEG_COLUMNS).in('id', ids)
-  if (error) throw new Error(error.message)
-  return (data ?? []) as TravelLeg[]
+  return selectLegs('id', ids)
 }
 
 /** Shows a leg on another trip too (both must be yours); adds its day there if missing. */

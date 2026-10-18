@@ -686,8 +686,8 @@ export default function ItineraryPanel({
                             setAdding(null)
                             setForm({ leg: null, preset: { from: st, to: en } })
                           }}
-                          onAddActivity={async (title, st, en) => {
-                            await saveActivity({ day_id: day.id, title, start_time: st, end_time: en })
+                          onAddActivity={async (title, st, en, note) => {
+                            await saveActivity({ day_id: day.id, title, start_time: st, end_time: en, note })
                             setAdding(null)
                             await reloadActs()
                           }}
@@ -707,11 +707,11 @@ export default function ItineraryPanel({
                         </div>
                         <ActivityFields
                           key={editing.id}
-                          initial={{ title: editing.title, start: editing.start_time.slice(0, 5), end: editing.end_time.slice(0, 5) }}
+                          initial={{ title: editing.title, start: editing.start_time.slice(0, 5), end: editing.end_time.slice(0, 5), note: editing.note }}
                           submitLabel="Save"
                           onCancel={() => setEditing(null)}
-                          onSubmit={async (title, st, en) => {
-                            await saveActivity({ title, start_time: st, end_time: en }, editing.id)
+                          onSubmit={async (title, st, en, note) => {
+                            await saveActivity({ title, start_time: st, end_time: en, note }, editing.id)
                             setEditing(null)
                             await reloadActs()
                           }}
@@ -733,8 +733,8 @@ export default function ItineraryPanel({
                           key={editStop.id}
                           stop={editStop}
                           item={itemOf(editStop)!}
-                          onSubmit={async (st, en) => {
-                            await saveStop({ start_time: st, end_time: en }, editStop.id)
+                          onSubmit={async (st, en, note) => {
+                            await saveStop({ start_time: st, end_time: en, note }, editStop.id)
                             setEditStop(null)
                             await reloadStops()
                           }}
@@ -839,6 +839,7 @@ function LegCard({
       </span>
       {d && <span className={styles.legMeta}>{d.hours}h {d.minutes}m</span>}
       {note && <span className={styles.legMeta}>{note}</span>}
+      {leg.note && <span className={styles.blockNote}>{leg.note}</span>}
       {alsoOn && <span className={styles.legMeta}>🔗 {alsoOn}</span>}
     </button>
     {onCopy && (
