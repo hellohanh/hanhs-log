@@ -9,6 +9,8 @@ export interface Leaf {
   key: string
   label: string
   icon: string
+  /** A dish someone added (custom_dishes, session 14). */
+  custom?: boolean
 }
 export interface Sub {
   key: string
@@ -312,5 +314,35 @@ export function pinLook(p: CategoryPath): { color: string; icon: string; art: st
     art: artFor(c.key, leaf?.key ?? sub?.key ?? c.key),
     label: parts.join(' › '),
     parts
+  }
+}
+
+/** A dish someone added to a cuisine's list (migration 0017, session 14). */
+export interface CustomDish {
+  cuisine: string
+  key: string
+  label: string
+}
+
+/** The key an added dish is stored under: "x-" + its slug ("Bún Mắm" → "x-bun-mam"). */
+export function customDishKey(label: string): string {
+  return `x-${slug(label)}`.slice(0, 78)
+}
+
+/**
+ * Puts the added dishes into their cuisines' lists (replacing any set before),
+ * so every menu, tree and pin that reads the catalogue sees them. An added
+ * dish uses its cuisine's icon. (Fusion, with no built-in list, still gets
+ * the Main dish menu — DishPicker shows "+ Add a new dish…" for every cuisine.)
+ */
+export function setCustomDishes(list: CustomDish[]): void {
+  const food = CATEGORIES.find(c => c.key === 'food')
+  if (!food) return
+  for (const sub of food.subs) {
+    const built = (sub.leaves ?? []).filter(x => !x.custom)
+    const added = list
+      .filter(d => d.cuisine === sub.key && !built.some(b => b.key === d.key))
+      .map(d => ({ key: d.key, label: d.label, icon: sub.icon, custom: true }))
+    sub.leaves = built.length > 0 || added.length > 0 ? [...built, ...added] : undefined
   }
 }

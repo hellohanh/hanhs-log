@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCustomDishes } from '../../lib/customDishes'
 import { buildCountryTree } from '../../lib/savorTree'
 import { asReviews, priceLabel, type Eatery, type EateryReview } from '../../lib/eateries'
 import { stopRef } from '../../lib/itinerary'
@@ -36,6 +37,7 @@ export default function EateryTree({
   /** Double-click an eatery → its edit panel (computer, session 14). */
   onEdit?: (e: Eatery) => void
 }) {
+  useCustomDishes() // added dishes show as their own rows (session 14)
   const tree = buildCountryTree(eateries)
   const [open, setOpen] = useState<Set<string>>(new Set())
   const toggle = (k: string) =>

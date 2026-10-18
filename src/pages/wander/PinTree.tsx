@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCustomDishes } from '../../lib/customDishes'
 import { buildPinTree, byLabel, categoryOf, type PinNode } from '../../lib/pinCatalog'
 import { flowerSvg, BADGE } from '../../lib/pinDraw'
 import { isStarred, michelinWords } from '../../lib/vibe'
@@ -46,6 +47,7 @@ export default function PinTree({
    */
   nomNom?: { count: number; ids: string[]; content: React.ReactNode }
 }) {
+  useCustomDishes() // added dishes show as their own rows (session 14)
   const built = buildPinTree(pins)
   const food = categoryOf('food')!
   const tree = nomNom && !built.some(n => n.key === 'food')

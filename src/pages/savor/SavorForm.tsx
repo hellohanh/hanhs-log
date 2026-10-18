@@ -4,6 +4,7 @@ import { byLabel, categoryOf, pinLook } from '../../lib/pinCatalog'
 import { BADGE, pinHtml, type Michelin } from '../../lib/pinDraw'
 import { MICHELIN_ROWS, vibesOf, type Vibes } from '../../lib/vibe'
 import VibeFields from '../../components/VibeFields'
+import DishPicker from '../../components/DishPicker'
 import { pinBadge, averageRating, type Verdict, type Review } from '../../lib/pinRules'
 import type { FoundPlace } from '../../lib/pins'
 import {
@@ -153,13 +154,8 @@ export default function SavorForm({
           <option value="">Pick a cuisine</option>
           {CUISINES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
         </select>
-        {subObj?.leaves && (
-          <select aria-label="Main dish" value={dish} onChange={e => setDish(e.target.value)}>
-            <option value="">Main dish (optional)</option>
-            {/* Main dish A–Z (Hanh, session 14; was catalogue order, E93). */}
-            {[...subObj.leaves].sort(byLabel).map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
-          </select>
-        )}
+        {/* Main dish A–Z with "+ Add a new dish…" (session 14). */}
+        {subObj && <DishPicker cuisine={subObj} value={dish} onChange={setDish} />}
       </fieldset>
 
       <fieldset className={styles.group}>

@@ -1,0 +1,6 @@
+.add { display: flex; flex-direction: column; gap: 6px; }
+.add input { min-height: 36px; padding: 6px 10px; border: 2px solid var(--ink); border-radius: 8px; background: var(--ground); color: var(--ink); font: inherit; font-size: 14px; width: 100%; box-sizing: border-box; }
+.hint { margin: 0; font-size: 12px; color: var(--muted); }
+.hint b { color: var(--ink); }
+.error { margin: 0; font-size: 12px; color: #C8352F; }
+.buttons { display: flex; gap: 8px; }

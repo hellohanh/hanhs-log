@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { googleName } from '../../lib/placeDetails'
-import { byLabel, CATEGORIES, categoryOf, pinLook } from '../../lib/pinCatalog'
+import { CATEGORIES, categoryOf, pinLook } from '../../lib/pinCatalog'
 import { BADGE, pinHtml, type Michelin } from '../../lib/pinDraw'
 import { MICHELIN_ROWS, noVibes, vibesOf, type Vibes } from '../../lib/vibe'
 import VibeFields from '../../components/VibeFields'
+import DishPicker from '../../components/DishPicker'
 import { averageRating, deletePin, pinBadge, saveMyReview, savePin, type FoundPlace, type MyReview, type Pin, type PinFields, type Review, type Verdict } from '../../lib/pins'
 import type { Person } from '../../lib/trips'
 import styles from './Places.module.css'
@@ -191,11 +192,11 @@ export default function PinForm({
             {cat.subs.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
         )}
-        {subObj?.leaves && (
+        {isFood && subObj && <DishPicker cuisine={subObj} value={leaf} onChange={setLeaf} />}
+        {!isFood && subObj?.leaves && (
           <select aria-label={cat?.leafLabel ?? 'Type'} value={leaf} onChange={e => setLeaf(e.target.value)}>
             <option value="">{cat?.leafLabel ?? 'Type'} (optional)</option>
-            {/* Main dish A–Z (Hanh, session 14); other types keep catalogue order. */}
-            {(isFood ? [...subObj.leaves].sort(byLabel) : subObj.leaves).map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
+            {subObj.leaves.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
           </select>
         )}
       </fieldset>
