@@ -31,6 +31,7 @@ export default function PhoneMenu() {
         <nav className={styles.menu} aria-label="Sections">
           <NavLink to="/wander" className={styles.item} onClick={() => setOpen(false)}>Wanderlog</NavLink>
           <NavLink to="/savor" className={styles.item} onClick={() => setOpen(false)}>Savorlog</NavLink>
+          <NavLink to="/roam" className={styles.item} onClick={() => setOpen(false)}>Roaminglog</NavLink>
           <button type="button" className={styles.item} data-testid="theme-toggle" onClick={() => { toggle(); setOpen(false) }}>
             {isDark ? 'Light mode' : 'Dark mode'}
           </button>

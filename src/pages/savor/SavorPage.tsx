@@ -475,7 +475,7 @@ function SavorLoaded({ userId }: { userId: string }) {
 }
 
 // Country/city search as you type; only the latest answer counts.
-function useLocationSearch() {
+export function useLocationSearch() {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<LocationHit[]>([])
   const [searching, setSearching] = useState(false)
@@ -495,7 +495,7 @@ function useLocationSearch() {
   return { query, hits, searching, err, run }
 }
 
-function LocationHits({ hits, onPick }: { hits: LocationHit[]; onPick: (hit: LocationHit) => void }) {
+export function LocationHits({ hits, onPick }: { hits: LocationHit[]; onPick: (hit: LocationHit) => void }) {
   return (
     <ul className={styles.results} aria-label="Places">
       {hits.map(h => (
@@ -512,7 +512,7 @@ function LocationHits({ hits, onPick }: { hits: LocationHit[]; onPick: (hit: Loc
 
 // Session 11: a City/Country field above the eatery search. Picking a match
 // glides the map there, like the startup popup, then clears the field.
-function LocationField({ onPick }: { onPick: (hit: LocationHit) => void }) {
+export function LocationField({ onPick }: { onPick: (hit: LocationHit) => void }) {
   const { query, hits, searching, err, run } = useLocationSearch()
   return (
     <div className={styles.locField}>

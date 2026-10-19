@@ -229,6 +229,7 @@
 }
 .cards .reveal:nth-child(1) { transition-delay: 100ms; }
 .cards .reveal:nth-child(2) { transition-delay: 220ms; }
+.cards .reveal:nth-child(3) { transition-delay: 340ms; }
 .splash[data-landed='true'] .choose { background: var(--ground); }
 .splash[data-landed='true'] .reveal,
 .reveal:focus-within {

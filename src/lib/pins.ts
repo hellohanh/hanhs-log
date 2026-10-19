@@ -60,6 +60,15 @@ async function fetchSpots(tripId: string): Promise<Pin[]> {
   return (data as SpotRow[]).map(s => spotAsPin(s, tripId))
 }
 
+/** The whole Roaminglog catalogue for the Spot List (/roam), shaped like pins. */
+export async function fetchAllSpots(): Promise<Pin[]> {
+  const { data, error } = await client().from('spots').select(SPOT_COLUMNS).is('deleted_at', null)
+  if (error) throw new Error(error.message)
+  const spots = ((Array.isArray(data) ? data : []) as SpotRow[]).map(s => spotAsPin(s, ''))
+  for (const s of spots) spotIds.add(s.id)
+  return spots.sort((a, b) => a.name.localeCompare(b.name))
+}
+
 export async function fetchPins(tripId: string): Promise<Pin[]> {
   const [{ data, error }, spots] = await Promise.all([
     client().from('pins').select(PIN_COLUMNS).eq('trip_id', tripId),

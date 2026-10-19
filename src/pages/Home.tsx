@@ -169,6 +169,15 @@ export default function Home() {
                     <span className={styles.cardCta}>Open Savorlog →</span>
                   </div>
                 </Link>
+                <Link to="/roam" className={`${styles.card} ${styles.reveal}`}>
+                  <img src={img('card-roam.webp')} alt="" width="800" height="500" />
+                  <div className={styles.cardBody}>
+                    <span className="eyebrow">Roaminglog</span>
+                    <span className={styles.cardTitle}>Keep the spots.</span>
+                    <span className={styles.cardText}>The sights, stays, shops and stations worth finding again, on every trip's map.</span>
+                    <span className={styles.cardCta}>Open Roaminglog →</span>
+                  </div>
+                </Link>
               </div>
             </div>
           </section>
@@ -179,7 +188,7 @@ export default function Home() {
 
       <footer className={styles.footer}>
         <span className={styles.footerMark}>Hanh's Log</span>
-        <span>Wanderlog · Savorlog</span>
+        <span>Wanderlog · Savorlog · Roaminglog</span>
       </footer>
     </main>
   )

@@ -38,7 +38,8 @@ export default function PinForm({
   onCancel,
   onSaved,
   prefill,
-  importActions
+  importActions,
+  roam
 }: {
   tripId: string
   userId: string
@@ -47,7 +48,10 @@ export default function PinForm({
   pin?: Pin
   reviews: Review[]
   openDay: { id: string; label: string } | null
-  onAddToDay: (id: string, kind: 'pin') => void
+  /** Leave out to hide + Add to a day (the Spot List, session 14). */
+  onAddToDay?: (id: string, kind: 'pin') => void
+  /** The Spot List (session 14): no food category; reviews are everyone's. */
+  roam?: boolean
   /** Picking the Nom-Nom category hands off to the Savorlog add panel (M5). */
   onFood?: () => void
   onCancel: () => void
@@ -157,7 +161,7 @@ export default function PinForm({
       <NameFields value={names} onChange={setNames} fieldClass={styles.field} hintClass={styles.address} google={google} />
       {address && <p className={styles.address}>{address}</p>}
 
-      {pin && (
+      {pin && onAddToDay && (
         <button
           type="button"
           className={styles.addToDay}
@@ -184,7 +188,7 @@ export default function PinForm({
           }}
         >
           <option value="">Pick a category</option>
-          {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+          {CATEGORIES.filter(c => !roam || c.key !== 'food').map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
         </select>
         {cat && cat.subs.length > 0 && (
           <select aria-label={cat.subLabel ?? 'Type'} value={sub} onChange={e => { setSub(e.target.value); setLeaf('') }}>
@@ -242,7 +246,7 @@ export default function PinForm({
 
       {pin && reviews.length > 0 && (
         <fieldset className={styles.group}>
-          <legend>Everyone on the trip</legend>
+          <legend>{roam ? 'Everyone' : 'Everyone on the trip'}</legend>
           <ul className={styles.everyone}>
             {reviews.map(r => (
               <li key={r.user_id}>
