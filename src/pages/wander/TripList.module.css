@@ -149,3 +149,8 @@
   .h1 { font-size: 36px; }
   .grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Pick mode for one invite link (session 14): a tick box in the card's corner. */
+.card { position: relative; }
+.pick { position: absolute; z-index: 2; top: 12px; right: 12px; display: flex; padding: 6px; cursor: pointer; }
+.pick input { width: 20px; height: 20px; margin: 0; accent-color: #9E2A2B; cursor: pointer; }

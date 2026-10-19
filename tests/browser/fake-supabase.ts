@@ -55,6 +55,8 @@ export interface FakeDb {
   savorToken: string
   /** Dishes people added (0017). */
   customDishes: FakeRow[]
+  /** One invite link for several trips (0020). */
+  bundles: { id: string; token: string; owner_id: string; trip_ids: string[]; created_at: string; stopped_at: string | null }[]
   /** People per trip id. Trips missing here answer "not allowed". */
   people: Record<string, FakePerson[]>
   myName: string | null
@@ -114,7 +116,7 @@ const deny = (route: Route, message: string) =>
  */
 export async function fakeSupabase(
   page: Page,
-  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[]; importItems?: FakeRow[]; savorPeople?: FakePerson[]; customDishes?: FakeRow[] } = {}
+  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[]; importItems?: FakeRow[]; savorPeople?: FakePerson[]; customDishes?: FakeRow[]; bundles?: FakeDb['bundles'] } = {}
 ): Promise<FakeDb> {
   const me = opts.signedInAs === undefined ? ME : opts.signedInAs
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00'))
@@ -140,6 +142,7 @@ export async function fakeSupabase(
     savorPeople: structuredClone(opts.savorPeople ?? [{ user_id: ME, display_name: 'Hanh', is_owner: true, joined_at: null }]),
     savorToken: 'savor-tok',
     customDishes: structuredClone(opts.customDishes ?? []),
+    bundles: structuredClone(opts.bundles ?? []),
     calls: []
   }
   let currentUser = me
@@ -455,6 +458,41 @@ export async function fakeSupabase(
       const token = 'tok-reset'
       db.trips = db.trips.map(t => (t.id === args._trip ? { ...t, invite_token: token } : t))
       return route.fulfill({ json: token })
+    }
+    // One invite link for several trips (0020).
+    if (path === '/rest/v1/rpc/create_trip_bundle') {
+      const ids = (args as { _trips: string[] })._trips
+      if (ids.some(id => db.trips.find(t => t.id === id)?.owner_id !== currentUser)) return deny(route, 'not allowed: you can only include trips you own')
+      const token = `bundle-${db.bundles.length + 1}`
+      db.bundles.push({ id: `b${db.bundles.length + 1}`, token, owner_id: currentUser!, trip_ids: ids, created_at: `2026-10-19T1${db.bundles.length}:00:00Z`, stopped_at: null })
+      return route.fulfill({ json: token })
+    }
+    if (path === '/rest/v1/trip_bundles') {
+      return route.fulfill({ json: db.bundles.filter(b => b.owner_id === currentUser && !b.stopped_at) })
+    }
+    if (path === '/rest/v1/rpc/stop_trip_bundle') {
+      const b = db.bundles.find(x => x.id === (args as { _id: string })._id && x.owner_id === currentUser)
+      if (!b) return deny(route, 'not allowed')
+      b.stopped_at = '2026-10-19T12:00:00Z'
+      return route.fulfill({ status: 204, body: '' })
+    }
+    if (path === '/rest/v1/rpc/trip_bundle_preview') {
+      const b = db.bundles.find(x => x.token === (args as { _token: string })._token && !x.stopped_at)
+      if (!b) return route.fulfill({ json: [] })
+      return route.fulfill({ json: db.trips.filter(t => b.trip_ids.includes(t.id)).map(t => ({
+        trip_id: t.id, name: t.name, start_date: t.start_date, end_date: t.end_date, from_name: 'Hanh',
+        already: t.owner_id === currentUser || (db.people[t.id] ?? []).some(p => p.user_id === currentUser)
+      })) })
+    }
+    if (path === '/rest/v1/rpc/join_trips_via_bundle') {
+      const b = db.bundles.find(x => x.token === (args as { _token: string })._token && !x.stopped_at)
+      if (!b) return deny(route, 'invalid or stopped invite link')
+      let n = 0
+      for (const id of b.trip_ids) {
+        const list = (db.people[id] ??= [])
+        if (!list.some(p => p.user_id === currentUser)) { list.push({ user_id: currentUser!, display_name: null, is_owner: false, joined_at: '2026-10-19T12:00:00Z' }); n++ }
+      }
+      return route.fulfill({ json: n })
     }
     if (path === '/rest/v1/rpc/join_trip_via_invite') {
       const trip = db.trips.find(t => t.invite_token === args._token)

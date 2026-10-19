@@ -12,8 +12,12 @@ import {
   todayISO,
   placeLabel,
   tripDates,
+  createTripBundle,
+  fetchMyBundles,
+  type TripBundle,
   type TripSummary
 } from '../../lib/trips'
+import { BundlesDialog, NewBundleDialog } from './BundleDialogs'
 import { ensureTripCity } from '../../lib/city'
 import { amSavorlogOwner, fetchImport } from '../../lib/pinImport'
 import TripForm from './TripForm'
@@ -73,6 +77,13 @@ function SignedInList({ userId }: { userId: string }) {
   const [editingTrip, setEditingTrip] = useState<TripSummary | null>(null)
   const [notice, setNotice] = useState('')
   const [people, setPeople] = useState<Record<string, number>>({})
+  // One invite link for several trips (session 14): pick mode, the new link, your links.
+  const [picking, setPicking] = useState<Set<string> | null>(null)
+  const [newBundle, setNewBundle] = useState<{ token: string; tripIds: string[] } | null>(null)
+  const [bundles, setBundles] = useState<TripBundle[]>([])
+  const [showBundles, setShowBundles] = useState(false)
+  const loadBundles = useCallback(() => { fetchMyBundles().then(setBundles, () => setBundles([])) }, [])
+  useEffect(() => { loadBundles() }, [loadBundles])
   // The import button shows only to the Savorlog owner (E71), with places left.
   const [importLeft, setImportLeft] = useState<number | null>(null)
   const today = todayISO()
@@ -122,8 +133,33 @@ function SignedInList({ userId }: { userId: string }) {
   return (
     <Shell
       action={
-        !creating && (
+        !creating && picking ? (
           <span className={styles.actions}>
+            <button type="button" className={`btn btn-quiet ${styles.newBtn}`} onClick={() => setPicking(null)}>Cancel</button>
+            <button type="button" className={`btn ${styles.newBtn}`} disabled={picking.size === 0} onClick={async () => {
+              const ids = [...picking]
+              try {
+                const token = await createTripBundle(ids)
+                setPicking(null)
+                setNewBundle({ token, tripIds: ids })
+                loadBundles()
+              } catch (e) {
+                setNotice(`Couldn't make the link: ${(e as Error).message}`)
+              }
+            }}>
+              Make one link · {picking.size} trip{picking.size === 1 ? '' : 's'}
+            </button>
+          </span>
+        ) : !creating && (
+          <span className={styles.actions}>
+            {bundles.length > 0 && (
+              <button type="button" className={`btn btn-quiet ${styles.newBtn}`} onClick={() => setShowBundles(true)}>
+                Several-trips links · {bundles.length}
+              </button>
+            )}
+            <button type="button" className={`btn btn-quiet ${styles.newBtn}`} onClick={() => { setNotice('Tick the trips you own to put on one invite link.'); setPicking(new Set()) }}>
+              Invite to several trips
+            </button>
             {importLeft !== null && (
               <Link to="/wander/import" className={`btn btn-quiet ${styles.newBtn}`}>
                 Import old pins
@@ -164,6 +200,13 @@ function SignedInList({ userId }: { userId: string }) {
         />
       )}
 
+      {newBundle && load.state === 'ready' && (
+        <NewBundleDialog token={newBundle.token} tripIds={newBundle.tripIds} trips={load.trips} onClose={() => setNewBundle(null)} />
+      )}
+      {showBundles && load.state === 'ready' && (
+        <BundlesDialog bundles={bundles} trips={load.trips} onChanged={loadBundles} onClose={() => setShowBundles(false)} />
+      )}
+
       <p className={styles.notice} role="status" aria-live="polite">{notice}</p>
 
       {load.state === 'loading' && <p className="lede" role="status">Loading your trips…</p>}
@@ -188,7 +231,8 @@ function SignedInList({ userId }: { userId: string }) {
           ) : (
             <ul className={styles.grid}>
               {groups.upcoming.map(t => (
-                <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} onEdit={setEditingTrip} />
+                <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} onEdit={setEditingTrip}
+                  pick={picking ? { checked: picking.has(t.id), onToggle: () => setPicking(p => { const n = new Set(p); if (n.has(t.id)) n.delete(t.id); else n.add(t.id); return n }) } : undefined} />
               ))}
             </ul>
           )}
@@ -198,7 +242,8 @@ function SignedInList({ userId }: { userId: string }) {
               <h2 className={`${styles.h2} ${styles.pastTitle}`}>Past</h2>
               <ul className={`${styles.grid} ${styles.past}`}>
                 {groups.past.map(t => (
-                  <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} onEdit={setEditingTrip} />
+                  <TripCard key={t.id} trip={t} today={today} mine={t.owner_id === userId} people={people[t.id]} onDelete={remove} onEdit={setEditingTrip}
+                  pick={picking ? { checked: picking.has(t.id), onToggle: () => setPicking(p => { const n = new Set(p); if (n.has(t.id)) n.delete(t.id); else n.add(t.id); return n }) } : undefined} />
                 ))}
               </ul>
             </>
@@ -215,7 +260,8 @@ function TripCard({
   mine,
   people,
   onDelete,
-  onEdit
+  onEdit,
+  pick
 }: {
   trip: TripSummary
   today: string
@@ -223,11 +269,18 @@ function TripCard({
   people?: number
   onDelete: (t: TripSummary) => void
   onEdit: (t: TripSummary) => void
+  /** Pick mode for one invite link (session 14): a tick box on trips you own. */
+  pick?: { checked: boolean; onToggle: () => void }
 }) {
   const dates = tripDates(trip.start_date, trip.end_date, today)
   const dated = !!(trip.start_date || trip.end_date)
   return (
-    <li className={styles.card} data-testid="trip-card">
+    <li className={styles.card} data-testid="trip-card" style={pick && !mine ? { opacity: 0.45 } : undefined}>
+      {pick && mine && (
+        <label className={styles.pick}>
+          <input type="checkbox" checked={pick.checked} onChange={pick.onToggle} aria-label={`Include ${trip.name}`} />
+        </label>
+      )}
       <span className={dated ? styles.dates : `${styles.dates} ${styles.undated}`}>{dates}</span>
       <Link to={`/wander/trip/${trip.id}`} className={styles.name}>{trip.name}</Link>
       <span className={styles.destination}>{placeLabel(trip)}</span>

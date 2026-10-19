@@ -221,3 +221,58 @@ export async function copyTripPins(from: string, to: string): Promise<{ copied: 
   if (error) throw new Error(error.message)
   return data as { copied: number; skipped: number }
 }
+
+// ---- One invite link for several trips (migration 0020, session 14) ----
+
+export interface TripBundle {
+  id: string
+  token: string
+  trip_ids: string[]
+  created_at: string
+}
+
+export function bundleUrl(token: string): string {
+  return `${window.location.origin}${import.meta.env.BASE_URL}wander/join-trips/${token}`
+}
+
+/** Makes one link for trips you own; returns its token. */
+export async function createTripBundle(tripIds: string[]): Promise<string> {
+  const { data, error } = await client().rpc('create_trip_bundle', { _trips: tripIds })
+  if (error) throw new Error(error.message)
+  return data as string
+}
+
+/** Your links that still work. */
+export async function fetchMyBundles(): Promise<TripBundle[]> {
+  const { data, error } = await client().from('trip_bundles').select('id, token, trip_ids, created_at').is('stopped_at', null)
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as TripBundle[]).sort((a, b) => b.created_at.localeCompare(a.created_at))
+}
+
+export async function stopTripBundle(id: string): Promise<void> {
+  const { error } = await client().rpc('stop_trip_bundle', { _id: id })
+  if (error) throw new Error(error.message)
+}
+
+export interface BundleTrip {
+  trip_id: string
+  name: string
+  start_date: string | null
+  end_date: string | null
+  from_name: string | null
+  already: boolean
+}
+
+/** What a several-trips link invites to (signed-in only). */
+export async function bundlePreview(token: string): Promise<BundleTrip[]> {
+  const { data, error } = await client().rpc('trip_bundle_preview', { _token: token })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as BundleTrip[]
+}
+
+/** Joins every trip on the link; returns how many were joined. */
+export async function joinTripsViaBundle(token: string): Promise<number> {
+  const { data, error } = await client().rpc('join_trips_via_bundle', { _token: token })
+  if (error) throw new Error(error.message)
+  return data as number
+}
