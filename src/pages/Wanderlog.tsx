@@ -2,12 +2,14 @@ import { Route, Routes } from 'react-router-dom'
 import TripList from './wander/TripList'
 import TripPage from './wander/TripPage'
 import JoinTrip from './wander/JoinTrip'
+import JoinTrips from './wander/JoinTrips'
 import ImportPage from './wander/ImportPage'
 
 // Wanderlog inside Hanh's Log (milestone 3).
 //   /wander               the trip list
 //   /wander/trip/:id      a trip (map arrives in step 3)
 //   /wander/join/:token   an invite link
+//   /wander/join-trips/:token   one invite link for several trips (session 14)
 //   /wander/import        the old-Wanderlog pin import queue (E71)
 export default function Wanderlog() {
   return (
@@ -15,6 +17,7 @@ export default function Wanderlog() {
       <Route index element={<TripList />} />
       <Route path="trip/:tripId" element={<TripPage />} />
       <Route path="join/:token" element={<JoinTrip />} />
+      <Route path="join-trips/:token" element={<JoinTrips />} />
       <Route path="import" element={<ImportPage />} />
       <Route path="*" element={<TripList />} />
     </Routes>
