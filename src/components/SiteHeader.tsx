@@ -35,7 +35,7 @@ export default function SiteHeader() {
   const { pathname } = useLocation()
   // Munch List (/savor) too since session 13 when signed in: it has its own
   // title bar on phones (signed out it shows a sign-in message, so keep the header).
-  const hidden = phone && (/^\/wander\/trip\//.test(pathname) || (!!session && /^\/savor\/?$/.test(pathname)))
+  const hidden = phone && (/^\/wander\/trip\//.test(pathname) || (!!session && /^\/(savor|roam)\/?$/.test(pathname)))
 
   // The header wraps to two rows on phones; publish its real height so
   // pinned content (the splash picture) sits just below it.
@@ -74,6 +74,9 @@ export default function SiteHeader() {
         </NavLink>
         <NavLink to="/savor" className={navClass}>
           Savorlog
+        </NavLink>
+        <NavLink to="/roam" className={navClass}>
+          Roaminglog
         </NavLink>
         <button
           type="button"

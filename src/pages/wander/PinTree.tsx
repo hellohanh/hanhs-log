@@ -32,7 +32,8 @@ export default function PinTree({
   reviews: Review[]
   openDay: { id: string; label: string } | null
   onOpen: (pin: Pin) => void
-  onAddToDay: (id: string, kind: StopKind) => void
+  /** Leave out (Spot List) to hide the + Add to a day buttons. */
+  onAddToDay?: (id: string, kind: StopKind) => void
   /** The eyes (session 10): which places show while Show all pins is off. */
   picked: Set<string>
   showAll: boolean
@@ -119,16 +120,18 @@ export default function PinTree({
             </span>
           )}
         </button>
-        <button
-          type="button"
-          className={styles.addDay}
-          disabled={!openDay}
-          onClick={() => openDay && onAddToDay(p.id, 'pin')}
-          aria-label={openDay ? `Add ${p.name} to ${openDay.label}` : 'Add to a day — open the itinerary first'}
-          title={openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}
-        >
-          +
-        </button>
+        {onAddToDay && (
+          <button
+            type="button"
+            className={styles.addDay}
+            disabled={!openDay}
+            onClick={() => openDay && onAddToDay(p.id, 'pin')}
+            aria-label={openDay ? `Add ${p.name} to ${openDay.label}` : 'Add to a day — open the itinerary first'}
+            title={openDay ? `Add to ${openDay.label}` : 'Add to a day — open the itinerary first'}
+          >
+            +
+          </button>
+        )}
         <EyeButton label={p.name} state={eyeState([p.id], picked, showAll)} onClick={() => onPick([p.id])} />
       </li>
     )

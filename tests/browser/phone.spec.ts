@@ -26,7 +26,7 @@ test.describe('phone', () => {
     await expect(page.getByRole('link', { name: 'Savorlog' })).toHaveCount(0)
     await page.getByRole('button', { name: 'Menu', exact: true }).click()
     const menu = page.getByRole('navigation', { name: 'Sections' })
-    await expect(menu.getByRole('link')).toHaveText(['Wanderlog', 'Savorlog'])
+    await expect(menu.getByRole('link')).toHaveText(['Wanderlog', 'Savorlog', 'Roaminglog'])
     await expect(menu.getByRole('button', { name: /Dark mode|Light mode/ })).toBeVisible()
     await expect(menu.getByRole('button', { name: 'Sign out' })).toBeVisible()
     await menu.getByRole('link', { name: 'Savorlog' }).click()
