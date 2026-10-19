@@ -26,6 +26,7 @@ export default function PlacesPanel({
   reviews,
   eateries,
   eateriesInView,
+  pinsInView,
   eateryReviews,
   loadError,
   showAll,
@@ -55,6 +56,8 @@ export default function PlacesPanel({
   eateries: Eatery[]
   /** The eateries on screen: the Nom-Nom list, counts and MICHELIN chip (defaults to all). */
   eateriesInView?: Eatery[]
+  /** The trip's own pins plus the Roaminglog spots on screen (session 14). */
+  pinsInView?: Pin[]
   eateryReviews: EateryReview[]
   loadError: string
   showAll: boolean
@@ -85,8 +88,9 @@ export default function PlacesPanel({
   const [searchError, setSearchError] = useState('')
 
   const listed = eateriesInView ?? eateries
-  const hasMichelin = pins.some(p => p.michelin) || listed.some(e => e.michelin)
-  const michelinCount = pins.filter(p => p.michelin).length + listed.filter(e => e.michelin).length
+  const listedPins = pinsInView ?? pins
+  const hasMichelin = listedPins.some(p => p.michelin) || listed.some(e => e.michelin)
+  const michelinCount = listedPins.filter(p => p.michelin).length + listed.filter(e => e.michelin).length
 
   async function search(e: FormEvent) {
     e.preventDefault()
@@ -165,7 +169,7 @@ export default function PlacesPanel({
     )
   }
 
-  const total = pins.length + listed.length
+  const total = listedPins.length + listed.length
   return (
     <aside className={styles.side} aria-label="Places">
       <div className={styles.head}>
@@ -225,10 +229,10 @@ export default function PlacesPanel({
         <p className={styles.muted}>No places on this trip yet. Search above to add one.</p>
       )}
 
-      {(pins.length > 0 || listed.length > 0) && (
+      {(listedPins.length > 0 || listed.length > 0) && (
         <div className={styles.list}>
           <PinTree
-            pins={pins}
+            pins={listedPins}
             nomNom={
               listed.length > 0
                 ? {

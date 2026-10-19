@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isSpot } from './pins'
 import type { FoundPlace } from './pins'
 import type { ImportItem, Row } from './pinImportRules'
 
@@ -38,9 +39,12 @@ export async function loadImport(rows: Row[]): Promise<void> {
 }
 
 export async function markSaved(id: string, saved: { pin?: string; eatery?: string }): Promise<void> {
+  // saved_pin_id links to trip pins only; a place saved to Roaminglog (a spot,
+  // session 14) is just ticked off.
+  const pin = saved.pin && !isSpot(saved.pin) ? saved.pin : null
   const { error } = await db()
     .from('pin_import_items')
-    .update({ status: 'saved', saved_pin_id: saved.pin ?? null, saved_eatery_id: saved.eatery ?? null, done_at: new Date().toISOString() })
+    .update({ status: 'saved', saved_pin_id: pin, saved_eatery_id: saved.eatery ?? null, done_at: new Date().toISOString() })
     .eq('id', id)
   if (error) throw error
 }

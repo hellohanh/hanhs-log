@@ -23,7 +23,7 @@ import NamePrompt from './NamePrompt'
 import TripMap, { type CityState, type MapPin } from './TripMap'
 import PlacesPanel, { type Editing, type EateryEditing } from './PlacesPanel'
 import { fetchTripEateries, fetchEateryReviews, asReviews, requestEateryDeletion, saveEateryNote, type Eatery, type EateryReview } from '../../lib/eateries'
-import { deletePin, fetchPins, fetchReviews, pinBadge, pinFaded, savePinNote, type Pin, type Review } from '../../lib/pins'
+import { deletePin, fetchPins, isSpot, fetchReviews, pinBadge, pinFaded, savePinNote, type Pin, type Review } from '../../lib/pins'
 import PlacePopup from '../../components/PlacePopup'
 import BottomSheet, { type Snap } from '../../components/BottomSheet'
 import PhoneMenu from '../../components/PhoneMenu'
@@ -178,6 +178,12 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
     () => onScreen(eateries, view, hasMapKey),
     [eateries, view, hasMapKey]
   )
+  // Roaminglog spots are on every trip's map; the Places list shows the
+  // trip's own pins plus the spots on screen, like the Nom-Nom list.
+  const pinsInView = useMemo(() => {
+    const spots = onScreen(pins.filter(p => p.source === 'spot'), view, hasMapKey)
+    return [...pins.filter(p => p.source !== 'spot'), ...spots].sort((a, b) => a.name.localeCompare(b.name))
+  }, [pins, view, hasMapKey])
   // The day's city (session 13, E102): the open itinerary day (or today during
   // the trip) is in the home city until a travel leg lands somewhere else. The
   // home_pin map button glides there, and Reset goes there too.
@@ -332,7 +338,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             lat: popupItem.lat,
             lng: popupItem.lng,
             note: popupItem.note,
-            deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list.",
+            deleteText: popup.kind === 'pin' ? (isSpot(popup.id) ? "Remove this place? It leaves every trip and goes to the owner's pending-deletion list." : 'Delete this pin?') : "Remove this eatery? It goes to the owner's pending-deletion list.",
             iconHtml: popupIcon,
             vibes: vibeLabels(popupItem)
           }}
@@ -425,6 +431,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               reviews={reviews}
               eateries={eateries}
               eateriesInView={eateriesInView}
+              pinsInView={pinsInView}
               eateryReviews={eateryReviews}
               loadError={pinsError}
               showAll={showAll}
@@ -508,7 +515,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           />
         )}
         {copying && (
-          <CopyPinsDialog tripId={trip.id} tripName={trip.name} pins={pins} onCopied={() => void loadPins()} onClose={() => setCopying(false)} />
+          <CopyPinsDialog tripId={trip.id} tripName={trip.name} pins={pins.filter(p => p.source !== 'spot')} onCopied={() => void loadPins()} onClose={() => setCopying(false)} />
         )}
         {myName === null && !nameLater && !sharing && (
           <NamePrompt userId={userId} onSaved={name => { setMyName(name); loadPeople() }} onLater={() => setNameLater(true)} />
@@ -573,6 +580,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           reviews={reviews}
           eateries={eateries}
           eateriesInView={eateriesInView}
+          pinsInView={pinsInView}
           eateryReviews={eateryReviews}
           loadError={pinsError}
           showAll={showAll}
@@ -620,7 +628,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
                     lat: popupItem.lat,
                     lng: popupItem.lng,
                     note: popupItem.note,
-                    deleteText: popup.kind === 'pin' ? 'Delete this pin?' : "Remove this eatery? It goes to the owner's pending-deletion list.",
+                    deleteText: popup.kind === 'pin' ? (isSpot(popup.id) ? "Remove this place? It leaves every trip and goes to the owner's pending-deletion list." : 'Delete this pin?') : "Remove this eatery? It goes to the owner's pending-deletion list.",
                     iconHtml: popupIcon,
                     vibes: vibeLabels(popupItem)
                   }}
@@ -683,7 +691,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
       )}
 
       {copying && (
-        <CopyPinsDialog tripId={trip.id} tripName={trip.name} pins={pins} onCopied={() => void loadPins()} onClose={() => setCopying(false)} />
+        <CopyPinsDialog tripId={trip.id} tripName={trip.name} pins={pins.filter(p => p.source !== 'spot')} onCopied={() => void loadPins()} onClose={() => setCopying(false)} />
       )}
       {myName === null && !nameLater && !sharing && (
         <NamePrompt

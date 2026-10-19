@@ -82,9 +82,11 @@ test('load the prepared file, save a place to the trip, skip an eatery for good'
 
   // Saved as a trip pin; the import row is ticked off and we're back on the city.
   await expect(page.getByText('All Attraction places in Hồ Chí Minh City are done.')).toBeVisible()
-  await expect.poll(() => db.pins.length).toBe(1)
-  expect(db.pins[0]).toMatchObject({ trip_id: 'trip-saigon', name: 'Notre Dame Cathedral of Saigon : Nhà Thờ Đức Bà', category: 'attraction', subcategory: 'worship', subsubcategory: 'church' })
-  expect(db.importItems.find(i => i.google_place_id === 'gp-cathedral')).toMatchObject({ status: 'saved', saved_pin_id: db.pins[0].id })
+  // A non-food place goes to Roaminglog's spots (session 14) and is ticked off.
+  await expect.poll(() => db.spots.length).toBe(1)
+  expect(db.pins).toHaveLength(0)
+  expect(db.spots[0]).toMatchObject({ name: 'Notre Dame Cathedral of Saigon : Nhà Thờ Đức Bà', category: 'attraction', subcategory: 'worship', subsubcategory: 'church' })
+  expect(db.importItems.find(i => i.google_place_id === 'gp-cathedral')).toMatchObject({ status: 'saved', saved_pin_id: null })
 
   // Nom-Nom → the Savorlog card, MICHELIN and street food prefilled; skip it for good.
   await page.getByRole('button', { name: /Nom-Nom/ }).click()

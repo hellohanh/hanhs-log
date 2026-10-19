@@ -55,6 +55,9 @@ export interface FakeDb {
   savorToken: string
   /** Dishes people added (0017). */
   customDishes: FakeRow[]
+  /** Roaminglog spots and their WTG / VIS (0021). */
+  spots: FakeRow[]
+  spotReviews: FakeRow[]
   /** One invite link for several trips (0020). */
   bundles: { id: string; token: string; owner_id: string; trip_ids: string[]; created_at: string; stopped_at: string | null }[]
   /** People per trip id. Trips missing here answer "not allowed". */
@@ -116,7 +119,7 @@ const deny = (route: Route, message: string) =>
  */
 export async function fakeSupabase(
   page: Page,
-  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[]; importItems?: FakeRow[]; savorPeople?: FakePerson[]; customDishes?: FakeRow[]; bundles?: FakeDb['bundles'] } = {}
+  opts: { signedInAs?: string | null; trips?: FakeTrip[]; people?: Record<string, FakePerson[]>; myName?: string | null; pins?: FakeRow[]; reviews?: FakeRow[]; eateries?: FakeRow[]; eateryReviews?: FakeRow[]; eateryPhotos?: FakeRow[]; importItems?: FakeRow[]; savorPeople?: FakePerson[]; customDishes?: FakeRow[]; spots?: FakeRow[]; spotReviews?: FakeRow[]; bundles?: FakeDb['bundles'] } = {}
 ): Promise<FakeDb> {
   const me = opts.signedInAs === undefined ? ME : opts.signedInAs
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00'))
@@ -142,6 +145,8 @@ export async function fakeSupabase(
     savorPeople: structuredClone(opts.savorPeople ?? [{ user_id: ME, display_name: 'Hanh', is_owner: true, joined_at: null }]),
     savorToken: 'savor-tok',
     customDishes: structuredClone(opts.customDishes ?? []),
+    spots: structuredClone(opts.spots ?? []),
+    spotReviews: structuredClone(opts.spotReviews ?? []),
     bundles: structuredClone(opts.bundles ?? []),
     calls: []
   }
@@ -338,6 +343,40 @@ export async function fakeSupabase(
         db.eateries = db.eateries.map(e => (e.id === idEq ? { ...e, ...args } : e))
         return route.fulfill({ status: 204, body: '' })
       }
+    }
+    // Roaminglog spots (0021): one shared catalogue, removal waits for the owner.
+    if (path === '/rest/v1/spots') {
+      if (req.method() === 'GET') return route.fulfill({ json: db.spots.filter(x => !x.deleted_at) })
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) {
+          if (r.google_place_id && db.spots.some(x => x.google_place_id === r.google_place_id)) {
+            return route.fulfill({ status: 409, json: { code: '23505', message: 'duplicate key value violates unique constraint "spots_place"' } })
+          }
+          db.spots.push({ created_at: '2026-10-19T12:00:00Z', deleted_at: null, ...r })
+        }
+        return route.fulfill({ status: 201, body: '' })
+      }
+      if (req.method() === 'PATCH') {
+        db.spots = db.spots.map(x => (x.id === idEq ? { ...x, ...args } : x))
+        return route.fulfill({ status: 204, body: '' })
+      }
+    }
+    if (path === '/rest/v1/spot_reviews') {
+      if (req.method() === 'GET') {
+        const ids = (url.searchParams.get('spot_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
+        return route.fulfill({ json: db.spotReviews.filter(r => ids.includes(r.spot_id as string)) })
+      }
+      if (req.method() === 'POST') {
+        for (const r of Array.isArray(args) ? args : [args]) {
+          db.spotReviews = db.spotReviews.filter(x => !(x.spot_id === r.spot_id && x.user_id === r.user_id))
+          db.spotReviews.push({ ...r, updated_at: '2026-10-19T12:00:00Z' })
+        }
+        return route.fulfill({ status: 201, body: '' })
+      }
+    }
+    if (path === '/rest/v1/rpc/request_spot_deletion') {
+      db.spots = db.spots.map(x => (x.id === args._id ? { ...x, deleted_at: '2026-10-19T12:00:00Z' } : x))
+      return route.fulfill({ status: 204, body: '' })
     }
     if (path === '/rest/v1/custom_dishes') {
       if (req.method() === 'GET') return route.fulfill({ json: db.customDishes })

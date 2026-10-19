@@ -55,10 +55,13 @@ test('add a non-food pin: pick the category by hand, VIS needs a verdict, half s
   await expect(places.getByText('Bến Thành Market')).toBeVisible()
   await expect(places.getByRole('img', { name: 'Visited: revisit' })).toBeVisible()
 
-  const pin = JSON.parse(db.calls.find(c => c.method === 'POST' && c.path === '/rest/v1/pins')!.body!)
-  expect(pin).toMatchObject({ trip_id: 'trip-saigon', google_place_id: 'g-ben-thanh', name: 'Bến Thành Market', category: 'shopping' })
-  const review = JSON.parse(db.calls.find(c => c.method === 'POST' && c.path === '/rest/v1/pin_reviews')!.body!)
-  expect(review).toEqual({ pin_id: pin.id, user_id: ME, status: 'vis', verdict: 'revisit', rating: 4.5 })
+  // Since session 14 a non-food place goes to Roaminglog's shared spots, not the trip.
+  expect(db.calls.some(c => c.method === 'POST' && c.path === '/rest/v1/pins')).toBe(false)
+  const spot = JSON.parse(db.calls.find(c => c.method === 'POST' && c.path === '/rest/v1/spots')!.body!)
+  expect(spot).toMatchObject({ google_place_id: 'g-ben-thanh', name: 'Bến Thành Market', category: 'shopping' })
+  expect(spot.trip_id).toBeUndefined()
+  const review = JSON.parse(db.calls.find(c => c.method === 'POST' && c.path === '/rest/v1/spot_reviews')!.body!)
+  expect(review).toEqual({ spot_id: spot.id, user_id: ME, status: 'vis', verdict: 'revisit', rating: 4.5 })
 })
 
 test('the tree: collapses by category, MICHELIN chip, Show all pins on by default; edit shows everyone and the average', async ({ page }) => {
