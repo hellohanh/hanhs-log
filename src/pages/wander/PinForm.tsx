@@ -295,7 +295,7 @@ export default function PinForm({
         <ImportButtons actions={importActions} busy={busy} classes={{ buttons: styles.buttons, del: styles.del, confirm: styles.confirm }} />
       ) : confirm ? (
         <div className={styles.confirm} role="alert">
-          <span>Delete this place for everyone on the trip?</span>
+          <span>{pin?.source === 'spot' ? "Remove this place from Roaminglog? It leaves every trip and goes to the owner's pending-deletion list." : 'Delete this place for everyone on the trip?'}</span>
           <button type="button" className="btn" onClick={remove} disabled={busy}>Delete</button>
           <button type="button" className="btn btn-quiet" onClick={() => setConfirm(false)}>Keep</button>
         </div>

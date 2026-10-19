@@ -36,7 +36,7 @@ export default function CopyPinsDialog({ tripId, tripName, pins, onCopied, onClo
     setTheirs(null)
     if (!from) return
     let alive = true
-    fetchPins(from).then(p => alive && setTheirs(p)).catch(e => alive && setError((e as Error).message))
+    fetchPins(from).then(p => alive && setTheirs(p.filter(x => x.source !== 'spot'))).catch(e => alive && setError((e as Error).message))
     return () => { alive = false }
   }, [from])
 

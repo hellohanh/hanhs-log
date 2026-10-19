@@ -286,8 +286,10 @@ function TripCard({
       <span className={styles.destination}>{placeLabel(trip)}</span>
       <span className={styles.foot}>
         <span>
-          {trip.pinCount === 1 ? '1 pin' : `${trip.pinCount} pins`}
-          {people !== undefined && (people <= 1 ? ' · just you' : ` · ${people} people`)}
+          {/* Since session 14 only food pins belong to a trip (the rest are
+              Roaminglog spots on every trip), so 0 isn't worth saying. */}
+          {[trip.pinCount === 0 ? '' : trip.pinCount === 1 ? '1 pin' : `${trip.pinCount} pins`,
+            people === undefined ? '' : people <= 1 ? 'just you' : `${people} people`].filter(Boolean).join(' · ')}
         </span>
         <span className={styles.footRight}>
           <span className={styles.badge}>{mine ? 'You own this' : 'Shared with you'}</span>

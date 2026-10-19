@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { Michelin } from './pinDraw'
+import { isSpot } from './pins'
 
 // The itinerary panel's data (migration 0002): a trip's days (dated days
 // for the trip's dates plus extra undated days), each day's note, and
@@ -168,10 +169,12 @@ export async function deleteActivity(id: string): Promise<void> {
 
 // ---- Places on days: scheduled stops (migration 0005, 0010) ----
 
-// A stop is either a trip pin or a shared Savorlog eatery (migration 0010):
-// exactly one of pin_id / eatery_id is set. The panel resolves both into a
-// StopItem so a dining spot schedules onto a day like any other place.
-export type StopKind = 'pin' | 'eatery'
+// A stop is a trip pin, a shared Savorlog eatery (migration 0010) or a
+// Roaminglog spot (0022): exactly one of pin_id / eatery_id / spot_id is set.
+// The panel resolves them all into a StopItem so any place schedules onto a
+// day alike. Spots look like pins in the Places panel, so a 'pin' that is
+// really a spot is sent as a spot (stopTarget).
+export type StopKind = 'pin' | 'eatery' | 'spot'
 
 /** A pin or eatery flattened to what the itinerary needs: a name and category
  * path to draw it, coordinates for the day route, and MICHELIN for the label.
@@ -193,6 +196,7 @@ export interface Stop {
   day_id: string
   pin_id: string | null
   eatery_id: string | null
+  spot_id?: string | null
   start_time: string
   end_time: string
   note: string | null
@@ -200,8 +204,8 @@ export interface Stop {
 export type StopFields = Omit<Stop, 'id'>
 
 /** The id a stop points at, whichever kind it is. */
-export function stopTargetId(s: Pick<Stop, 'pin_id' | 'eatery_id'>): string {
-  return (s.pin_id ?? s.eatery_id) as string
+export function stopTargetId(s: Pick<Stop, 'pin_id' | 'eatery_id' | 'spot_id'>): string {
+  return (s.pin_id ?? s.eatery_id ?? s.spot_id) as string
 }
 
 /** A pin or eatery as a stop points at it: a drag token, and back. Pin ids
@@ -214,16 +218,19 @@ export function parseStopRef(ref: string): { kind: StopKind; id: string } {
   return ref.startsWith('eatery:') ? { kind: 'eatery', id: ref.slice('eatery:'.length) } : { kind: 'pin', id: ref }
 }
 /** The insert target columns for a stop of this kind. */
-export function stopTarget(kind: StopKind, id: string): { pin_id: string } | { eatery_id: string } {
-  return kind === 'eatery' ? { eatery_id: id } : { pin_id: id }
+export function stopTarget(kind: StopKind, id: string): { pin_id: string } | { eatery_id: string } | { spot_id: string } {
+  if (kind === 'eatery') return { eatery_id: id }
+  return kind === 'spot' || isSpot(id) ? { spot_id: id } : { pin_id: id }
 }
 
 export async function fetchStops(dayIds: string[]): Promise<Stop[]> {
   if (dayIds.length === 0) return []
-  const { data, error } = await client()
-    .from('itinerary_stops')
-    .select('id, day_id, pin_id, eatery_id, start_time, end_time, note')
-    .in('day_id', dayIds)
+  const stops = () => client().from('itinerary_stops')
+  let { data, error } = await stops().select('id, day_id, pin_id, eatery_id, spot_id, start_time, end_time, note').in('day_id', dayIds).returns<Stop[]>()
+  // Before migration 0022 is applied there's no spot_id yet: load as before.
+  if (error && /spot_id/.test(error.message)) {
+    ;({ data, error } = await stops().select('id, day_id, pin_id, eatery_id, start_time, end_time, note').in('day_id', dayIds).returns<Stop[]>())
+  }
   if (error) throw new Error(error.message)
   return (data ?? []) as Stop[]
 }

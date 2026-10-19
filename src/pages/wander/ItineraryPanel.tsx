@@ -199,7 +199,7 @@ export default function ItineraryPanel({
   const itemById = useMemo(() => {
     const m = new Map<string, StopItem>()
     for (const p of pins) {
-      m.set(p.id, { id: p.id, kind: 'pin', name: p.name, lat: p.lat, lng: p.lng, michelin: p.michelin, category: p.category, subcategory: p.subcategory, subsubcategory: p.subsubcategory })
+      m.set(p.id, { id: p.id, kind: p.source === 'spot' ? 'spot' : 'pin', name: p.name, lat: p.lat, lng: p.lng, michelin: p.michelin, category: p.category, subcategory: p.subcategory, subsubcategory: p.subsubcategory })
     }
     for (const e of eateries) {
       m.set(e.id, { id: e.id, kind: 'eatery', name: e.name, lat: e.lat, lng: e.lng, michelin: e.michelin, category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
