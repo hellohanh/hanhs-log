@@ -1,7 +1,8 @@
 # Run by hand (Actions → Inspect database → Run workflow) to see the live
 # database's tables, security rules, policies and grants on the run's
 # summary page. Read-only: it never changes anything and never reads row
-# data, so nothing private appears in the (public) run log.
+# data, so nothing private appears in the (public) run log. Since session 14
+# it also prints the Roaminglog move preview: counts only, as run notes.
 name: Inspect database
 
 on:
@@ -26,3 +27,8 @@ jobs:
             psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=0 -c "set default_transaction_read_only = on" -f scripts/inspect-db.sql 2>&1
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Roaminglog move preview (counts only)
+        run: |
+          # Numbers only (no names or notes), shown as notes on the run.
+          psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=0 -c "set default_transaction_read_only = on" -f scripts/roam-move-counts.sql 2>/dev/null | grep "=" \
+            | while read -r line; do [ -n "$line" ] && echo "::notice title=Roaminglog move preview::$line"; done || true
