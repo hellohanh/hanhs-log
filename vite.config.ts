@@ -35,7 +35,8 @@ export default defineConfig(({ command }) => ({
         navigateFallback: 'index.html',
         // The live site's service worker must never answer for a preview
         // (/hanhs-log/pr-preview/...), or previews would show the live app.
-        navigateFallbackDenylist: [/\/pr-preview\//],
+        // Also the how-to page (public/how-to), a plain page outside the app.
+        navigateFallbackDenylist: [/\/pr-preview\//, /\/how-to(\/|$)/],
         globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}']
       }
     })
