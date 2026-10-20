@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { makeOfflineFetch } from './offline'
 
 // Same Supabase project as Wanderlog. Both values are public by design (the
 // "anon" key only grants what the database's security rules allow) but they
@@ -24,7 +25,8 @@ const anonKey = ((import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) 
 function makeClient(): SupabaseClient | null {
   if (!url || !anonKey) return null
   try {
-    return createClient(url, anonKey)
+    // Reads are kept on the device and answer when there's no signal (offline.ts).
+    return createClient(url, anonKey, { global: { fetch: makeOfflineFetch((...a) => fetch(...a)) } })
   } catch (e) {
     // A bad setting must never blank the whole site; sign-in just stays off.
     console.warn('Sign-in is off: the Supabase settings could not be used.', e)

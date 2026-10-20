@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { clearOfflineCopy } from './offline'
 import { supabase, supabaseHost } from './supabase'
 
 interface AuthState {
@@ -42,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await supabase?.auth.signOut()
+    await clearOfflineCopy()
   }
 
   return (

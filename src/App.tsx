@@ -8,10 +8,12 @@ import SignIn from './pages/SignIn'
 import Search from './pages/Search'
 import NotFound from './pages/NotFound'
 import UpdateNotice from './components/UpdateNotice'
+import OfflineBanner from './components/OfflineBanner'
 
 export default function App() {
   return (
     <>
+      <OfflineBanner />
       <SiteHeader />
       <Routes>
         <Route path="/" element={<Home />} />

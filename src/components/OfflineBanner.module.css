@@ -1,0 +1,17 @@
+.line {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  background: #3a3633;
+  color: #fff;
+  font: 14px/1.2 'Segoe UI Web', 'Segoe UI', system-ui, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #E0A526; }
