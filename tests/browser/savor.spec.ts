@@ -151,8 +151,9 @@ test('removing an eatery sends it to the pending-deletion queue', async ({ page 
   await side.getByRole('form', { name: 'Edit eatery' }).getByRole('button', { name: 'Remove…' }).click()
   await side.getByRole('button', { name: 'Remove', exact: true }).click()
 
-  await expect(side.getByRole('button', { name: /Anan Saigon/ }).first()).toHaveCount(0)
-  expect((db.eateries.find(e => e.id === 'e2') as { deleted_at: string | null }).deleted_at).toBeTruthy()
+  // Wait for the removal itself (the list can hide the row before it lands).
+  await expect.poll(() => (db.eateries.find(e => e.id === 'e2') as { deleted_at: string | null }).deleted_at).toBeTruthy()
+  await expect(side.getByRole('button', { name: /Anan Saigon/ })).toHaveCount(0)
 })
 
 test('an empty catalogue says so', async ({ page }) => {

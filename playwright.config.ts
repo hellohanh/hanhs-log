@@ -8,7 +8,8 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
   testDir: 'tests/browser',
   outputDir: 'test-results/artifacts',
-  reporter: [['list']],
+  // On GitHub, failures also show as notes on the run (readable without the log).
+  reporter: process.env.CI ? [['list'], ['github']] : [['list']],
   use: { baseURL: 'http://localhost:4173/' },
   webServer: {
     command: 'npx vite preview --port 4173 --strictPort',
