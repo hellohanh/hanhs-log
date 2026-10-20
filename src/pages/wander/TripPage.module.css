@@ -2,7 +2,7 @@
    monitor first: the page fills the window under the site header; the trip
    bar sits on top and the map area takes the rest. */
 .page {
-  height: calc(100vh - var(--site-header-h, var(--header-h)));
+  height: calc(100vh - var(--site-header-h, var(--header-h)) - var(--offline-h, 0px));
   min-height: 560px;
   display: flex;
   flex-direction: column;
@@ -73,7 +73,7 @@
 /* ---- Phone layout (session 10, approved mockups at 412 × 891) ----
    One title bar (‹ trip ⋯ ☰), the map fills the rest, Places / Itinerary
    bottom sheets, a pin card along the bottom, and the bottom bar. */
-.pPage { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: var(--ground); }
+.pPage { height: calc(100vh - var(--offline-h, 0px)); height: calc(100dvh - var(--offline-h, 0px)); display: flex; flex-direction: column; overflow: hidden; background: var(--ground); }
 .pBar { flex: none; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 2px; background: var(--surface); border-bottom: 1px solid var(--rule); position: relative; z-index: 20; }
 .pBack, .pIcon { width: 44px; height: 44px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--pill); background: transparent; color: var(--ink); cursor: pointer; text-decoration: none; }
 .pIcon[aria-expanded='true'] { background: var(--ground); }

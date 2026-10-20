@@ -1,7 +1,7 @@
 /* The Savorlog page (M4 step 4c): a country → dish catalogue panel on the
    left and the whole catalogue on one map (approved mockup, Direction A). */
 .page {
-  height: calc(100vh - var(--site-header-h, var(--header-h)));
+  height: calc(100vh - var(--site-header-h, var(--header-h)) - var(--offline-h, 0px));
   min-height: 560px;
   display: flex;
   flex-direction: column;

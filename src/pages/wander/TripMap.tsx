@@ -96,6 +96,14 @@ export default function TripMap({
   const appliedCity = useRef<City | null>(null)
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [mapError, setMapError] = useState('')
+  // Back online after the map failed to load (session 15): try again.
+  const [retry, setRetry] = useState(0)
+  useEffect(() => {
+    if (!mapError) return
+    const again = () => { setMapError(''); setRetry(n => n + 1) }
+    window.addEventListener('online', again)
+    return () => window.removeEventListener('online', again)
+  }, [mapError])
   const [noKey, setNoKey] = useState(false)
   const ready = map !== null
   const dark = useIsDark()
@@ -172,7 +180,7 @@ export default function TripMap({
     return () => {
       cancelled = true
     }
-  }, [kind, activeMapId])
+  }, [kind, activeMapId, retry])
 
   // Apply the current look (hand-made colours only work on the flat map).
   useEffect(() => {

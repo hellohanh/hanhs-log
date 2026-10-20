@@ -1,6 +1,6 @@
 .header {
   position: sticky;
-  top: 0;
+  top: var(--offline-h, 0px);
   z-index: 20;
   min-height: var(--header-h);
   padding: 8px var(--gutter);

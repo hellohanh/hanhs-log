@@ -5,6 +5,9 @@
 
 let loading: Promise<typeof google | null> | null = null
 
+/** Shown where the map would be when there's no signal (offline mockup). */
+export const MAP_OFFLINE = 'Map needs a connection (your places are still listed)'
+
 export const hasMapsKey = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
 
 export function loadGoogleMaps(): Promise<typeof google | null> {
@@ -17,7 +20,12 @@ export function loadGoogleMaps(): Promise<typeof google | null> {
     const s = document.createElement('script')
     s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&callback=${cb}&loading=async`
     s.async = true
-    s.onerror = () => reject(new Error("Google Maps didn't load. Check the key and its allowed websites."))
+    s.onerror = () => {
+      // Let a later try load it again (back online, session 15).
+      loading = null
+      s.remove()
+      reject(new Error(navigator.onLine === false ? MAP_OFFLINE : "Google Maps didn't load. Check the key and its allowed websites."))
+    }
     document.head.appendChild(s)
   })
   return loading
