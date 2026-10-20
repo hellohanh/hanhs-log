@@ -208,6 +208,8 @@ export async function fakeSupabase(
     }
     if (path === '/rest/v1/itinerary_activities') {
       if (req.method() === 'GET') {
+        // One row by id (offline step 3 checks it before sending an edit).
+        if (url.searchParams.get('id')) return route.fulfill({ json: db.acts.filter(x => x.id === idEq) })
         const ids = (url.searchParams.get('day_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
         return route.fulfill({ json: db.acts.filter(a => ids.includes(a.day_id)) })
       }

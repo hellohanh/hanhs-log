@@ -32,3 +32,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* The "which one stays?" picker (approved mockup screen 3). */
+.backdrop { position: fixed; inset: 0; z-index: 1002; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.clash { width: min(376px, 100%); background: var(--surface, #fff); color: var(--ink, #1c1a18); border-radius: 16px; padding: 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); font-family: 'Segoe UI Web', 'Segoe UI', system-ui, sans-serif; }
+.clash h3 { margin: 0 0 4px; font: 700 18px/1.25 'Segoe UI Web', 'Segoe UI', system-ui, sans-serif; letter-spacing: 0; }
+.clash p { margin: 0 0 12px; color: var(--muted, #555); font-size: 14px; }
+.opt { border: 2px solid var(--rule, #e3ded5); border-radius: 12px; padding: 10px 12px; margin: 8px 0; font-size: 15px; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+.optMine { border-color: #9E2A2B; }
+.opt small { color: var(--muted, #6b655d); font-size: 12px; }
+.clashValue em { font-style: normal; color: var(--muted, #6b655d); }
+.btns { display: flex; gap: 8px; margin-top: 12px; }
+.btns > * { flex: 1; }
