@@ -1,3 +1,4 @@
+import { useWaiting } from '../../components/useWaiting'
 import { useState, type FormEvent } from 'react'
 import TimeSelect from '../../components/TimeSelect'
 import { hhmm, toMin } from '../../lib/itineraryDays'
@@ -37,9 +38,10 @@ export function StopBlock({
   const short = height < 44
   const stars = isStarred(item.michelin) ? ` · ${'★'.repeat(Number(item.michelin))}` : ''
   const label = `${item.name}, ${hhmm(shown.start)} to ${hhmm(shown.end)}`
+  const waiting = useWaiting(stop.id)
   return (
     <div
-      className={`${styles.act} ${styles.stop} ${short ? styles.actShort : ''} ${dragging ? styles.actDragging : ''}`}
+      className={`${styles.act} ${styles.stop} ${short ? styles.actShort : ''} ${dragging ? styles.actDragging : ''} ${waiting ? styles.waiting : ''}`}
       style={{ top, height, borderLeftColor: look.color, ...pos }}
       {...handlers('move')}
       onClick={e => e.stopPropagation()}
@@ -62,6 +64,7 @@ export function StopBlock({
       </span>
       <span className={styles.actTime}>{hhmm(shown.start)} – {hhmm(shown.end)}{stars}</span>
       {stop.note && <span className={styles.blockNote}>{stop.note}</span>}
+      {waiting && <span className={styles.waitTag}>waiting to send</span>}
       <span className={`${styles.handle} ${styles.handleBottom}`} {...handlers('bottom')} aria-hidden="true" title="Drag to change the end" />
     </div>
   )

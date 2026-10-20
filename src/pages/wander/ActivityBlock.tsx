@@ -1,3 +1,4 @@
+import { useWaiting } from '../../components/useWaiting'
 import { isPhone } from '../../lib/usePhone'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import TimeSelect from '../../components/TimeSelect'
@@ -304,9 +305,10 @@ export function ActivityBlock({
   const top = (shown.start / 60) * HOUR_PX
   const height = Math.max(18, ((shown.end - shown.start) / 60) * HOUR_PX)
   const label = `${activity.title}, ${hhmm(shown.start)} to ${hhmm(shown.end)}`
+  const waiting = useWaiting(activity.id)
   return (
     <div
-      className={`${styles.act} ${height < 44 ? styles.actShort : ''} ${dragging ? styles.actDragging : ''}`}
+      className={`${styles.act} ${height < 44 ? styles.actShort : ''} ${dragging ? styles.actDragging : ''} ${waiting ? styles.waiting : ''}`}
       style={{ top, height, ...pos }}
       {...handlers('move')}
       onClick={e => e.stopPropagation()}
@@ -325,6 +327,7 @@ export function ActivityBlock({
       <b>{activity.title}</b>
       <span className={styles.actTime}>{hhmm(shown.start)} – {hhmm(shown.end)}</span>
       {activity.note && <span className={styles.blockNote}>{activity.note}</span>}
+      {waiting && <span className={styles.waitTag}>waiting to send</span>}
       <span className={`${styles.handle} ${styles.handleBottom}`} {...handlers('bottom')} aria-hidden="true" title="Drag to change the end" />
     </div>
   )

@@ -8,9 +8,14 @@
 // It works under the Supabase client (its fetch), so every page gets it
 // without changes: a read that fails for lack of signal is answered from the
 // saved copy. Sign-in calls are never kept. Signing out clears the copy.
+// Step 2: a change with no signal waits here (offlineQueue.ts) and is laid
+// over every read until it's sent; the yellow line counts what's waiting.
+
+import { applyOps, idsOf, isQueueableWrite, sendOutcome, tableOf, withIds, type QueuedOp } from './offlineQueue'
 
 const DB = 'hanhs-log-offline'
 const STORE = 'reads'
+const QUEUE = 'queue'
 /** Read-only database calls that are safe to answer from the saved copy. */
 const READ_RPCS = new Set(['trip_people', 'trip_people_counts', 'trip_eateries', 'trip_leg_links', 'savorlog_people', 'savorlog_invite', 'claim_savorlog'])
 /** A read waits this long on a weak signal before the saved copy is used. */
@@ -61,10 +66,11 @@ function db(): Promise<IDBDatabase | null> {
   dbp = new Promise(resolve => {
     try {
       if (typeof indexedDB === 'undefined') return resolve(null)
-      const req = indexedDB.open(DB, 1)
+      const req = indexedDB.open(DB, 2)
       req.onupgradeneeded = () => {
-        const s = req.result.createObjectStore(STORE, { keyPath: 'key' })
-        s.createIndex('user', 'user')
+        const d = req.result
+        if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: 'key' }).createIndex('user', 'user')
+        if (!d.objectStoreNames.contains(QUEUE)) d.createObjectStore(QUEUE, { keyPath: 'seq' })
       }
       req.onsuccess = () => resolve(req.result)
       req.onerror = () => resolve(null)
@@ -74,13 +80,13 @@ function db(): Promise<IDBDatabase | null> {
   })
   return dbp
 }
-async function put(row: Saved): Promise<void> {
+async function put(row: Saved | QueuedOp, store = STORE): Promise<void> {
   const d = await db()
   if (!d) return
   await new Promise<void>(resolve => {
     try {
-      const tx = d.transaction(STORE, 'readwrite')
-      tx.objectStore(STORE).put(row)
+      const tx = d.transaction(store, 'readwrite')
+      tx.objectStore(store).put(row)
       tx.oncomplete = tx.onerror = tx.onabort = () => resolve()
     } catch {
       resolve()
@@ -100,20 +106,136 @@ async function get(key: string): Promise<Saved | null> {
     }
   })
 }
-/** Forget everything saved on this device (sign-out). */
-export async function clearOfflineCopy(): Promise<void> {
+async function del(key: number, store: string): Promise<void> {
   const d = await db()
   if (!d) return
   await new Promise<void>(resolve => {
     try {
-      const tx = d.transaction(STORE, 'readwrite')
-      tx.objectStore(STORE).clear()
+      const tx = d.transaction(store, 'readwrite')
+      tx.objectStore(store).delete(key)
       tx.oncomplete = tx.onerror = tx.onabort = () => resolve()
     } catch {
       resolve()
     }
   })
+}
+async function all<T>(store: string): Promise<T[]> {
+  const d = await db()
+  if (!d) return []
+  return new Promise(resolve => {
+    try {
+      const req = d.transaction(store).objectStore(store).getAll()
+      req.onsuccess = () => resolve((req.result as T[]) ?? [])
+      req.onerror = () => resolve([])
+    } catch {
+      resolve([])
+    }
+  })
+}
+/** Forget everything saved on this device (sign-out). Waiting changes are
+ * sent first if there's a signal; otherwise they're lost with the copy. */
+export async function clearOfflineCopy(): Promise<void> {
+  await flushQueue()
+  const d = await db()
+  if (!d) return
+  await new Promise<void>(resolve => {
+    try {
+      const tx = d.transaction([STORE, QUEUE], 'readwrite')
+      tx.objectStore(STORE).clear()
+      tx.objectStore(QUEUE).clear()
+      tx.oncomplete = tx.onerror = tx.onabort = () => resolve()
+    } catch {
+      resolve()
+    }
+  })
+  queue = []
+  emitQueue()
   markOnline()
+}
+
+// ---- changes waiting to send (step 2) ----
+
+export interface QueueState {
+  /** How many changes are waiting on this device. */
+  waiting: number
+  /** Ids of the rows they touch, for the "waiting to send" tags. */
+  ids: Set<string>
+  sending: boolean
+  /** Changes the database refused when they were sent (shown, then dismissed). */
+  failed: { table: string; message: string }[]
+  /** Bumped each time waiting changes were sent, so pages can reload. */
+  sentRound: number
+  /** When a change was last put aside (shows the "Saved on this phone" note). */
+  lastQueuedAt: string | null
+}
+let queue: QueuedOp[] = []
+let qstate: QueueState = { waiting: 0, ids: new Set(), sending: false, failed: [], sentRound: 0, lastQueuedAt: null }
+const qlisteners = new Set<(s: QueueState) => void>()
+function emitQueue(patch: Partial<QueueState> = {}) {
+  const ids = new Set(queue.flatMap(o => o.ids))
+  qstate = { ...qstate, ...patch, waiting: queue.length, ids }
+  qlisteners.forEach(l => l(qstate))
+}
+export const queueState = () => qstate
+export function onQueueChange(l: (s: QueueState) => void): () => void {
+  qlisteners.add(l)
+  return () => qlisteners.delete(l)
+}
+export function dismissFailed() { emitQueue({ failed: [] }) }
+let queueLoaded: Promise<void> | null = null
+function loadQueue(): Promise<void> {
+  queueLoaded ??= all<QueuedOp>(QUEUE).then(q => {
+    queue = q.sort((a, b) => a.seq - b.seq)
+    emitQueue()
+  })
+  return queueLoaded
+}
+let seqN = 0
+const nextSeq = () => Date.now() * 1000 + (seqN++ % 1000)
+/** The latest sign-in token and key seen, used when sending later. */
+let lastHeaders: Record<string, string> = {}
+
+let flushing: Promise<void> | null = null
+let sendBase: typeof fetch = (...a) => fetch(...a)
+/** Send the waiting changes, oldest first; stop at the first one that can't go yet. */
+export function flushQueue(): Promise<void> {
+  if (flushing) return flushing
+  flushing = (async () => {
+    await loadQueue()
+    if (queue.length === 0) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+    const base = Object.keys(lastHeaders).length ? lastHeaders : null
+    if (!base) return
+    emitQueue({ sending: true })
+    const failed = [...qstate.failed]
+    let sent = 0
+    while (queue.length) {
+      const op = queue[0]
+      const headers: Record<string, string> = { ...base, 'Content-Type': 'application/json' }
+      if (op.prefer) headers.Prefer = op.prefer
+      let status: number
+      let message = ''
+      try {
+        const res = await sendBase(`${apiRoot}${op.path}${op.search}`, { method: op.method, headers, body: op.method === 'DELETE' ? undefined : op.body })
+        status = res.status
+        if (!res.ok) message = await res.text().then(t => { try { return (JSON.parse(t) as { message?: string }).message ?? t } catch { return t } }, () => '')
+      } catch {
+        break // no signal after all
+      }
+      const outcome = sendOutcome(status)
+      if (outcome === 'retry') break
+      if (outcome === 'failed') failed.push({ table: tableOf(op.path), message: message || `error ${status}` })
+      queue.shift()
+      await del(op.seq, QUEUE)
+      sent++
+    }
+    emitQueue({ sending: false, failed, sentRound: sent ? qstate.sentRound + 1 : qstate.sentRound })
+  })().finally(() => { flushing = null })
+  return flushing
+}
+let apiRoot = ''
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => { setTimeout(() => void flushQueue(), 500) })
 }
 
 // ---- the fetch the Supabase client uses ----
@@ -140,11 +262,68 @@ export function isSavedRead(method: string, path: string): boolean {
 
 const OFFLINE_BODY = JSON.stringify({ message: "You're offline, and this wasn't saved on this device yet. Open it once with a connection." })
 
+/** Lay the waiting changes for this table over a read's answer. */
+async function overlay(res: Response, method: string, url: URL, user: string): Promise<Response> {
+  if (method !== 'GET') return res
+  await loadQueue()
+  const ops = queue.filter(o => o.user === user && o.path === url.pathname)
+  if (ops.length === 0 || !res.ok) return res
+  const text = await res.clone().text()
+  let data: unknown
+  try { data = JSON.parse(text) } catch { return res }
+  const single = !Array.isArray(data)
+  const rows = applyOps(single ? (data ? [data as Record<string, unknown>] : []) : (data as Record<string, unknown>[]), url.search, ops)
+  const headers = new Headers(res.headers)
+  headers.delete('Content-Length')
+  return new Response(JSON.stringify(single ? rows[0] ?? null : rows), { status: res.status, headers })
+}
+
+const QUEUED_NOTE = 'X-Offline-Waiting'
+/** Keep a change on the device to send later; answer as the database would. */
+async function enqueue(req: Request, url: URL, user: string): Promise<Response> {
+  await loadQueue()
+  const method = req.method.toUpperCase() as QueuedOp['method']
+  const table = tableOf(url.pathname)
+  const body = method === 'DELETE' ? '' : withIds(table, await req.clone().text(), () => crypto.randomUUID())
+  const op: QueuedOp = {
+    seq: nextSeq(), user, method, path: url.pathname, search: url.search, body,
+    prefer: (req.headers.get('Prefer') ?? '').split(',').map(p => p.trim()).filter(p => p.startsWith('resolution=')).join(','),
+    createdAt: new Date().toISOString(), ids: idsOf(method, url.search, body)
+  }
+  queue.push(op)
+  await put(op, QUEUE)
+  emitQueue({ lastQueuedAt: op.createdAt })
+  return new Response(null, { status: method === 'POST' ? 201 : 204, headers: { [QUEUED_NOTE]: '1' } })
+}
+
 export function makeOfflineFetch(base: typeof fetch = fetch): typeof fetch {
+  sendBase = base
   return async (input, init) => {
     const req = new Request(input, init)
     const url = new URL(req.url)
     const method = req.method.toUpperCase()
+    if (url.pathname.startsWith('/rest/v1/')) {
+      apiRoot = url.origin
+      const keep: Record<string, string> = {}
+      for (const h of ['apikey', 'Authorization']) { const v = req.headers.get(h); if (v) keep[h] = v }
+      if (keep.Authorization) lastHeaders = keep
+    }
+    if (isQueueableWrite(method, url.pathname)) {
+      const user = userOf(req.headers)
+      await loadQueue()
+      // Waiting changes go first, so a new one waits its turn too.
+      if (queue.length > 0 || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+        const res = await enqueue(req, url, user)
+        void flushQueue()
+        return res
+      }
+      try {
+        return await base(input, init)
+      } catch (e) {
+        if ((e as Error)?.name === 'AbortError') throw e
+        return enqueue(req, url, user) // the signal dropped mid-save
+      }
+    }
     if (!isSavedRead(method, url.pathname)) return base(input, init)
     const body = method === 'POST' ? await req.clone().text() : ''
     const user = userOf(req.headers)
@@ -158,7 +337,7 @@ export function makeOfflineFetch(base: typeof fetch = fetch): typeof fetch {
       const headers = new Headers({ 'X-Offline-Copy': saved.savedAt })
       if (saved.type) headers.set('Content-Type', saved.type)
       if (saved.range) headers.set('Content-Range', saved.range)
-      return new Response(saved.body, { status: saved.status, headers })
+      return overlay(new Response(saved.body, { status: saved.status, headers }), method, url, user)
     }
 
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return fromCopy()
@@ -170,8 +349,9 @@ export function makeOfflineFetch(base: typeof fetch = fetch): typeof fetch {
           const text = await res.clone().text()
           void put({ key, user, body: text, status: res.status, type: res.headers.get('Content-Type'), range: res.headers.get('Content-Range'), savedAt: new Date().toISOString() })
           markOnline()
+          if (queue.length) void flushQueue()
         }
-        return res
+        return overlay(res, method, url, user)
       },
       (e: unknown) => {
         // Our own cancel (AbortController) isn't "offline".

@@ -1,3 +1,4 @@
+import { useWaiting } from '../../components/useWaiting'
 import { cityOf, legsOnRepeat, repeatFor, repeatIsEmpty, repeatStartMin, shortDate, tabCities, wantedRepeats } from '../../lib/dateLine'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { endLabel, MODE_EMOJI } from '../../lib/legDisplay'
@@ -821,14 +822,16 @@ function LegCard({
   const carrierLine = [leg.carrier, leg.reference].filter(Boolean).join(' ')
   const name = leg.title || carrierLine || cfg.label
   const subLine = leg.title && carrierLine ? carrierLine : null
+  const waiting = useWaiting(leg.id)
   return (
     <>
-    <button type="button" className={styles.leg} style={{ top, height: Math.max(height, 56), borderLeftColor: cfg.color, ...pos }} onClick={e => { e.stopPropagation(); onClick() }}>
+    <button type="button" className={`${styles.leg} ${waiting ? styles.waiting : ''}`} style={{ top, height: Math.max(height, 56), borderLeftColor: cfg.color, ...pos }} onClick={e => { e.stopPropagation(); onClick() }}>
       <span className={styles.legTop}>
         <Badge leg={leg} />
         <b>{name}</b>
       </span>
       {subLine && <span className={styles.legMeta}>{subLine}</span>}
+      {waiting && <span className={styles.waitTag}>waiting to send</span>}
       <span className={styles.legRoute}>
         {endLabel(leg.from_location, leg.from_date, leg.from_time, leg.from_timezone)}
         <span className={styles.legSep} aria-label="to">
