@@ -1,10 +1,11 @@
 # Hanh's Log
 
-One app for trip planning (**Wanderlog**) and eateries (**Savorlog**), sharing one
+One app for trip planning (**Wanderlog**), eateries (**Savorlog**) and other places
+(**Roaminglog**), sharing one
 login and one database (its own Supabase project; the old Wanderlog site and
 database are separate and untouched). Live at https://hellohanh.github.io/hanhs-log/
 
-## Current state (Session 13, OCT 16 2026)
+## Current state (Session 14, OCT 19 2026)
 
 | Milestone | Status |
 |---|---|
@@ -14,10 +15,16 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 | M4 Savorlog (Nom-Nom: cuisine → dish) | ✅ live (shared catalogue, location gate, add/edit + photos, family invite) |
 | M5 Savorlog eateries on trips | ✅ live (every catalogue eatery shows on a trip's map and the Nom-Nom list follows the map, E101; food-adds route into the catalogue; any eatery schedulable on days; only "forbid new food pins" deferred) |
 | Old Wanderlog pin import (after Savorlog, before switch-over) | ✅ built (`/wander/import`, E71); Hanh works through the 227 places |
+| Roaminglog (non-eatery places: Spot List, on every trip) | ✅ live (E119–E121) |
 | M6 Wanderlog itinerary polish | planned |
 | M7 Switch over from the old Wanderlog | planned |
 
 ## What's built
+- **Session 14:**
+  - **Roaminglog** (`/roam`, Spot List): one shared catalogue of sights, stays, shops, airports and stations, shown on every trip's map; the old non-food trip pins were moved into it (migrations 0021–0022, E119–E121). Third splash card and header / ☰ links.
+  - MICHELIN chips on two lines (None / Selected / Bib, then the stars) and a Bib smiling-face chip (E109); a **Vibe** box with 9 ticks (E110).
+  - Google's spelling suggested under the name boxes; BBQ in capitals (E111). Double-click a list place to edit (E112). MICHELIN chip shows MICHELIN only; dish menu A–Z (E113). Type a new main dish (E114).
+  - Copy pins between trips (E115), notes on itinerary blocks (E116), one invite link for several trips (E117).
 - **Session 13:**
   - Everyone on a trip (link guests and past trips too) sees and can edit the whole Munch List catalogue; a trip's map shows every eatery and its Nom-Nom list follows the map (E101, migration 0015).
   - A **home_pin** map button glides to the day's city (computer; on phones under Day route); Reset goes there too (E102).
@@ -32,7 +39,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 - **Splash (`/`)**:
   - Hanh's watercolor hero (Amalfi, phở, Eiffel Tower, bánh mì) in a 1080 × 800 container; its edge fades into the page's paper colour.
   - Scrolling flies Hanh's red paper plane (no shadow, `paper-plane-v2.webp`) along the route Hanh mapped; late in the flight it turns into the jet.
-  - At the end the jet settles in the sky by the Eiffel Tower, and the search panel, Where to? section, and Wanderlog and Savorlog cards fade in.
+  - At the end the jet settles in the sky by the Eiffel Tower, and the search panel, Where to? section, and the Wanderlog, Savorlog and Roaminglog cards fade in.
   - With reduced motion, the page shows the finished picture straight away.
 - **Wanderlog trip list (`/wander`)**: a clean slate in Hanh's Log's own database. Upcoming trips (soonest first) and past trips (faded), with cities · Country, dates, pin count (sorted pins only) and people, owned/shared labels; owner-only delete. **New trip** opens a popup: Trip name; Country (suggests as you type); Primary City (the map opens here), Secondary, Tertiary; dates optional; it shows "✓ Map opens on: …" before saving. Built for a 2560 × 1440 monitor first.
 - **Trip page (`/wander/trip/<id>`)**: name, cities · Country and dates, people, Edit trip (same form), and Share & people (invite link, owner-only Reset link and Remove, first names).
@@ -69,19 +76,20 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
   - all workflow actions run on Node 24 (L42).
 
 ## What's next
-1. **Map check results**: run Map look → Check all controls on the live site and grey out anything Google can't do on Terrain / Satellite.
-2. **Work through the old-pin import** at `/wander/import` with `hanhs-log-import-2026-10-13.json` (E71); fix anything the queue shows up.
-3. **Phone step 3**: add/edit forms on phones (new trip, add place, travel, the eatery card), mockup first at 412 × 891. Steps 4 (splash, E105) and 5 (Munch List, E107) are done.
-4. **M5.2b** — a migration (`0016`) forbidding new food pins in the `pins` table going forward (existing ones left alone), landed with its test rework. The only deferred piece of M5.
-5. **M6** itinerary polish, then **M7** switch-over.
+1. **Check Roaminglog live**: the Spot List and a trip after a full refresh; in the import queue tap Bib on Bib places (E118).
+2. **Map check results**: run Map look → Check all controls on the live site and grey out anything Google can't do on Terrain / Satellite.
+3. **Work through the old-pin import** at `/wander/import` with `hanhs-log-import-2026-10-13.json` (E71); fix anything the queue shows up.
+4. **Phone step 3**: add/edit forms on phones (new trip, add place, travel, the eatery card), mockup first at 412 × 891. Steps 4 (splash, E105) and 5 (Munch List, E107) are done.
+5. **M5.2b** — a migration (`0023` or later) forbidding new food pins in the `pins` table going forward (existing ones left alone), landed with its test rework. The only deferred piece of M5.
+6. **M6** itinerary polish, then **M7** switch-over.
 
 Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl, side bowl), **Q7** (no lobster icon). Q1 is resolved (E105), Q8 (E76). Tidy-up for Hanh: delete the 64 merged branches on GitHub (Branches page) and tick **Settings → General → Automatically delete head branches**.
 
-**One-time setup is done** (sessions 8–9): migrations 0001–0015 are applied, and the public `eatery-photos` bucket exists with INSERT/DELETE (and SELECT) policies for `authenticated`, limited to `bucket_id = 'eatery-photos'`. Savorlog's owner is the first signed-in person to open `/savor` (check: Family → your name says Owner, and Reset link shows). After GitHub moves `ubuntu-latest` to Ubuntu 26 (Oct 19, 2026), check a run is still green.
+**One-time setup is done** (sessions 8–9): migrations 0001–0022 are applied, and the public `eatery-photos` bucket exists with INSERT/DELETE (and SELECT) policies for `authenticated`, limited to `bucket_id = 'eatery-photos'`. Savorlog's owner is the first signed-in person to open `/savor` (check: Family → your name says Owner, and Reset link shows). After GitHub moves `ubuntu-latest` to Ubuntu 26 (Oct 19, 2026), check a run is still green.
 
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E108, Q1–Q10, L1–L62), README.md, SESSION_LEDGER.md and docs/pin-standard.md
+> Read SKILL.md (E1–E121, Q1–Q10, L1–L66), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project and
 > started from a clean slate (live Wanderlog is never touched). M3, M4 and M5 are live: trips +
 > map + itinerary, all of Savorlog (catalogue, location gate, add/edit + photos, family invite),
@@ -98,9 +106,12 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
 > Savorlog pins follow the map (E95), numbered bubbles (E96), smooth fly-over (E97), Hanh's line-art icons (E98, E99) and
 > the new pin popup (E100). Session 13: the whole catalogue on every trip, Nom-Nom following the map (E101, migration 0015),
 > the day's-city button (E102), the new-version notice (E103), phone sheets with cherry-red / mustard handles (E104),
-> the phone splash (E105), the GPins icon (E106), Munch List on phones (E107) and no Munch List popup (E108). Next: phone step 3
+> the phone splash (E105), the GPins icon (E106), Munch List on phones (E107) and no Munch List popup (E108). Session 14: MICHELIN Selected / Bib chips (E109), the Vibe box (E110),
+> Google spelling (E111), double-click to edit (E112), MICHELIN-only (E113), new dishes (E114), copy pins (E115), block notes (E116),
+> one link for several trips (E117), and **Roaminglog** — the shared spot catalogue on every trip and its Spot List at /roam (E119–E121,
+> migrations 0021–0022). Next: check Roaminglog live, phone step 3
 > (add/edit forms, mockup first at 412 × 891), or the Map check results. Help me with the import as I work through it; the only deferred M5
-> piece is **M5.2b** (now migration 0016, forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
+> piece is **M5.2b** (now migration 0023 or later, forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
 > infer, always show the merge link when something's ready to merge, and don't leave red build
 > runs: fix them.
 
@@ -124,7 +135,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
    Check it on your phone and laptop.
 3. Click **Merge** (use "Create a merge commit"). The live site updates in about two minutes.
 
-Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S013 OCT 16 2026).
+Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S014 OCT 19 2026).
 
 ## Database
 Hanh's Log has its own Supabase project (live Wanderlog's database is never touched). It has its own rules, nightly
