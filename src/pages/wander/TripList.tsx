@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useIsPhone } from '../../lib/usePhone'
+import { setPageMenu, type PageMenuItem } from '../../lib/pageMenu'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
 import {
@@ -130,6 +132,24 @@ function SignedInList({ userId }: { userId: string }) {
     }
   }
 
+  const phone = useIsPhone()
+  const navigate = useNavigate()
+  const startPicking = () => { setNotice('Tick the trips you own to put on one invite link.'); setPicking(new Set()) }
+  const menuItems: PageMenuItem[] = [
+    ...(bundles.length > 0 ? [{ label: 'Several-trips links', sub: String(bundles.length), onSelect: () => setShowBundles(true) }] : []),
+    { label: 'Invite to several trips', onSelect: startPicking },
+    ...(importLeft !== null ? [{ label: 'Import old pins', sub: importLeft >= 0 ? `${importLeft} left` : undefined, onSelect: () => navigate('/wander/import') }] : [])
+  ]
+  // On phones these go in the site's ☰ menu while Your trips is open.
+  const menuKey = menuItems.map(i => `${i.label}:${i.sub ?? ''}`).join('|')
+  const menuRef = useRef(menuItems)
+  menuRef.current = menuItems
+  useEffect(() => {
+    if (!phone) return
+    setPageMenu(menuRef.current.map(i => ({ ...i, onSelect: () => menuRef.current.find(x => x.label === i.label)?.onSelect?.() })))
+    return () => setPageMenu([])
+  }, [phone, menuKey])
+
   return (
     <Shell
       action={
@@ -152,26 +172,15 @@ function SignedInList({ userId }: { userId: string }) {
           </span>
         ) : !creating && (
           <span className={styles.actions}>
-            {bundles.length > 0 && (
-              <button type="button" className={`btn btn-quiet ${styles.newBtn}`} onClick={() => setShowBundles(true)}>
-                Several-trips links · {bundles.length}
-              </button>
-            )}
-            <button type="button" className={`btn btn-quiet ${styles.newBtn}`} onClick={() => { setNotice('Tick the trips you own to put on one invite link.'); setPicking(new Set()) }}>
-              Invite to several trips
-            </button>
-            {importLeft !== null && (
-              <Link to="/wander/import" className={`btn btn-quiet ${styles.newBtn}`}>
-                Import old pins
-                {importLeft >= 0 && <span className={styles.left}>{importLeft} left</span>}
-              </Link>
-            )}
             <button type="button" className={`btn ${styles.newBtn}`} onClick={() => setCreating(true)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
                 <path d="M12 5v14M5 12h14" />
               </svg>
               New trip
             </button>
+            {/* Session 15 (approved mockup): the other actions sit in a ☰
+                beside + New trip; on phones they're in the site's ☰ menu. */}
+            {!phone && menuItems.length > 0 && <TripsMenu items={menuItems} />}
           </span>
         )
       }
@@ -373,5 +382,41 @@ function EditTripDialog({ trip, onCancel, onSaved }: { trip: TripSummary; onCanc
         />
       </div>
     </div>
+  )
+}
+
+// The ☰ beside + New trip on computers (session 15, approved mockup): the
+// several-trips links, inviting to several trips, and the old-pin import.
+function TripsMenu({ items }: { items: PageMenuItem[] }) {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const down = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', down, true)
+    window.addEventListener('keydown', key)
+    return () => { document.removeEventListener('pointerdown', down, true); window.removeEventListener('keydown', key) }
+  }, [open])
+  const importAt = items.findIndex(i => i.label === 'Import old pins')
+  return (
+    <span ref={box} className={styles.menuWrap}>
+      <button type="button" className={styles.menuBtn} aria-label="More trip actions" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+      </button>
+      {open && (
+        <span className={styles.menu} role="menu">
+          {items.map((i, n) => (
+            <span key={i.label} style={{ display: 'contents' }}>
+              {n === importAt && n > 0 && <hr className={styles.menuRule} />}
+              <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setOpen(false); i.onSelect?.() }}>
+                <span>{i.label}</span>
+                {i.sub && <span className={styles.left}>{i.sub}</span>}
+              </button>
+            </span>
+          ))}
+        </span>
+      )}
+    </span>
   )
 }

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { fakeSupabase, fakePlaces, ME, FRIEND } from './fake-supabase'
+import { fakeSupabase, fakePlaces, tripAction, ME, FRIEND } from './fake-supabase'
 
 // The old-Wanderlog pin import queue (E71): owner-only button, loading the
 // prepared file, the prefilled add cards, Save and next, Skip for good.
@@ -46,13 +46,15 @@ test('the import button shows only to the Savorlog owner', async ({ page }) => {
   await fakeSupabase(page, { savorPeople: [{ user_id: FRIEND, display_name: 'Mai', is_owner: true, joined_at: null }, { user_id: ME, display_name: 'Hanh', is_owner: false, joined_at: '2026-10-01T00:00:00Z' }] })
   await page.goto('./wander')
   await expect(page.getByRole('button', { name: /New trip/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Import old pins/ })).toHaveCount(0)
+  // The menu opens, but it has no Import old pins for someone who isn't the owner.
+  await expect(await tripAction(page, /Invite to several trips/)).toBeVisible()
+  await expect(page.getByText('Import old pins')).toHaveCount(0)
 })
 
 test('load the prepared file, save a place to the trip, skip an eatery for good', async ({ page }) => {
   const db = await fakeSupabase(page)
   await page.goto('./wander')
-  await page.getByRole('link', { name: /Import old pins/ }).click()
+  await (await tripAction(page, /Import old pins/)).click()
   await expect(page.getByRole('heading', { name: 'Import old pins' })).toBeVisible()
 
   // The raw Wanderlog export is refused with a plain message.
