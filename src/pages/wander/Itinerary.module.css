@@ -328,6 +328,6 @@
 .actShort .blockNote { display: none; }
 
 /* Offline step 2 (approved mockup): a change waiting to be sent. */
-.waiting { outline: 2px dashed #E0A526; outline-offset: 2px; }
+.waiting { outline: 2px dashed #E0A526; outline-offset: -2px; }
 .waitTag { display: inline-block; align-self: flex-start; margin-top: 2px; font-size: 11px; line-height: 1.4; padding: 0 7px; border-radius: 10px; background: #FFF4D6; color: #5a4300; white-space: nowrap; }
 .actShort .waitTag { display: none; }

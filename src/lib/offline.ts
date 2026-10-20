@@ -389,7 +389,9 @@ async function enqueue(req: Request, url: URL, user: string): Promise<Response> 
   await loadQueue()
   const method = req.method.toUpperCase() as QueuedOp['method']
   const table = tableOf(url.pathname)
-  const body = method === 'DELETE' ? '' : withIds(table, await req.clone().text(), () => crypto.randomUUID())
+  // Only a new row gets an id from the device; an edit must never touch the id.
+  const text = method === 'DELETE' ? '' : await req.clone().text()
+  const body = method === 'POST' ? withIds(table, text, () => crypto.randomUUID()) : text
   const op: QueuedOp = {
     seq: nextSeq(), user, method, path: url.pathname, search: url.search, body,
     prefer: (req.headers.get('Prefer') ?? '').split(',').map(p => p.trim()).filter(p => p.startsWith('resolution=')).join(','),
