@@ -16,6 +16,10 @@ test('no signal: a trip you opened shows from the saved copy; one you didn\'t sa
   // Open the trip once with signal, then go back to the list.
   await page.getByRole('link', { name: 'Christmas in Saigon' }).click()
   await expect(page.getByRole('heading', { name: 'Christmas in Saigon' })).toBeVisible()
+  // Let the page finish reading (and saving) everything before leaving it;
+  // leaving early is a real "parts of this page weren't saved yet".
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(300)
   await page.goBack()
   await expect(page.getByRole('link', { name: 'Rome long weekend' })).toBeVisible()
 
