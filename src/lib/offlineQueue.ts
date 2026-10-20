@@ -148,3 +148,53 @@ export function sendOutcome(status: number): 'done' | 'retry' | 'failed' {
   if (status === 401 || status === 408 || status === 429 || status >= 500) return 'retry'
   return 'failed'
 }
+
+// ---- step 3: someone else changed the same thing (approved mockup screen 3) ----
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+/** Columns the database fills in itself; never a clash. */
+const AUTO = new Set(['updated_at', 'updated_by', 'created_at', 'created_by', 'id'])
+
+/** The fields where someone else's change meets mine: I changed it, they
+ * changed it from what this device last saw, and to something else. */
+export function clashFields(before: Row | null | undefined, current: Row, patch: Row): string[] {
+  if (!before) return []
+  return Object.keys(patch).filter(k => !AUTO.has(k) && k in current && !same(patch[k], before[k]) && !same(current[k], before[k]) && !same(current[k], patch[k]))
+}
+
+/** Forms send every field; only the ones I actually changed should go, so a
+ * field someone else changed meanwhile isn't put back to its old value. */
+export function changedOnly(body: string, before: Row | null | undefined): string {
+  if (!before) return body
+  return patchFields(body, k => !(k in before) || !same(JSON.parse(body || '{}')[k], before[k]))
+}
+
+/** The id a change edits (`id=eq.…`), if it edits one row. */
+export function editedId(search: string): string | null {
+  const f = parseFilters(search).find(x => x.col === 'id' && x.op === 'eq')
+  return f ? f.val : null
+}
+
+/** The patch's fields, keeping only (or dropping) some. */
+export function patchFields(body: string, keep: (k: string) => boolean): string {
+  try {
+    const b = JSON.parse(body || '{}') as Row
+    return JSON.stringify(Object.fromEntries(Object.entries(b).filter(([k]) => keep(k))))
+  } catch {
+    return body
+  }
+}
+
+const FIELD_WORDS: Record<string, string> = {
+  note: 'note', title: 'title', name: 'name', start_time: 'start', end_time: 'end', category: 'category',
+  subcategory: 'type', subsubcategory: 'type', address: 'address', date: 'date', mode: 'travel type',
+  from_time: 'departure', to_time: 'arrival', from_location: 'from', to_location: 'to'
+}
+export const fieldWord = (k: string) => FIELD_WORDS[k] ?? k.replace(/_/g, ' ')
+/** How a value reads in the picker: times without seconds, empty as "(empty)". */
+export function shownValue(v: unknown): string {
+  if (v == null || v === '') return '(empty)'
+  if (typeof v === 'string' && /^\d{2}:\d{2}:\d{2}$/.test(v)) return v.slice(0, 5)
+  if (typeof v === 'boolean') return v ? 'yes' : 'no'
+  return String(v)
+}

@@ -11,7 +11,7 @@
 // Step 2: a change with no signal waits here (offlineQueue.ts) and is laid
 // over every read until it's sent; the yellow line counts what's waiting.
 
-import { applyOps, idsOf, isQueueableWrite, sendOutcome, tableOf, withIds, type QueuedOp } from './offlineQueue'
+import { applyOps, changedOnly, clashFields, editedId, idsOf, isQueueableWrite, patchFields, sendOutcome, tableOf, withIds, type QueuedOp } from './offlineQueue'
 
 const DB = 'hanhs-log-offline'
 const STORE = 'reads'
@@ -167,9 +167,27 @@ export interface QueueState {
   sentRound: number
   /** When a change was last put aside (shows the "Saved on this phone" note). */
   lastQueuedAt: string | null
+  /** Step 3: sending is paused on this change until you pick which one stays. */
+  clash: Clash | null
+}
+export interface Clash {
+  table: string
+  /** The row's name or title, for the picker's heading. */
+  label: string
+  fields: { key: string; mine: unknown; theirs: unknown }[]
+  mineAt: string
+  theirsAt: string | null
+  /** Who made the other change (their first name), if known. */
+  who: string | null
 }
 let queue: QueuedOp[] = []
-let qstate: QueueState = { waiting: 0, ids: new Set(), sending: false, failed: [], sentRound: 0, lastQueuedAt: null }
+let qstate: QueueState = { waiting: 0, ids: new Set(), sending: false, failed: [], sentRound: 0, lastQueuedAt: null, clash: null }
+/** Each row as this device last read it from the database (before its own
+ * waiting changes), so a change sent later can tell what someone else did. */
+const lastSeen = new Map<string, Record<string, unknown>>()
+function remember(path: string, rows: Record<string, unknown>[]) {
+  for (const r of rows) if (r && typeof r.id === 'string') lastSeen.set(`${path}:${r.id}`, r)
+}
 const qlisteners = new Set<(s: QueueState) => void>()
 function emitQueue(patch: Partial<QueueState> = {}) {
   const ids = new Set(queue.flatMap(o => o.ids))
@@ -206,12 +224,62 @@ export function flushQueue(): Promise<void> {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return
     const base = Object.keys(lastHeaders).length ? lastHeaders : null
     if (!base) return
+    if (qstate.clash) return // waiting for your pick
     emitQueue({ sending: true })
     const failed = [...qstate.failed]
     let sent = 0
     while (queue.length) {
       const op = queue[0]
       const headers: Record<string, string> = { ...base, 'Content-Type': 'application/json' }
+      // Step 3: before sending an edit, see whether someone else changed the
+      // same thing since this device last read it; if so, ask (Hanh's choice).
+      const id = op.method === 'PATCH' && op.before && op.seq !== resolvedSeq ? editedId(op.search) : null
+      if (id) {
+        let current: Record<string, unknown> | null | undefined
+        try {
+          const res = await sendBase(`${apiRoot}${op.path}?id=eq.${encodeURIComponent(id)}&select=*`, { headers: base })
+          if (res.status >= 500 || res.status === 401) break
+          current = res.ok ? ((await res.json()) as Record<string, unknown>[])[0] ?? null : undefined
+        } catch {
+          break
+        }
+        if (current === null) {
+          // Removed meanwhile: there's nothing left to edit.
+          failed.push({ table: tableOf(op.path), message: 'someone removed it meanwhile' })
+          queue.shift()
+          await del(op.seq, QUEUE)
+          sent++
+          continue
+        }
+        if (current) {
+          // Send only what I changed (forms send every field).
+          op.body = changedOnly(op.body, op.before)
+          if (op.body === '{}') {
+            queue.shift()
+            await del(op.seq, QUEUE)
+            sent++
+            continue
+          }
+          let patch: Record<string, unknown> = {}
+          try { patch = JSON.parse(op.body || '{}') } catch { /* nothing to compare */ }
+          const keys = clashFields(op.before, current, patch)
+          if (keys.length) {
+            const who = typeof current.updated_by === 'string' ? await nameOf(current.updated_by, op.user) : null
+            emitQueue({
+              sending: false, failed,
+              clash: {
+                table: tableOf(op.path),
+                label: String(current.name ?? current.title ?? op.before?.name ?? op.before?.title ?? ''),
+                fields: keys.map(k => ({ key: k, mine: patch[k], theirs: current![k] })),
+                mineAt: op.createdAt,
+                theirsAt: typeof current.updated_at === 'string' ? current.updated_at : null,
+                who
+              }
+            })
+            return
+          }
+        }
+      }
       if (op.prefer) headers.Prefer = op.prefer
       let status: number
       let message = ''
@@ -234,6 +302,42 @@ export function flushQueue(): Promise<void> {
   return flushing
 }
 let apiRoot = ''
+/** The change you just decided on goes without being checked again. */
+let resolvedSeq: number | null = null
+/** Your pick in the "which one stays?" picker. */
+export async function resolveClash(keep: 'mine' | 'theirs'): Promise<void> {
+  const op = queue[0]
+  const clash = qstate.clash
+  if (!op || !clash) return
+  if (keep === 'theirs') {
+    // Their value stays for the clashing fields; the rest of mine still goes.
+    const clashing = new Set(clash.fields.map(f => f.key))
+    op.body = patchFields(op.body, k => !clashing.has(k))
+    if (op.body === '{}') {
+      queue.shift()
+      await del(op.seq, QUEUE)
+    } else {
+      await put(op, QUEUE)
+    }
+  }
+  resolvedSeq = queue[0]?.seq === op.seq ? op.seq : null
+  emitQueue({ clash: null })
+  await flushQueue()
+}
+/** A first name for someone, from the trip and Savorlog people saved here. */
+async function nameOf(uid: string, me: string): Promise<string | null> {
+  if (uid === me) return 'You (on another device)'
+  const rows = await all<Saved>(STORE)
+  for (const r of rows) {
+    if (!/\/rest\/v1\/rpc\/(trip_people|savorlog_people)/.test(r.key)) continue
+    try {
+      const people = JSON.parse(r.body) as { user_id: string; display_name: string | null }[]
+      const p = Array.isArray(people) ? people.find(x => x.user_id === uid) : undefined
+      if (p?.display_name) return p.display_name
+    } catch { /* skip */ }
+  }
+  return null
+}
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => { setTimeout(() => void flushQueue(), 500) })
 }
@@ -264,14 +368,15 @@ const OFFLINE_BODY = JSON.stringify({ message: "You're offline, and this wasn't 
 
 /** Lay the waiting changes for this table over a read's answer. */
 async function overlay(res: Response, method: string, url: URL, user: string): Promise<Response> {
-  if (method !== 'GET') return res
+  if (method !== 'GET' || !res.ok) return res
   await loadQueue()
-  const ops = queue.filter(o => o.user === user && o.path === url.pathname)
-  if (ops.length === 0 || !res.ok) return res
   const text = await res.clone().text()
   let data: unknown
   try { data = JSON.parse(text) } catch { return res }
   const single = !Array.isArray(data)
+  remember(url.pathname, single ? (data ? [data as Record<string, unknown>] : []) : (data as Record<string, unknown>[]))
+  const ops = queue.filter(o => o.user === user && o.path === url.pathname)
+  if (ops.length === 0) return res
   const rows = applyOps(single ? (data ? [data as Record<string, unknown>] : []) : (data as Record<string, unknown>[]), url.search, ops)
   const headers = new Headers(res.headers)
   headers.delete('Content-Length')
@@ -284,12 +389,16 @@ async function enqueue(req: Request, url: URL, user: string): Promise<Response> 
   await loadQueue()
   const method = req.method.toUpperCase() as QueuedOp['method']
   const table = tableOf(url.pathname)
-  const body = method === 'DELETE' ? '' : withIds(table, await req.clone().text(), () => crypto.randomUUID())
+  // Only a new row gets an id from the device; an edit must never touch the id.
+  const text = method === 'DELETE' ? '' : await req.clone().text()
+  const body = method === 'POST' ? withIds(table, text, () => crypto.randomUUID()) : text
   const op: QueuedOp = {
     seq: nextSeq(), user, method, path: url.pathname, search: url.search, body,
     prefer: (req.headers.get('Prefer') ?? '').split(',').map(p => p.trim()).filter(p => p.startsWith('resolution=')).join(','),
     createdAt: new Date().toISOString(), ids: idsOf(method, url.search, body)
   }
+  const edited = method === 'PATCH' ? editedId(url.search) : null
+  if (edited) op.before = lastSeen.get(`${url.pathname}:${edited}`) ?? null
   queue.push(op)
   await put(op, QUEUE)
   emitQueue({ lastQueuedAt: op.createdAt })

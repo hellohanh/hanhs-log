@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { dismissFailed, newPage, offlineState, onOfflineChange, savedLabel } from '../lib/offline'
+import { dismissFailed, newPage, offlineState, onOfflineChange, resolveClash, savedLabel, type Clash } from '../lib/offline'
+import { fieldWord, shownValue } from '../lib/offlineQueue'
 import { useQueue } from './useWaiting'
 import styles from './OfflineBanner.module.css'
 
@@ -58,7 +59,9 @@ export default function OfflineBanner() {
           )}
           {q.waiting > 0 && (
             <div className={styles.wait} role="status">
-              {q.sending ? `Sending ${changes(q.waiting)}…` : `${changes(q.waiting)} waiting · sends when you're back online`}
+              {q.clash
+                ? `${changes(q.waiting)} waiting · pick which version stays`
+                : q.sending ? `Sending ${changes(q.waiting)}…` : `${changes(q.waiting)} waiting · sends when you're back online`}
             </div>
           )}
           {q.failed.length > 0 && (
@@ -74,6 +77,48 @@ export default function OfflineBanner() {
         </div>
       )}
       {note && <div className={styles.note} role="status">Saved on this device · sends when back online</div>}
+      {q.clash && <ClashPicker clash={q.clash} />}
     </>
+  )
+}
+
+// Step 3 (approved mockup screen 3): someone else changed the same thing while
+// you were offline. Your change waits until you pick which version stays;
+// your other changes to the same item still go either way.
+function ClashPicker({ clash }: { clash: Clash }) {
+  const [busy, setBusy] = useState(false)
+  const who = clash.who ?? 'Someone else'
+  const whose = clash.who ? `${clash.who}'s` : 'Theirs'
+  const heading = [clash.label, clash.fields.map(f => fieldWord(f.key)).filter((w, i, a) => a.indexOf(w) === i).join(', ')].filter(Boolean).join(' · ')
+  const pick = async (keep: 'mine' | 'theirs') => {
+    setBusy(true)
+    await resolveClash(keep)
+  }
+  const values = (side: 'mine' | 'theirs') =>
+    clash.fields.map(f => (
+      <span key={f.key} className={styles.clashValue}>
+        {clash.fields.length > 1 && <em>{fieldWord(f.key)}: </em>}
+        {shownValue(f[side])}
+      </span>
+    ))
+  return (
+    <div className={styles.backdrop}>
+      <div className={styles.clash} role="dialog" aria-modal="true" aria-labelledby="clash-title">
+        <h3 id="clash-title">{heading}</h3>
+        <p>{who} changed this while you were offline. Which one stays?</p>
+        <div className={`${styles.opt} ${styles.optMine}`}>
+          <small>Yours · offline {savedLabel(clash.mineAt)}</small>
+          {values('mine')}
+        </div>
+        <div className={styles.opt}>
+          <small>{whose}{clash.theirsAt ? ` · ${savedLabel(clash.theirsAt)}` : ''}</small>
+          {values('theirs')}
+        </div>
+        <div className={styles.btns}>
+          <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => void pick('theirs')}>Keep {whose === 'Theirs' ? 'theirs' : whose}</button>
+          <button type="button" className="btn" disabled={busy} onClick={() => void pick('mine')}>Keep mine</button>
+        </div>
+      </div>
+    </div>
   )
 }

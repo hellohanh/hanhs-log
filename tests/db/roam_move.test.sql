@@ -35,7 +35,7 @@ select test.ok((select note from spots where google_place_id = 'g-meiji') = E'Go
 select test.ok((select created_at::date from spots where google_place_id = 'g-meiji') = '2026-10-01', 'the spot keeps the first time it was added');
 select test.ok((select status || coalesce(verdict, '') from spot_reviews r join spots s on s.id = r.spot_id
                 where s.google_place_id = 'g-meiji' and r.user_id = '00000000-0000-0000-0000-00000000000a') = 'visrevisit', 'a VIS beats a newer WTG');
-select test.ok((select updated_at::date from spot_reviews r join spots s on s.id = r.spot_id
+select test.ok((select r.updated_at::date from spot_reviews r join spots s on s.id = r.spot_id
                 where s.google_place_id = 'g-meiji' and r.user_id = '00000000-0000-0000-0000-00000000000f') = '2026-10-08', 'between two WTGs the newest wins');
 select test.ok((select s.google_place_id from itinerary_stops st join spots s on s.id = st.spot_id where st.id = 'c1000000-0000-0000-0000-000000000001') = 'g-meiji'
                and (select pin_id from itinerary_stops where id = 'c1000000-0000-0000-0000-000000000001') is null, 'the itinerary block now points at the spot');

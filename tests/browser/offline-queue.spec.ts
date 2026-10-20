@@ -59,6 +59,9 @@ test('offline: an added activity and an edit wait on the device, then send in or
   // The add went first (the edit points at the id the device gave it).
   const sent = db.calls.filter(c => c.path === '/rest/v1/itinerary_activities' && c.method !== 'GET').map(c => c.method)
   expect(sent).toEqual(['POST', 'PATCH'])
+  // An edit never sends a new id (only a new row gets one from the device).
+  const patch = db.calls.find(c => c.path === '/rest/v1/itinerary_activities' && c.method === 'PATCH')!
+  expect(JSON.parse(patch.body!).id).toBeUndefined()
 })
 
 test('a change the database refuses when it is sent is shown, then dismissed', async ({ page, context }) => {
