@@ -502,3 +502,87 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 - Phone step 3 (add/edit forms, mockup first at 412 × 891).
 - Or: the Map check results, the old-pin import, M5.2b (migration 0016), Q6/Q7, M6, M7.
 - After Oct 19, 2026, check a run on Ubuntu 26.
+
+## Session 14 — 2026-10-19
+
+**Goal:**
+- Get caught up from the S013 zip.
+- MICHELIN reference for Vietnam; rework the MICHELIN chips (Selected, Bib) and the eatery ticks into a Vibe box.
+- A run of trip and Savorlog improvements: Google spelling, double-click to edit, MICHELIN-only, new dishes, Bib badge, copy pins, block notes, one invite link for several trips.
+- Add a third section for non-eatery places: **Roaminglog** (Spot List).
+
+**Decisions made:** E109 (MICHELIN chips on two lines, Selected, Bib with the smiling face; replaces E52), E110 (Vibe box, 9 ticks; replaces E34), E111 (Google spelling suggestion, BBQ), E112 (double-click to edit), E113 (MICHELIN chip hides others; dish menu A–Z), E114 (new main dishes per cuisine, "+ Add" at the top), E115 (copy pins), E116 (notes on time blocks), E117 (one link for several trips), E118 (MICHELIN Guide reference sheet), E119 (Roaminglog: own catalogue, all spots on every trip, removal to the owner), E120 (the move and its merge rules), E121 (Spot List page, links, splash card).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #100: migration **0016** (Bib level, 7 Vibe columns) — applied.
+- #101: MICHELIN chips on two lines + Bib, the Vibe box, vibes in the popup.
+- #102: Google spelling suggestion under the name boxes; BBQ in capitals.
+- #103: double-click a left-list place to edit (computer).
+- #104: MICHELIN chip hides non-MICHELIN pins; Main dish menu A–Z.
+- #105: type a new main dish (migration **0017** `custom_dishes`) — applied.
+- #106: Bib smiling-face chip on pins and in the lists.
+- #107: Copy pins between trips (migration **0018**) — applied.
+- #108: "+ Add a new dish…" at the top of the menu.
+- #109: notes on itinerary time blocks (migration **0019**) — applied.
+- #110: one invite link for several trips (migration **0020** `trip_bundles`, `/wander/join-trips/<token>`) — applied.
+- #111: Roaminglog step 1, migration **0021** `spots` + `spot_reviews` — applied.
+- #112: Inspect database prints the Roaminglog move preview (counts only).
+- #113: Roaminglog steps 2–3: migration **0022** moved 77 non-food pins into 65 spots and re-pointed 4 itinerary blocks (applied; Inspect showed 0 non-food pins left); trips read spots; new `spot_stops` and `roam_move` db tests, `roam-spots` browser test.
+- #114: Roaminglog step 4: `/roam` Spot List, header / ☰ / footer links, third splash card (`card-roam.webp`); `roam-page` browser test and a smoke line.
+
+**Done outside code:**
+- MICHELIN Guide spreadsheet of Vietnam's 190 places (Vietnamese cuisine with subcategories first, then other cuisines).
+- Sortable table of the 14 MICHELIN places in the import file.
+- Monetization notes parked in the project doc `claude/monetization-notes.md`.
+- Actions: every run green (304 db checks, 434 browser tests at the end).
+
+**Design work:** MICHELIN chip previews, the Vibe drag-and-drop layout editor (Hanh's two-column layout), Bib face options (A), the Roaminglog name and page title, and a movable-box crop editor on the hero for the card picture (x 379, y 697, 480 × 300).
+
+**Lessons:** L63 (temp tables in a migration need one transaction), L64 (move data with the reading code in the same release; preview counts first), L65 (stand-in Supabase needs new tables), L66 (expand every tree level in tests).
+
+**Open questions:** Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S014 OCT 19 2026 Hanhs Log.zip` produced and presented (its docs PR #115 was merged in session 15 as part of #122).
+
+**Next session starts at:**
+- Check the Spot List and a trip on the live site after a full refresh (Ctrl+Shift+R; fully reopen the phone app).
+- The import queue: tap Bib on Bib places (E118 sheet).
+- Phone step 3 (add/edit forms, mockup first at 412 × 891), the Map check results, M5.2b (now migration 0023 or later), Q6/Q7, M6, M7.
+- Parked: monetization (project doc).
+
+## Session 15 — 2026-10-20
+
+**Goal:**
+- Use the site with spotty or no signal: see what you've opened, change it offline, and sort out clashes when the signal returns.
+- A how-to page for the site, in dark mode with screenshots, at /how-to.
+- Tidy the Your trips header into a ☰.
+
+**Decisions made:** E122 (offline saved copy: trips you've opened), E123 (changes wait and send later), E124 ("which one stays?": ask; migration 0023), E125 (How-to page at /how-to, dark, Huong as the second person), E126 (Your trips ☰ beside + New trip; phone ☰ holds those items and How-to).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #116: offline step 1, the saved copy and the dark Offline line; the map retries on reconnect; `offline.spec.ts`.
+- #117: offline step 2, waiting changes with "waiting to send", the yellow and red lines; `offline-queue.spec.ts`.
+- #118: offline step 3, the picker; migration **0023** `row_changes` (applied); `row_changes` db test, `offline-clash.spec.ts`; fix: an offline edit never sends an id; the dashed outline drawn inside the block.
+- #119: How-to page (`public/how-to/`, 10 chapters, 19 screenshots, offline too); `how-to.spec.ts`; the Munch List removal test made reliable; failures shown as GitHub run notes.
+- #120: Huong in place of Mai in the guide (text and screenshots).
+- #121: Your trips ☰ (computer) and page items + How-to in the phone ☰; `trips-menu.spec.ts`.
+- Plus this PR: the session 14 docs (#115, never merged, folded in and closed) and the session 15 docs.
+
+**Done outside code:**
+- Explained the offline options (read-only vs changes later) and the two decisions (what's saved, what happens on a clash).
+- Answered who gets what from a several-trips link (joined trips + the whole Munch List and Spot List, not the Family circle).
+- Screenshots for the guide taken against the stand-in database with a small stand-in Google Maps (a simplified map drawing), in dark mode.
+- Actions: every run green at the end (312 db checks, 468 browser tests).
+
+**Design work:** offline mockup (saved copy, waiting to send, the picker) at 412 × 891; the Your trips ☰ mockup (Hanh chose ☰ to the right of + New trip; phones use the existing ☰, plus How-to).
+
+**Lessons:** L67 (parallel CI races; reproduce with workers 4), L68 (GitHub logs unreadable; run notes via the github reporter), L69 (branch from main misses fixes in open PRs), L70 (an offline queue gives ids only to new rows), L71 (check the last docs PR merged).
+
+**Open questions:** Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S015 OCT 20 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:**
+- Try offline on the phone (airplane mode, change a note, back online) and the picker with a second device; close and reopen the phone app once so it picks up the How-to page.
+- Phone step 3 (add/edit forms, mockup first at 412 × 891), the Map check results, the import queue (Bib places), M5.2b (now migration 0024 or later), Q6/Q7, M6, M7.
+- Parked: monetization (project doc).
