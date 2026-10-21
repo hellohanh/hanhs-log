@@ -542,10 +542,47 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 
 **Open questions:** Q6 (American icon names), Q7 (no lobster icon).
 
-**Stop Protocol completed:** zip `S014 OCT 19 2026 Hanhs Log.zip` produced and presented.
+**Stop Protocol completed:** zip `S014 OCT 19 2026 Hanhs Log.zip` produced and presented (its docs PR #115 was merged in session 15 as part of #122).
 
 **Next session starts at:**
 - Check the Spot List and a trip on the live site after a full refresh (Ctrl+Shift+R; fully reopen the phone app).
 - The import queue: tap Bib on Bib places (E118 sheet).
 - Phone step 3 (add/edit forms, mockup first at 412 × 891), the Map check results, M5.2b (now migration 0023 or later), Q6/Q7, M6, M7.
+- Parked: monetization (project doc).
+
+## Session 15 — 2026-10-20
+
+**Goal:**
+- Use the site with spotty or no signal: see what you've opened, change it offline, and sort out clashes when the signal returns.
+- A how-to page for the site, in dark mode with screenshots, at /how-to.
+- Tidy the Your trips header into a ☰.
+
+**Decisions made:** E122 (offline saved copy: trips you've opened), E123 (changes wait and send later), E124 ("which one stays?": ask; migration 0023), E125 (How-to page at /how-to, dark, Huong as the second person), E126 (Your trips ☰ beside + New trip; phone ☰ holds those items and How-to).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #116: offline step 1, the saved copy and the dark Offline line; the map retries on reconnect; `offline.spec.ts`.
+- #117: offline step 2, waiting changes with "waiting to send", the yellow and red lines; `offline-queue.spec.ts`.
+- #118: offline step 3, the picker; migration **0023** `row_changes` (applied); `row_changes` db test, `offline-clash.spec.ts`; fix: an offline edit never sends an id; the dashed outline drawn inside the block.
+- #119: How-to page (`public/how-to/`, 10 chapters, 19 screenshots, offline too); `how-to.spec.ts`; the Munch List removal test made reliable; failures shown as GitHub run notes.
+- #120: Huong in place of Mai in the guide (text and screenshots).
+- #121: Your trips ☰ (computer) and page items + How-to in the phone ☰; `trips-menu.spec.ts`.
+- Plus this PR: the session 14 docs (#115, never merged, folded in and closed) and the session 15 docs.
+
+**Done outside code:**
+- Explained the offline options (read-only vs changes later) and the two decisions (what's saved, what happens on a clash).
+- Answered who gets what from a several-trips link (joined trips + the whole Munch List and Spot List, not the Family circle).
+- Screenshots for the guide taken against the stand-in database with a small stand-in Google Maps (a simplified map drawing), in dark mode.
+- Actions: every run green at the end (312 db checks, 468 browser tests).
+
+**Design work:** offline mockup (saved copy, waiting to send, the picker) at 412 × 891; the Your trips ☰ mockup (Hanh chose ☰ to the right of + New trip; phones use the existing ☰, plus How-to).
+
+**Lessons:** L67 (parallel CI races; reproduce with workers 4), L68 (GitHub logs unreadable; run notes via the github reporter), L69 (branch from main misses fixes in open PRs), L70 (an offline queue gives ids only to new rows), L71 (check the last docs PR merged).
+
+**Open questions:** Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S015 OCT 20 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:**
+- Try offline on the phone (airplane mode, change a note, back online) and the picker with a second device; close and reopen the phone app once so it picks up the How-to page.
+- Phone step 3 (add/edit forms, mockup first at 412 × 891), the Map check results, the import queue (Bib places), M5.2b (now migration 0024 or later), Q6/Q7, M6, M7.
 - Parked: monetization (project doc).
