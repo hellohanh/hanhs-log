@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { fakeSupabase, ME, FRIEND } from './fake-supabase'
+import { fakeSupabase, tripAction, ME, FRIEND } from './fake-supabase'
 
 // Session 14: one invite link for several trips (0020). Only trips you own
 // can be picked; signed-in people join them all at once; links can be stopped.
@@ -7,7 +7,7 @@ import { fakeSupabase, ME, FRIEND } from './fake-supabase'
 test('make one link for several trips, then stop it', async ({ page }) => {
   const db = await fakeSupabase(page)
   await page.goto('./wander')
-  await page.getByRole('button', { name: 'Invite to several trips' }).click()
+  await (await tripAction(page, 'Invite to several trips')).click()
   // Only your own trips get a tick box (Christmas in Saigon, Japan in spring).
   await expect(page.getByRole('checkbox', { name: /^Include / })).toHaveCount(2)
   await expect(page.getByRole('checkbox', { name: 'Include Rome long weekend' })).toHaveCount(0)
@@ -21,7 +21,7 @@ test('make one link for several trips, then stop it', async ({ page }) => {
   await dlg.getByRole('button', { name: 'Done' }).click()
 
   // Your links: Copy and Stop.
-  await page.getByRole('button', { name: 'Several-trips links · 1' }).click()
+  await (await tripAction(page, /Several-trips links\s*1/)).click()
   const links = page.getByRole('dialog', { name: 'Several-trips links' })
   await expect(links.getByTestId('bundle')).toContainText('Christmas in Saigon · Japan in spring')
   await links.getByRole('button', { name: 'Stop this link' }).click()

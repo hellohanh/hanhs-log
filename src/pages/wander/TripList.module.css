@@ -17,7 +17,15 @@
 .h1 { font-size: 48px; }
 
 .newBtn { gap: 8px; font-weight: 700; }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+/* The ☰ beside + New trip (session 15, approved mockup). */
+.menuWrap { position: relative; display: inline-flex; }
+.menuBtn { width: 46px; height: 46px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--rule); border-radius: var(--pill); background: transparent; color: var(--ink); cursor: pointer; }
+.menuBtn:hover, .menuBtn[aria-expanded='true'] { background: var(--surface); border-color: var(--muted); }
+.menu { position: absolute; right: 0; top: 56px; z-index: 40; min-width: 270px; padding: 6px 0; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22); }
+.menuItem { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 18px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.menuItem:hover { background: var(--ground); }
+.menuRule { border: 0; border-top: 1px solid var(--rule); margin: 4px 0; }
 .left { font-weight: 400; color: var(--muted); }
 
 .h2 {

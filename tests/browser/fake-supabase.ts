@@ -1,4 +1,4 @@
-import type { Page, Route } from '@playwright/test'
+import type { Locator, Page, Route } from '@playwright/test'
 
 // A tiny stand-in for Supabase, for the browser tests. The test build points
 // at https://test-project.supabase.co (ci.yml); every call to it is answered
@@ -574,4 +574,16 @@ export async function expectTime(scope: import('@playwright/test').Locator, labe
   const [h, m] = hhmm.split(':')
   await expect(scope.getByRole('combobox', { name: `${label} hour`, exact: true })).toHaveValue(h)
   await expect(scope.getByRole('combobox', { name: `${label} minute`, exact: true })).toHaveValue(m)
+}
+
+/** Your trips' extra actions (session 15): the ☰ beside + New trip on
+ * computers, the site's ☰ menu on phones. Opens it and returns the item. */
+export async function tripAction(page: Page, name: RegExp | string): Promise<Locator> {
+  const desk = page.getByRole('button', { name: 'More trip actions' })
+  if (await desk.isVisible()) {
+    await desk.click()
+    return page.getByRole('menuitem', { name })
+  }
+  await page.getByRole('button', { name: 'Menu', exact: true }).click()
+  return page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name })
 }
