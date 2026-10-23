@@ -20,6 +20,7 @@ import {
   type TripSummary
 } from '../../lib/trips'
 import { BundlesDialog, NewBundleDialog } from './BundleDialogs'
+import JoinLinkDialog from './JoinLinkDialog'
 import { ensureTripCity } from '../../lib/city'
 import { amSavorlogOwner, fetchImport } from '../../lib/pinImport'
 import TripForm from './TripForm'
@@ -46,15 +47,24 @@ export default function TripList() {
       </Shell>
     )
   }
-  if (!session) {
-    return (
-      <Shell>
-        <p className="lede">Sign in to see your trips, including the ones shared with you.</p>
-        <Link to="/signin" className="btn" style={{ marginTop: 24 }}>Sign in</Link>
-      </Shell>
-    )
-  }
+  if (!session) return <SignedOut />
   return <SignedInList userId={session.user.id} />
+}
+
+// Signed out (e.g. an iPhone home-screen app, which keeps its own sign-in):
+// sign in, or paste an invite someone sent (session 15).
+function SignedOut() {
+  const [joiningLink, setJoiningLink] = useState(false)
+  return (
+    <Shell>
+      <p className="lede">Sign in to see your trips, including the ones shared with you. Got an invite link? Paste it to join here.</p>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
+        <Link to="/signin" className="btn">Sign in</Link>
+        <button type="button" className="btn btn-quiet" onClick={() => setJoiningLink(true)}>Join with a link</button>
+      </div>
+      {joiningLink && <JoinLinkDialog onClose={() => setJoiningLink(false)} />}
+    </Shell>
+  )
 }
 
 function Shell({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
@@ -133,9 +143,13 @@ function SignedInList({ userId }: { userId: string }) {
   }
 
   const phone = useIsPhone()
+  const [joiningLink, setJoiningLink] = useState(false)
   const navigate = useNavigate()
   const startPicking = () => { setNotice('Tick the trips you own to put on one invite link.'); setPicking(new Set()) }
   const menuItems: PageMenuItem[] = [
+    // Session 15: an iPhone home-screen app can't open a link from Messages
+    // (they open in Safari, signed in apart), so paste the invite here.
+    { label: 'Join with a link', onSelect: () => setJoiningLink(true) },
     ...(bundles.length > 0 ? [{ label: 'Several-trips links', sub: String(bundles.length), onSelect: () => setShowBundles(true) }] : []),
     { label: 'Invite to several trips', onSelect: startPicking },
     ...(importLeft !== null ? [{ label: 'Import old pins', sub: importLeft >= 0 ? `${importLeft} left` : undefined, onSelect: () => navigate('/wander/import') }] : [])
@@ -212,6 +226,7 @@ function SignedInList({ userId }: { userId: string }) {
       {newBundle && load.state === 'ready' && (
         <NewBundleDialog token={newBundle.token} tripIds={newBundle.tripIds} trips={load.trips} onClose={() => setNewBundle(null)} />
       )}
+      {joiningLink && <JoinLinkDialog onClose={() => setJoiningLink(false)} />}
       {showBundles && load.state === 'ready' && (
         <BundlesDialog bundles={bundles} trips={load.trips} onChanged={loadBundles} onClose={() => setShowBundles(false)} />
       )}
