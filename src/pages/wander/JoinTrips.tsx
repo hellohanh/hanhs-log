@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
-import { bundlePreview, joinTripsViaBundle, todayISO, tripDates, type BundleTrip } from '../../lib/trips'
+import { bundlePreview, joinTripsViaBundle, signInAsGuest, todayISO, tripDates, type BundleTrip } from '../../lib/trips'
 
 // /wander/join-trips/:token: one invite link for several trips (session 14,
-// approved mockup). Signed-in people only (no anonymous guests): see the
-// trips, then Join all. Trips you're already on are marked and skipped.
+// approved mockup). Signed in: see the trips, then Join all; trips you're
+// already on are marked and skipped. Not signed in (session 15, Hanh, migration
+// 0024): like a single trip's link, "Join all" signs in without an email and
+// joins straight away; the first name is asked on the trip.
 export default function JoinTrips() {
   const { token = '' } = useParams()
   const { session, loading } = useAuth()
@@ -14,6 +16,8 @@ export default function JoinTrips() {
   const [trips, setTrips] = useState<BundleTrip[] | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  // A guest tapped Join all: join as soon as their sign-in lands.
+  const [guest, setGuest] = useState(false)
 
   useEffect(() => {
     if (loading || !session) return
@@ -24,6 +28,22 @@ export default function JoinTrips() {
     )
     return () => { alive = false }
   }, [loading, session, token])
+
+  useEffect(() => {
+    if (guest && session && !loading) void join()
+  }, [guest, session, loading]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function joinAsGuest() {
+    setBusy(true)
+    setError('')
+    try {
+      await signInAsGuest()
+      setGuest(true)
+    } catch (e) {
+      setBusy(false)
+      setError(friendly((e as Error).message))
+    }
+  }
 
   async function join() {
     setBusy(true)
@@ -53,11 +73,14 @@ export default function JoinTrips() {
           <p className="lede" role="alert">{error}</p>
           <p style={{ marginTop: 24 }}><Link to="/wander">Go to your trips</Link></p>
         </>
+      ) : guest || (busy && !session) ? (
+        <p className="lede" role="status">Joining the trips…</p>
       ) : !session ? (
         <>
-          <p className="lede">Sign in with your account to see the trips and join them all at once.</p>
+          <p className="lede">Join to see the trips' places and plans, and add your own. No email needed: you'll just be asked for a first name.</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
-            <Link to="/signin" className="btn">Sign in to join</Link>
+            <button type="button" className="btn" disabled={busy} onClick={() => void joinAsGuest()}>Join all</button>
+            <Link to="/signin" className="btn btn-quiet">I have an account — sign in first</Link>
           </div>
         </>
       ) : !trips ? (
@@ -92,6 +115,5 @@ export default function JoinTrips() {
 const STOPPED = "This invite link doesn't work any more. It may have been stopped, so ask whoever invited you for a new one."
 function friendly(message: string): string {
   if (/invalid or stopped/i.test(message)) return STOPPED
-  if (/sign in with an account/i.test(message)) return 'This invite is for signed-in people. Sign in with an account to join.'
   return `Couldn't join: ${message}`
 }
