@@ -1,4 +1,5 @@
--- Migration 0020 (one invite link for several trips).
+-- Migrations 0020 and 0024 (one invite link for several trips; since 0024
+-- guests can join with it, without an email).
 -- Cast: A owns trips T1, T2, T3; F owns trip T4; B is signed in (the invited
 -- family member); C is an anonymous guest; D a stranger.
 
@@ -39,11 +40,12 @@ select test.ok((select join_trips_via_bundle((select t from tok))) = 2, 'joining
 select test.ok((select count(*) from trip_members where user_id = '00000000-0000-0000-0000-00000000000b') = 3, 'B is on all three trips');
 select test.ok((select join_trips_via_bundle((select t from tok))) = 0, 'joining again changes nothing');
 
--- ===== C (anonymous guest) can't use it =====
+-- ===== C (a guest, no email) joins with it too (0024), but can't make one =====
 select test.act_as('00000000-0000-0000-0000-00000000000c', true);
-select test.refused($$select join_trips_via_bundle((select t from tok))$$, 'an anonymous guest can''t join with it');
-select test.refused($$select * from trip_bundle_preview((select t from tok))$$, 'an anonymous guest can''t preview it');
-select test.refused($$select create_trip_bundle(array['11111111-1111-1111-1111-111111111111']::uuid[])$$, 'an anonymous guest can''t make one');
+select test.ok((select count(*) from trip_bundle_preview((select t from tok))) = 3, 'a guest sees the trips on the link (0024)');
+select test.ok((select join_trips_via_bundle((select t from tok))) = 3, 'a guest joins all three with it (0024)');
+select test.ok(test.visible('select * from trips') = 3, 'the guest now sees those three trips, and not the friend''s');
+select test.refused($$select create_trip_bundle(array['11111111-1111-1111-1111-111111111111']::uuid[])$$, 'a guest can''t make a link');
 
 -- ===== Signed out =====
 select test.act_as(null);
