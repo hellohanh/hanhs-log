@@ -22,8 +22,9 @@ import CopyPinsDialog from './CopyPinsDialog'
 import NamePrompt from './NamePrompt'
 import TripMap, { type CityState, type MapPin } from './TripMap'
 import PlacesPanel, { type Editing, type EateryEditing } from './PlacesPanel'
-import { fetchTripEateries, fetchEateryReviews, asReviews, requestEateryDeletion, saveEateryNote, type Eatery, type EateryReview } from '../../lib/eateries'
-import { deletePin, fetchPins, isSpot, fetchReviews, pinBadge, pinFaded, savePinNote, type Pin, type Review } from '../../lib/pins'
+import { fetchTripEateries, fetchEateryReviews, asReviews, requestEateryDeletion, saveEateryNote, saveMyEateryReview, type Eatery, type EateryReview } from '../../lib/eateries'
+import type { PopupReview } from '../../components/PlacePopup'
+import { deletePin, fetchPins, isSpot, saveMyReview, fetchReviews, pinBadge, pinFaded, savePinNote, type Pin, type Review } from '../../lib/pins'
 import PlacePopup from '../../components/PlacePopup'
 import BottomSheet, { type Snap } from '../../components/BottomSheet'
 import PhoneMenu from '../../components/PhoneMenu'
@@ -284,6 +285,20 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
     const look = pinLook({ category: 'food', subcategory: e.cuisine, subsubcategory: e.dish })
     return popupIconHtml(look, e.michelin)
   })()
+  // Your badge and stars on the popup (session 16, approved preview).
+  const popupReview: PopupReview | undefined = (() => {
+    if (!popup || !popupItem) return undefined
+    const list = popup.kind === 'pin' ? reviews.filter(r => r.pin_id === popup.id) : asReviews(eateryReviews, popup.id)
+    const mine = list.find(r => r.user_id === userId)
+    return {
+      mine: mine ? { status: mine.status, verdict: mine.verdict, rating: mine.rating } : null,
+      badge: pinBadge(list),
+      onSave: async r => {
+        if (popup.kind === 'pin') { await saveMyReview(popup.id, userId, r); await loadPins() }
+        else { await saveMyEateryReview(popup.id, userId, r); await loadEateries() }
+      }
+    }
+  })()
   // Without a map (no Google key) a list click still opens the edit panel.
   const hasMap = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
 
@@ -358,6 +373,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             if (popup.kind === 'pin') { await savePinNote(popup.id, note); await loadPins() }
             else { await saveEateryNote(popup.id, note); await loadEateries() }
           }}
+          review={popupReview}
         />
       </div>
     )
@@ -646,6 +662,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
                     if (popup.kind === 'pin') { await savePinNote(popup.id, note); await loadPins() }
                     else { await saveEateryNote(popup.id, note); await loadEateries() }
                   }}
+                  review={popupReview}
                 />
               ) : null
             }
