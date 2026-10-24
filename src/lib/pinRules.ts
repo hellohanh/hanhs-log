@@ -97,3 +97,13 @@ export function copyCounts(theirs: { google_place_id: string | null }[], mine: {
   const already = theirs.filter(p => p.google_place_id && here.has(p.google_place_id)).length
   return { total: theirs.length, already, toCopy: theirs.length - already }
 }
+
+// The popup's quick review (session 16, approved preview). Tapping the lit
+// verdict again goes back to want to go; a rating means you've been, so with
+// no verdict yet it counts as Revisit; tapping the same rating clears it.
+export function afterVerdict(mine: MyReview, v: Verdict): MyReview {
+  return mine.status === 'vis' && mine.verdict === v ? { status: 'wtg', verdict: null, rating: null } : { status: 'vis', verdict: v, rating: mine.rating }
+}
+export function afterRating(mine: MyReview, r: number | null): MyReview {
+  return r === null ? { ...mine, rating: null } : { status: 'vis', verdict: mine.verdict ?? 'revisit', rating: r }
+}

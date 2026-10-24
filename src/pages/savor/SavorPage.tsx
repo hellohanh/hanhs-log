@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
-import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, requestEateryDeletion, saveEateryNote, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
+import { fetchCatalogue, fetchEateryReviews, claimSavorlog, asReviews, requestEateryDeletion, saveEateryNote, saveMyEateryReview, savorlogInvite, savorlogPeople, type Eatery, type EateryReview } from '../../lib/eateries'
+import type { PopupReview } from '../../components/PlacePopup'
 import { searchPlaces, type FoundPlace } from '../../lib/pins'
 import { fetchMyName, type Person } from '../../lib/trips'
 import { searchLocations, resolveScope, type LocationHit, type Scope } from '../../lib/savorLocation'
@@ -187,6 +188,17 @@ function SavorLoaded({ userId }: { userId: string }) {
 
   const popupEatery = popupId ? eateries.find(e => e.id === popupId) ?? null : null
   const editingEatery = editing?.mode === 'edit' ? eateries.find(e => e.id === editing.id) : undefined
+  // Your badge and stars on the popup (session 16, approved preview).
+  const popupReview: PopupReview | undefined = (() => {
+    if (!popupEatery) return undefined
+    const list = asReviews(reviews, popupEatery.id)
+    const mine = list.find(r => r.user_id === userId)
+    return {
+      mine: mine ? { status: mine.status, verdict: mine.verdict, rating: mine.rating } : null,
+      badge: pinBadge(list),
+      onSave: async r => { await saveMyEateryReview(popupEatery.id, userId, r); await load() }
+    }
+  })()
 
   // Phone back gesture: close the top layer first.
   const phoneLayer = !phone ? null : editing ? 'form' : popupEatery ? 'card' : savorMenu ? 'menu' : catSnap === 'full' ? 'full' : null
@@ -309,6 +321,7 @@ function SavorLoaded({ userId }: { userId: string }) {
                 onEdit={() => { setPopupId(null); setEditing({ mode: 'edit', id: popupEatery.id }); setCatSnap('full') }}
                 onDelete={async () => { await requestEateryDeletion(popupEatery.id); setPopupId(null); await load() }}
                 onSaveNote={async note => { await saveEateryNote(popupEatery.id, note); await load() }}
+                review={popupReview}
               />
             </div>
           )}
@@ -448,6 +461,7 @@ function SavorLoaded({ userId }: { userId: string }) {
                   onEdit={() => { setPopupId(null); setEditing({ mode: 'edit', id: popupEatery.id }) }}
                   onDelete={async () => { await requestEateryDeletion(popupEatery.id); setPopupId(null); await load() }}
                   onSaveNote={async note => { await saveEateryNote(popupEatery.id, note); await load() }}
+                review={popupReview}
                 />
               ) : null
             }
