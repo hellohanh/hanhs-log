@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141312">
+<meta name="description" content="How to use Hanh's Log: trips, the Munch List, the Spot List, sharing, phones and no signal.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<title>Hanh's Log Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a sticky contents rail on the left, chapters on the right; each
+   step is text beside (or above) its screenshot, framed like the app's own
+   dark cards. Single dark look by Hanh's choice, taken from the app's own
+   dark tokens (ground, surface, ink, muted, rule, the dark-mode red). */
+:root {
+  --ground: #141312;
+  --surface: #1E1C1A;
+  --raised: #262320;
+  --ink: #F2EFEA;
+  --muted: #ADA79E;
+  --rule: #34302C;
+  --accent: #E0716A;
+  --accent-deep: #9E2A2B;
+  --wtg: #E8892C;
+  --vis: #3E9A4A;
+  --mustard: #E0A526;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius: 14px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 16px/1.6 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ground); }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* Masthead */
+.mast { border-bottom: 1px solid var(--rule); }
+.mast .wrap { padding-block: 56px 40px; display: grid; gap: 28px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: end; }
+.eyebrow { font: 600 12px/1 var(--font-body); letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+h1 { font: 400 clamp(40px, 6vw, 68px)/1.02 var(--font-display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 em { font-style: italic; color: var(--accent); }
+.lede { color: var(--muted); font-size: 18px; max-width: 34em; margin: 18px 0 0; }
+.logs { display: grid; gap: 10px; }
+.log { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; align-items: baseline; padding: 14px 16px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); }
+.log b { font: 500 22px/1.1 var(--font-display); }
+.log span { color: var(--muted); font-size: 14.5px; }
+
+/* Body: contents rail + chapters */
+.body .wrap { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; padding-block: 40px 80px; }
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; }
+.toc p { font: 600 11px/1 var(--font-body); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: ch; }
+.toc li { counter-increment: ch; }
+.toc a { display: grid; grid-template-columns: 26px 1fr; padding: 6px 8px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14.5px; }
+.toc a::before { content: counter(ch); color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc a:hover { background: var(--surface); }
+
+section.chapter { padding-block: 8px 48px; border-bottom: 1px solid var(--rule); margin-bottom: 48px; scroll-margin-top: 24px; }
+section.chapter:last-of-type { border-bottom: 0; }
+.chapter > header { display: grid; gap: 6px; margin-bottom: 24px; }
+.chapter .num { font: 600 12px/1 var(--font-body); letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+h2 { font: 400 clamp(30px, 3.6vw, 40px)/1.1 var(--font-display); margin: 0; text-wrap: balance; }
+.chapter > header p { color: var(--muted); margin: 4px 0 0; max-width: 40em; }
+h3 { font: 600 18px/1.3 var(--font-body); margin: 0 0 8px; }
+
+.step { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr); gap: 28px; align-items: start; margin-bottom: 36px; }
+.step.wide { grid-template-columns: minmax(0, 1fr); }
+.step .text { min-width: 0; }
+.step ol, .step ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.step li::marker { color: var(--muted); }
+.step p { margin: 0 0 10px; }
+.tip { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--mustard); background: var(--surface); border-radius: 0 10px 10px 0; color: var(--muted); font-size: 14.5px; }
+.tip b { color: var(--ink); }
+
+figure { margin: 0; min-width: 0; }
+figure img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--rule); background: var(--surface); }
+figcaption { color: var(--muted); font-size: 13.5px; margin-top: 8px; }
+.phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.phones img { border-radius: 22px; }
+
+/* the app's own marks, as inline chips */
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); font-size: 13.5px; white-space: nowrap; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+kbd { font: 600 13px/1 var(--font-body); padding: 2px 7px; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 6px; background: var(--raised); }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: var(--radius); }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14.5px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); background: var(--surface); font-size: 13px; letter-spacing: 0.04em; }
+tr:last-child td { border-bottom: 0; }
+td.yes { color: #8FD19A; } td.no { color: var(--muted); }
+
+body { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.back { margin: 0; padding: 14px max(16px, env(safe-area-inset-left, 0px)); max-width: 1240px; margin-inline: auto; font-size: 14px; }
+.back a { color: var(--muted); text-decoration: none; }
+.back a:hover { color: var(--ink); }
+footer.foot { border-top: 1px solid var(--rule); }
+footer.foot .wrap { padding-block: 28px 40px; color: var(--muted); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+
+@media (max-width: 900px) {
+  .mast .wrap { grid-template-columns: minmax(0, 1fr); padding-block: 40px 28px; }
+  .body .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .toc { position: static; }
+  .toc ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .step { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .phones { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+}
+@media (max-width: 480px) {
+  .log { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .phones img { border-radius: 14px; }
+}
+</style>
+
+</head>
+<body>
+<p class="back"><a href="../">← Back to Hanh's Log</a></p>
+<header class="mast">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">How to use</p>
+      <h1>Hanh's Log, <em>a field guide</em></h1>
+      <p class="lede">Plan trips with the people you travel with, keep the meals worth having again, and keep the places worth finding again. All three logs share one sign-in and one map.</p>
+    </div>
+    <div class="logs" aria-label="The three logs">
+      <div class="log"><b>Wanderlog</b><span>Your trips: a map of pins and a day-by-day itinerary, shared with everyone on the trip.</span></div>
+      <div class="log"><b>Savorlog</b><span>The Munch List: eateries by cuisine and main dish, with MICHELIN, Vibe and everyone's WTG / VIS.</span></div>
+      <div class="log"><b>Roaminglog</b><span>The Spot List: sights, stays, shops, airports and stations, shown on every trip's map.</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="body">
+  <div class="wrap">
+    <nav class="toc" aria-label="Contents">
+      <p>Contents</p>
+      <ol>
+        <li><a href="#start">Getting started</a></li>
+        <li><a href="#trips">Your trips</a></li>
+        <li><a href="#places">Places on a trip</a></li>
+        <li><a href="#itinerary">The itinerary</a></li>
+        <li><a href="#sharing">Sharing a trip</a></li>
+        <li><a href="#munch">Munch List</a></li>
+        <li><a href="#spots">Spot List</a></li>
+        <li><a href="#phone">On your phone</a></li>
+        <li><a href="#offline">No signal</a></li>
+        <li><a href="#access">Who sees what</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section class="chapter" id="start">
+        <header>
+          <span class="num">Chapter 1</span>
+          <h2>Getting started</h2>
+          <p>Open hellohanh.github.io/hanhs-log and scroll: the paper plane flies over the picture and lands, then the three logs appear under "Where to?".</p>
+        </header>
+        <div class="step">
+          <div class="text">
+            <h3>Sign in and pick a log</h3>
+            <ol>
+              <li>Tap <b>Sign in</b> and enter your email. Open the link Hanh's Log emails you.</li>
+              <li>Pick <b>Wanderlog</b>, <b>Savorlog</b> or <b>Roaminglog</b> from the cards, or from the header at any time.</li>
+              <li>The moon / sun button in the header switches between dark and light mode. Until you pick, it follows your phone or computer.</li>
+            </ol>
+            <p class="tip"><b>Add it to your home screen.</b> In your phone's browser menu, choose Add to Home Screen. It then opens like an app, and works with no signal too (chapter 9).</p>
+          </div>
+          <figure>
+            <img src="img/01-where-to.webp" alt="The Where to? section with three cards: Wanderlog (Plan the days), Savorlog (Remember the meals) and Roaminglog (Keep the spots)." width="1440" height="900" loading="lazy">
+            <figcaption>Where to? The three logs, after the plane lands.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="chapter" id="trips">
+        <header>
+          <span class="num">Chapter 2</span>
+          <h2>Your trips</h2>
+          <p>Wanderlog opens on Your trips: upcoming trips first, soonest at the top, and past trips faded underneath.</p>
+        </header>
+        <div class="step">
+          <div class="text">
+            <h3>Find a trip</h3>
+            <ul>
+              <li>Each card shows the dates, the cities and country, how many pins and people.</li>
+              <li><span class="chip">You own this</span> or <span class="chip">Shared with you</span> tells you whose trip it is.</li>
+              <li>✎ edits a trip without opening it. The bin deletes it, after asking (owners only).</li>
+            </ul>
+          </div>
+          <figure>
+            <img src="img/02-trips.webp" alt="Your trips: Christmas in Saigon, Rome long weekend and Japan in spring under Upcoming, Đà Nẵng and Hội An under Past." width="1440" height="900" loading="lazy">
+            <figcaption>Upcoming trips, then past trips.</figcaption>
+          </figure>
+        </div>
+        <div class="step">
+          <div class="text">
+            <h3>Start a new trip</h3>
+            <ol>
+              <li>Tap <b>New trip</b>.</li>
+              <li>Give it a name, the country and the primary city. Add up to two more cities if you like.</li>
+              <li>Add the dates, or leave them empty for a trip that's still an idea.</li>
+              <li>Tap <b>Create trip</b>. The map opens on the primary city.</li>
+            </ol>
+          </div>
+          <figure>
+            <img src="img/03-new-trip.webp" alt="The New trip popup over the trip list, with fields for the trip name, country, cities and dates." width="1440" height="900" loading="lazy">
+            <figcaption>The New trip popup. Escape or Cancel closes it.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="chapter" id="places">
+        <header>
+          <span class="num">Chapter 3</span>
+          <h2>Places on a trip</h2>
+          <p>A trip is a map with the Places list on the left. The list is a tree: category, then type, then the places. Every level starts folded up; tap a row to open it.</p>
+        </header>
+        <div class="step">
+          <div class="text">
+            <h3>Read the map</h3>
+            <ul>
+              <li>Each pin carries its category's icon and colour. The dot on it is the latest status: <span class="chip"><span class="dot" style="background:var(--wtg)"></span>WTG</span> want to go, or a green, yellow or red mark for visited.</li>
+              <li>Pins that crowd together merge into a red numbered bubble. Tap it to zoom in and split it.</li>
+              <li>The eye on each row picks what shows when <b>Show all pins</b> is off, for example just your hotel and the bánh mì places.</li>
+              <li>The <span class="chip">MICHELIN</span> chip shows only MICHELIN places and hides the rest.</li>
+            </ul>
+            <p class="tip"><b>Every trip shows the whole Munch List and Spot List.</b> Nom-Nom holds the eateries, and the other categories hold the spots. The list follows the map, so pan to the next city and it fills in.</p>
+          </div>
+          <figure>
+            <img src="img/04-trip-places.webp" alt="A trip page: the Places tree on the left with Accommodation, Airport, Attraction, Nom-Nom and Shopping, and pins on the map." width="1440" height="900" loading="lazy">
+            <figcaption>The Places tree beside the map. Bubbles count crowded pins.</figcaption>
+          </figure>
+        </div>
+        <div class="step">
+          <div class="text">
+            <h3>Open a place</h3>
+            <ul>
+              <li>Tap a pin, or a place in the list, to open its popup: the name, a link to Google Maps and the note.</li>
+              <li>Tap the note to change it right there.</li>
+              <li>✎ opens the edit panel, and the bin removes the place after asking.</li>
+              <li>On a computer, <b>double-click</b> a place in the list to go straight to its edit panel.</li>
+            </ul>
+          </div>
+          <figure>
+            <img src="img/05-popup.webp" alt="The popup on Bến Thành Market with its icon, a View in Google Maps link and the note Go early for the fabric stalls." width="1440" height="900" loading="lazy">
+            <figcaption>A pin's popup, with ✕, ✎ and the bin down the right.</figcaption>
+          </figure>
+        </div>
+        <div class="step">
+          <div class="text">
+            <h3>Add a place</h3>
+            <ol>
+              <li>Type in <b>Search Google to add a place</b> and tap <b>Search</b>. Places nearest the map's centre come first.</li>
+              <li>Pick the result. A place you already have says "Already added · open it".</li>
+              <li>Check the <b>English title</b> and <b>Local title</b>. If Google spells it differently (accents included), a suggestion appears under the boxes; tap <b>Use it</b> to take Google's spelling.</li>
+              <li>Pick the <b>Category</b> and, if you like, a group and type.</li>
+              <li>Set your status: <b>WTG</b>, or <b>VIS</b> with ✓ revisit, – 2nd chance or ✗ don't go back, plus a rating in half stars.</li>
+              <li>Tap <b>Add pin</b>.</li>
+            </ol>
+            <p class="tip"><b>Eateries go to the Munch List.</b> Picking Nom-Nom opens the eatery card instead (chapter 6). Every other category saves to the Spot List, so it shows on every trip.</p>
+          </div>
+          <figure>
+            <img src="img/07-add-place.webp" alt="The Add a place card for War Remnants Museum with name boxes, the address, Category set to Attraction, the WTG / VIS choice and a Note box." width="1440" height="900" loading="lazy">
+            <figcaption>The add card. The pin preview at the top changes as you choose.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="chapter" id="itinerary">
+        <header>
+          <span class="num">Chapter 4</span>
+          <h2>The itinerary</h2>
+          <p>Open it from the Itinerary tab on the right edge of the map. There's a tab for every trip date, plus extra days if you add them.</p>
+        </header>
+        <div class="step">
+          <div class="text">
+            <h3>Plan a day</h3>
+            <ul>
+              <li>Pick a day's tab. The timeline shows that day's places, activities and travel as time blocks.</li>
+              <li>Drag a block's middle to move it, and its top or bottom edge to change the times (5-minute steps).</li>
+              <li>The dashed line between two blocks is a connector. Tap it to say how you get there: walk, drive, transit or bike.</li>
+              <li><b>Day route</b> draws the day's places in order on the map.</li>
+              <li>↔ makes the panel wider; ✕ closes it.</li>
+            </ul>
+          </div>
+          <figure>
+            <img src="img/08-itinerary.webp" alt="The itinerary on Sun Dec 20: Phở Hòa Pasteur 08:00 to 09:00, Bến Thành Market 09:30 to 11:30 with the note Bargain hard, Bánh Mì Huỳnh Hoa 12:00 to 13:00." width="1440" height="900" loading="lazy">
+            <figcaption>One day: eateries and spots as blocks, with notes and connectors.</figcaption>
+          </figure>
+        </div>
+        <div class="step">
+          <div class="text">
+            <h3>Add something at a time</h3>
+            <ol>
+              <li>Click the timeline at the time you want. It snaps to the quarter hour.</li>
+              <li>Choose <b>Activity</b> (free text), <b>Travel</b> (a flight, train, bus or your own transport) or <b>Place</b> (any pin or eatery).</li>
+              <li>Add a <b>Note</b> if you like. It shows on the block, and in its hover text when the block is short.</li>
+              <li>Tap <b>Add</b>.</li>
+            </ol>
+            <p class="tip"><b>From the Places list:</b> with a day open, the + on a place's row adds it to that day. You can also drag a place from the list onto the timeline.</p>
+          </div>
+          <figure>
+            <img src="img/09-add-at.webp" alt="The Add at 14:00 popup with Activity, Travel and Place, a What box, start and end times and a Note box." width="1440" height="900" loading="lazy">
+            <figcaption>Add at 14:00. Times are 24-hour everywhere.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="chapter" id="sharing">
+        <header>
+          <span class="num">Chapter 5</span>
+          <h2>Sharing a trip</h2>
+          <p>Everyone on a trip can see and edit it. They're asked for a first name once, and nobody sees anyone's email.</p>
+        </header>
+        <div class="step">
+          <div class="text">
+            <h3>Invite people to one trip</h3>
+            <ol>
+              <li>On the trip, tap <b>Share &amp; people</b>.</li>
+              <li><b>Copy</b> the invite link and send it. Anyone with it can join, no email needed.</li>
+              <li>Owners can <b>Remove</b> someone, or <b>Reset link</b> so old links stop working.</li>
+            </ol>
+          </div>
+          <figure>
+            <img src="img/10-share.webp" alt="The Share and people dialog with the invite link, a Copy button, Reset link, and three people: Hanh (owner), Huong and someone with no name yet." width="1440" height="900" loading="lazy">
+            <figcaption>Share &amp; people: the link and who's on the trip.</figcaption>
+          </figure>
+        </div>
+        <div class="step">
+          <div class="text">
+            <h3>One link for several trips</h3>
+            <ol>
+              <li>On Your trips, tap <b>Invite to several trips</b>.</li>
+              <li>Tick the trips you own that should be on the link.</li>
+              <li>Tap <b>Make one link</b> and copy it.</li>
+              <li>People tap <b>Join all</b>. No email needed: they're asked for a first name. Someone already signed in sees the list first; trips they're already on are skipped.</li>
+            </ol>
+            <p class="tip"><b>Stop a link:</b> Several-trips links lists your links, each with Copy and <b>Stop this link</b>.</p>
+          </div>
+          <figure>
+            <img src="img/11-several-trips.webp" alt="Your trips in pick mode: Christmas in Saigon and Japan in spring ticked, a Make one link · 2 trips button at the top." width="1440" height="900" loading="lazy">
+            <figcaption>Tick the trips, then Make one link.</figcaption>
+          </figure>
+        </div>
+        <div class="step wide">
+          <div class="text">
+            <h3>Copy pins from another trip</h3>
+            <p>Going back to the same city? On the new trip tap <b>Copy pins</b>, pick the other trip, and its own pins (with everyone's WTG / VIS) are copied over. Places already on the trip are skipped. Eateries and spots don't need copying; they're on every trip already.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="chapter" id="munch">
+        <header>
+          <span class="num">Chapter 6</span>
+          <h2>Munch List</h2>
+          <p>Savorlog's catalogue of eateries, filed by cuisine and main dish. It belongs to no trip: the family keeps one list, and every trip shows it.</p>
+        </header>
+        <div class="step">
+          <div class="text">
+            <h3>Find eateries</h3>
+            <ul>
+              <li>Type a city or country in <b>City/Country</b> and pick it. The map glides there.</li>
+              <li>The list shows what's on the map. Pan to the next city and it fills in.</li>
+              <li>Open a cuisine, then a dish. Tap an eatery for its popup, or double-click it to edit.</li>
+              <li><b>Family</b> (top right) holds your family's invite link and members.</li>
+            </ul>
+          </div>
+          <figure>
+            <img src="img/12-munch-list.webp" alt="The Munch List with City/Country and Google search boxes, the Catalogue with Vietnamese, and MICHELIN pins on the map." width="1440" height="900" loading="lazy">
+            <figcaption>The Munch List follows the map.</figcaption>
+          </figure>
+        </div>
+        <div class="step">
+          <div class="text">
+            <h3>Add or edit an eatery</h3>
+            <ol>
+              <li>Search Google in the second box and pick the place, or double-click one you have.</li>
+              <li>Pick the <b>Cuisine</b>, then the <b>Main dish</b>. The menu is A–Z; <b>+ Add a new dish…</b> at the top adds one to that cuisine for everyone.</li>
+              <li>Set the <b>Price</b> ($ to $$$$).</li>
+              <li><b>MICHELIN Guide:</b> None, Selected or Bib on the first line; ★, ★★ or ★★★ on the second. Add the year. Bib places get the smiling-face chip on their pin.</li>
+            </ol>
+          </div>
+          <figure>
+            <img src="img/13-eatery-card.webp" alt="The Edit eatery card for Bánh Xèo 46A: name boxes, Cuisine Vietnamese, dish Bánh Xèo, price $$, MICHELIN Bib chosen, year 2025." width="1440" height="900" loading="lazy">
+            <figcaption>The eatery card, top half.</figcaption>
+          </figure>
+        </div>
+        <div class="step">
+          <div class="text">
+            <h3>Vibe, photos and your status</h3>
+            <ul>
+              <li><b>Vibe:</b> tick any that fit. Dine in, Fine dining, Street food, Food truck, Outdoor seating, Community seating, Food court / hawker, Counter / bar seating and Takeaway / to-go. Ticked vibes show under the name in the popup.</li>
+              <li><b>You:</b> WTG, or VIS with a verdict and a rating.</li>
+              <li><b>Photos:</b> up to 3. The first is the cover; with none, a Google photo is used.</li>
+              <li><b>Remove…</b> sends the eatery to the owner's pending-deletion list. Only the owner removes it for good.</li>
+            </ul>
+          </div>
+          <figure>
+            <img src="img/14-eatery-card-vibe.webp" alt="The lower half of the eatery card: the Vibe box with Dine in, Street food and Outdoor seating ticked, WTG / VIS, Photos, Note, and Remove, Cancel and Save buttons." width="1440" height="900" loading="lazy">
+            <figcaption>The Vibe box in its two columns.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="chapter" id="spots">
+        <header>
+          <span class="num">Chapter 7</span>
+          <h2>Spot List</h2>
+          <p>Roaminglog's catalogue of everything that isn't an eatery: hotels, sights, shops, airports and stations. Like the Munch List it belongs to no trip, and every trip's map shows it.</p>
+        </header>
+        <div class="step">
+          <div class="text">
+            <h3>Use the Spot List</h3>
+            <ul>
+              <li>It works like the Munch List: City/Country moves the map, the list follows the map, and Google search adds a spot.</li>
+              <li>Tap a row or pin for the popup; double-click a row to edit.</li>
+              <li>A spot you add on a trip lands here too, and the same spot on two trips is one spot, with one set of notes and everyone's WTG / VIS.</li>
+              <li>Removing a spot sends it to the owner's pending-deletion list and takes it off every trip.</li>
+            </ul>
+          </div>
+          <figure>
+            <img src="img/15-spot-list.webp" alt="The Spot List with Accommodation › Hotel, Airport, Attraction › Landmarks and History and Worship, and Shopping." width="1440" height="900" loading="lazy">
+            <figcaption>The Spot List, by category.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="chapter" id="phone">
+        <header>
+          <span class="num">Chapter 8</span>
+          <h2>On your phone</h2>
+          <p>On a phone the map fills the screen and the lists slide up as sheets. Everything from the chapters above is there, arranged for one hand.</p>
+        </header>
+        <div class="step wide">
+          <div class="text">
+            <ul>
+              <li><b>Sheets:</b> swipe a sheet's handle up for half, again for full, and back down to close it to just the handle.</li>
+              <li><b>Bottom bar:</b> <b>Places</b> and <b>Itinerary</b> swap the sheets. Tapping the open one drops it.</li>
+              <li><b>⋯</b> on a trip holds Edit trip, Share &amp; people and Map look. <b>☰</b> holds the three logs, dark / light mode and Sign out.</li>
+              <li><b>Back gesture:</b> steps back one layer at a time.</li>
+            </ul>
+          </div>
+          <div class="phones">
+            <figure><img src="img/20-phone-trip.webp" alt="A trip on a phone: the map with pins and the Itinerary sheet at half, with day tabs." width="780" height="1688" loading="lazy"><figcaption>A trip, Itinerary at half.</figcaption></figure>
+            <figure><img src="img/21-phone-places.webp" alt="The Places sheet on a phone, with the Google search, Show all pins and the category tree." width="780" height="1688" loading="lazy"><figcaption>Places, from the bottom bar.</figcaption></figure>
+            <figure><img src="img/22-phone-menu.webp" alt="The ☰ menu on a phone listing Wanderlog, Savorlog, Roaminglog, Light mode and Sign out." width="780" height="1688" loading="lazy"><figcaption>☰: the logs and the theme.</figcaption></figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="chapter" id="offline">
+        <header>
+          <span class="num">Chapter 9</span>
+          <h2>No signal</h2>
+          <p>Whatever you've opened is kept on your phone or computer. With no signal you can still read it, and change it; your changes send themselves when the signal comes back.</p>
+        </header>
+        <div class="step">
+          <div class="text">
+            <h3>Before you go</h3>
+            <ol>
+              <li>While you have signal, open each trip you'll need, plus the Munch List and the Spot List.</li>
+              <li>In the Google Maps app, download the area as an offline map. Hanh's Log's own map needs a connection.</li>
+            </ol>
+            <h3 style="margin-top:20px">With no signal</h3>
+            <ul>
+              <li>A dark line says <span class="chip"><span class="dot" style="background:var(--mustard)"></span>Offline · showing what was saved Tue 9:42</span>.</li>
+              <li>Make changes as usual. Each one is kept on the device, marked <b>waiting to send</b> with a dashed outline, and a yellow line counts them.</li>
+              <li>When the signal returns they send in the order you made them, and the lines go.</li>
+            </ul>
+            <p class="tip"><b>Still needs a signal:</b> photo uploads, invite links, Copy pins, and sending an eatery or spot to the removal list.</p>
+          </div>
+          <figure>
+            <img src="img/16-offline-waiting.webp" alt="A trip with no signal: the dark Offline line, a yellow 1 change waiting line, and an activity marked waiting to send with a dashed outline." width="1440" height="900" loading="lazy">
+            <figcaption>An edit made with no signal, waiting to send.</figcaption>
+          </figure>
+        </div>
+        <div class="step">
+          <div class="text">
+            <h3>When someone else changed it too</h3>
+            <p>If Huong changed the same thing while you were offline, sending pauses and you pick which version stays.</p>
+            <ul>
+              <li><b>Keep mine</b> sends yours. <b>Keep Huong's</b> leaves hers.</li>
+              <li>Only what you actually changed is sent, so if Huong changed something else on the same item, both changes stay.</li>
+              <li>If the item was removed meanwhile, a red line tells you, with Dismiss.</li>
+            </ul>
+          </div>
+          <figure>
+            <img src="img/17-clash.webp" alt="The picker: War Remnants Museum · note. Huong changed this while you were offline. Which one stays? Yours, offline: Go at 8. Huong's, Tue 10:20: Go at 9. Buttons Keep Huong's and Keep mine." width="1440" height="900" loading="lazy">
+            <figcaption>The "which one stays?" picker.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="chapter" id="access">
+        <header>
+          <span class="num">Chapter 10</span>
+          <h2>Who sees what</h2>
+          <p>Joining any trip, by a trip link or a several-trips link, opens all three logs. Only the owner can finish a removal or manage the family circle.</p>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th scope="col">What</th><th scope="col">On a trip</th><th scope="col">In the Family circle</th><th scope="col">Owner</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Trips</th><td class="yes">The trips they've joined: see and edit</td><td class="no">Only trips they're on</td><td class="yes">All their own trips</td></tr>
+              <tr><th scope="row">Munch List</th><td class="yes">All of it: add, edit, WTG / VIS</td><td class="yes">All of it</td><td class="yes">All of it</td></tr>
+              <tr><th scope="row">Spot List</th><td class="yes">All of it: add, edit, WTG / VIS</td><td class="yes">All of it</td><td class="yes">All of it</td></tr>
+              <tr><th scope="row">Remove an eatery or spot</th><td class="no">Sends it to the owner's list</td><td class="no">Sends it to the owner's list</td><td class="yes">Removes it for good, or brings it back</td></tr>
+              <tr><th scope="row">Family dialog and its invite</th><td class="no">No</td><td class="yes">See the members</td><td class="yes">Invite, reset, remove</td></tr>
+              <tr><th scope="row">Trip invite link</th><td class="yes">Copy it</td><td class="no">Only on trips they're on</td><td class="yes">Copy, reset, remove people</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="tip" style="margin-top:16px"><b>Leaving every trip</b> also takes away the Munch List and Spot List, unless that person is in the Family circle too.</p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <span>Hanh's Log · Wanderlog · Savorlog · Roaminglog</span>
+    <span>Screenshots use sample trips and a simplified map drawing in place of Google's.</span>
+  </div>
+</footer>
+
+</body>
+</html>
