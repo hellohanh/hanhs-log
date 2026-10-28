@@ -2,8 +2,8 @@
 # no activity, and counts activity by requests through its API. The nightly
 # backup talks to Postgres directly, which may not count, so this sends real
 # API requests (the sign-in service and the data API) once a day. The anon key
-# is the public key the site itself uses; rules (RLS) still apply, so the data
-# request returns nothing, but it still counts as activity.
+# is the public key the site itself uses; it may not read any table, so the
+# data request is refused by Postgres, which still counts as activity.
 # If a heartbeat fails, GitHub emails Hanh about the failed run.
 name: Database heartbeat
 
@@ -32,11 +32,22 @@ jobs:
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
             echo "::error::The VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY secrets are missing"; exit 1
           fi
-          ping() {
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 --retry-all-errors --max-time 30 \
-              -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" "$SUPABASE_URL$1")
-            echo "$1 -> $code"
-            [ "$code" = 200 ] || { echo "::error::Heartbeat $1 answered $code (is the project paused?)"; exit 1; }
-          }
-          ping /auth/v1/health
-          ping '/rest/v1/trips?select=id&limit=1'
+          # The sign-in service answers 200 when the project is awake.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 --retry-all-errors --max-time 30 \
+            -H "apikey: $SUPABASE_ANON_KEY" "$SUPABASE_URL/auth/v1/health")
+          echo "sign-in service -> $code"
+          [ "$code" = 200 ] || { echo "::error::Sign-in service answered $code (is the project paused?)"; exit 1; }
+          # The data API runs a query in Postgres. Visitors who aren't signed in
+          # may not read any table (on purpose), so Postgres itself refuses it
+          # with "permission denied" (42501). That answer proves the database
+          # is awake and counts as activity; anything else is a problem.
+          body=$(curl -sS -w '\n%{http_code}' --retry 3 --retry-all-errors --max-time 30 \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/trips?select=id&limit=1")
+          code=$(printf '%s' "$body" | tail -n1)
+          echo "data API -> $code $(printf '%s' "$body" | head -n1 | cut -c1-120)"
+          if [ "$code" = 200 ] || printf '%s' "$body" | grep -q '"42501"'; then
+            echo "Database answered: heartbeat OK"
+          else
+            echo "::error::Data API answered $code (is the project paused?)"; exit 1
+          fi
