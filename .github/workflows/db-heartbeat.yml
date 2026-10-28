@@ -1,0 +1,42 @@
+# Heartbeat: Supabase's free plan pauses a project after about a week with
+# no activity, and counts activity by requests through its API. The nightly
+# backup talks to Postgres directly, which may not count, so this sends real
+# API requests (the sign-in service and the data API) once a day. The anon key
+# is the public key the site itself uses; rules (RLS) still apply, so the data
+# request returns nothing, but it still counts as activity.
+# If a heartbeat fails, GitHub emails Hanh about the failed run.
+name: Database heartbeat
+
+on:
+  schedule:
+    - cron: '41 19 * * *'   # 19:41 UTC daily: early afternoon in Chicago
+  workflow_dispatch:
+  pull_request:             # proves the heartbeat works when it is changed
+    paths:
+      - .github/workflows/db-heartbeat.yml
+
+permissions:
+  contents: read
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Ping the sign-in service and the data API
+        run: |
+          set -euo pipefail
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::The VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY secrets are missing"; exit 1
+          fi
+          ping() {
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 --retry-all-errors --max-time 30 \
+              -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" "$SUPABASE_URL$1")
+            echo "$1 -> $code"
+            [ "$code" = 200 ] || { echo "::error::Heartbeat $1 answered $code (is the project paused?)"; exit 1; }
+          }
+          ping /auth/v1/health
+          ping '/rest/v1/trips?select=id&limit=1'
