@@ -243,6 +243,7 @@ function RoamLoaded({ userId }: { userId: string }) {
         place={{
           name: popupSpot.name,
           googlePlaceId: popupSpot.google_place_id,
+          contact: { address: popupSpot.address, phone: popupSpot.phone ?? null, website: popupSpot.website ?? null },
           lat: popupSpot.lat,
           lng: popupSpot.lng,
           note: popupSpot.note,

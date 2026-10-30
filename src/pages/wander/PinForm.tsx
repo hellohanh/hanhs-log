@@ -9,6 +9,7 @@ import { averageRating, deletePin, pinBadge, saveMyReview, savePin, type FoundPl
 import type { Person } from '../../lib/trips'
 import styles from './Places.module.css'
 import NameFields from '../../components/NameFields'
+import ContactFields, { useContactFields } from '../../components/ContactFields'
 import { joinName, splitName } from '../../lib/placeName'
 import type { ImportPrefill } from '../../lib/pinImport'
 import ImportButtons, { type ImportActions } from '../../components/ImportButtons'
@@ -89,7 +90,11 @@ export default function PinForm({
   const cat = categoryOf(category)
   const subObj = cat?.subs.find(s => s.key === sub)
   const isFood = category === 'food'
-  const address = pin?.address ?? place?.address ?? null
+  // Address, phone, website (session 16): editable, filled in from Google.
+  const contact = useContactFields(
+    pin ? { address: pin.address, phone: pin.phone ?? null, website: pin.website ?? null } : undefined,
+    pin ? { placeId: pin.google_place_id, lat: pin.lat, lng: pin.lng } : place ? { placeId: place.id, lat: place.lat, lng: place.lng, address: place.address } : null
+  )
   const look = pinLook({ category: category || 'attraction', subcategory: sub || null, subsubcategory: leaf || null })
   // The pin as it will look once saved: your status counts as the newest.
   const changedMine = !mine || mine.status !== review.status || mine.verdict !== review.verdict
@@ -110,7 +115,7 @@ export default function PinForm({
       trip_id: tripId,
       google_place_id: pin?.google_place_id ?? place?.id ?? null,
       name,
-      address,
+      ...contact.values(),
       lat: pin?.lat ?? place!.lat,
       lng: pin?.lng ?? place!.lng,
       category,
@@ -159,7 +164,7 @@ export default function PinForm({
       </div>
 
       <NameFields value={names} onChange={setNames} fieldClass={styles.field} hintClass={styles.address} google={google} />
-      {address && <p className={styles.address}>{address}</p>}
+      <ContactFields state={contact} fieldClass={styles.field} />
 
       {pin && onAddToDay && (
         <button

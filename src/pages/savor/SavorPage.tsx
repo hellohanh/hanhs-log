@@ -310,6 +310,7 @@ function SavorLoaded({ userId }: { userId: string }) {
                 place={{
                   name: popupEatery.name,
                   googlePlaceId: popupEatery.google_place_id,
+                  contact: { address: popupEatery.address, phone: popupEatery.phone ?? null, website: popupEatery.website ?? null },
                   lat: popupEatery.lat,
                   lng: popupEatery.lng,
                   note: popupEatery.note,
@@ -450,6 +451,7 @@ function SavorLoaded({ userId }: { userId: string }) {
                   place={{
                     name: popupEatery.name,
                     googlePlaceId: popupEatery.google_place_id,
+                    contact: { address: popupEatery.address, phone: popupEatery.phone ?? null, website: popupEatery.website ?? null },
                     lat: popupEatery.lat,
                     lng: popupEatery.lng,
                     note: popupEatery.note,

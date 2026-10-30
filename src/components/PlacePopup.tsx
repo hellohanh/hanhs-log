@@ -1,3 +1,4 @@
+import { shownContact, telOf, websiteHref, type Contact } from '../lib/contact'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { placeDetails, siteLabel, type PlaceDetails } from '../lib/placeDetails'
 import { popupLines } from '../lib/placeName'
@@ -35,6 +36,8 @@ export interface PopupPlace {
   iconHtml?: string
   /** The ticked Vibe labels, shown under the name (session 14). */
   vibes?: string[]
+  /** Saved address / phone / website (0026, session 16): win over Google's; '' hides one. */
+  contact?: Partial<Contact>
 }
 
 /** Your own WTG / VIS on the popup (session 16, approved preview): stars
@@ -113,6 +116,12 @@ export default function PlacePopup({
     placeDetails(place.googlePlaceId, place).then(d => alive && setInfo(d))
     return () => { alive = false }
   }, [place.googlePlaceId, place.lat, place.lng]) // eslint-disable-line react-hooks/exhaustive-deps
+  // What's saved wins; a field never saved shows Google's (session 16).
+  const shown = {
+    address: shownContact(place.contact?.address, info?.address ?? null),
+    phone: shownContact(place.contact?.phone, info?.phone ?? null),
+    website: shownContact(place.contact?.website, info?.website ?? null)
+  }
   useEffect(() => {
     setNote(place.note ?? '')
     setEditingNote(false)
@@ -226,12 +235,12 @@ export default function PlacePopup({
         <p className={styles.muted}>Loading…</p>
       ) : (
         <>
-          {info.address && <p className={styles.line}><span aria-hidden="true">📍</span>{info.address}</p>}
-          {info.phone && (
-            <p className={styles.line}><span aria-hidden="true">📞</span><a href={`tel:${info.tel}`}>{info.phone}</a></p>
+          {shown.address && <p className={styles.line}><span aria-hidden="true">📍</span>{shown.address}</p>}
+          {shown.phone && (
+            <p className={styles.line}><span aria-hidden="true">📞</span><a href={`tel:${telOf(shown.phone)}`}>{shown.phone}</a></p>
           )}
-          {info.website && (
-            <p className={styles.line}><span aria-hidden="true">🌐</span><a href={info.website} target="_blank" rel="noreferrer">{siteLabel(info.website)}</a></p>
+          {shown.website && (
+            <p className={styles.line}><span aria-hidden="true">🌐</span><a href={websiteHref(shown.website)} target="_blank" rel="noreferrer">{siteLabel(shown.website)}</a></p>
           )}
           <p className={styles.line}><span aria-hidden="true">↗</span><a href={info.mapsUrl} target="_blank" rel="noreferrer">View in Google Maps</a></p>
         </>

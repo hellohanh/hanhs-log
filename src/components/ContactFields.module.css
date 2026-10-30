@@ -1,0 +1,17 @@
+/* Address, phone and website on the edit panels (session 16). */
+.box { display: flex; flex-direction: column; gap: 8px; }
+.lab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.tag { font-size: 11px; padding: 1px 6px; border-radius: 6px; }
+.google { background: color-mix(in srgb, #378ADD 16%, transparent); color: #185FA5; }
+.edited { background: color-mix(in srgb, #639922 18%, transparent); color: #3B6D11; }
+.hidden { background: color-mix(in srgb, #888780 18%, transparent); color: var(--muted); }
+:global(:root[data-theme='dark']) .google { color: #85B7EB; }
+:global(:root[data-theme='dark']) .edited { color: #97C459; }
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .google { color: #85B7EB; }
+  :global(:root:not([data-theme='light'])) .edited { color: #97C459; }
+}
+.row { display: flex; align-items: center; gap: 6px; }
+.row input { flex: 1; min-width: 0; }
+.icon { width: 18px; text-align: center; font-size: 14px; flex: none; }
+.hint { margin: 0; font-size: 12px; color: var(--muted); }

@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import type { Michelin } from './pinDraw'
 import { noVibes, type Vibes } from './vibe'
+import { missingContactColumns, withoutContact } from './contact'
 
 // A trip's pins and everyone's WTG / VIS reviews (migration 0004), and the
 // Google search box that finds a place to pin (Places API (New) Text Search).
@@ -11,6 +12,9 @@ export interface Pin extends Vibes {
   google_place_id: string | null
   name: string
   address: string | null
+  /** Migration 0026: null = never saved (Google's shows), '' = hidden. */
+  phone?: string | null
+  website?: string | null
   lat: number
   lng: number
   category: string
@@ -36,6 +40,8 @@ function client() {
 
 const PIN_COLUMNS =
   'id, trip_id, google_place_id, name, address, lat, lng, category, subcategory, subsubcategory, michelin, michelin_year, street_food, fine_dining, dine_in, food_truck, outdoor_seating, community_seating, food_court, counter_seating, takeaway, note, created_at'
+// Phone and website (0026), asked for separately so the app still loads before it runs.
+const CONTACT_COLS = ', phone, website'
 
 // Since session 14 the non-food places live in Roaminglog's shared spot
 // catalogue (0021), not on one trip: every trip shows them all (Hanh's
@@ -43,42 +49,48 @@ const PIN_COLUMNS =
 // The trip keeps its own food pins. Which ids are spots is remembered here so
 // the note, review and remove calls go to the right table.
 const SPOT_COLUMNS = 'id, google_place_id, name, address, lat, lng, category, subcategory, subsubcategory, note, created_at'
+
+/** Select with phone / website, or without them until 0026 has run. */
+async function selectContact<T>(run: (cols: string) => PromiseLike<{ data: T | null; error: { message: string } | null }>, cols: string) {
+  const first = await run(cols + CONTACT_COLS)
+  return missingContactColumns(first.error) ? run(cols) : first
+}
 const spotIds = new Set<string>()
 export const isSpot = (id: string) => spotIds.has(id)
 /** A non-food category belongs in Roaminglog. */
 export const isSpotCategory = (category: string) => category !== 'food'
 
-type SpotRow = Pick<Pin, 'id' | 'google_place_id' | 'name' | 'address' | 'lat' | 'lng' | 'category' | 'subcategory' | 'subsubcategory' | 'note' | 'created_at'>
+type SpotRow = Pick<Pin, 'id' | 'google_place_id' | 'name' | 'address' | 'phone' | 'website' | 'lat' | 'lng' | 'category' | 'subcategory' | 'subsubcategory' | 'note' | 'created_at'>
 function spotAsPin(s: SpotRow, tripId: string): Pin {
   return { ...s, ...noVibes(), trip_id: tripId, michelin: null, michelin_year: null, source: 'spot' }
 }
 
 async function fetchSpots(tripId: string): Promise<Pin[]> {
-  const { data, error } = await client().from('spots').select(SPOT_COLUMNS).is('deleted_at', null)
+  const { data, error } = await selectContact(c => client().from('spots').select(c).is('deleted_at', null), SPOT_COLUMNS)
   // Before 0021 is applied (or without access) the trip shows its own pins only.
   if (error || !Array.isArray(data)) return []
-  return (data as SpotRow[]).map(s => spotAsPin(s, tripId))
+  return (data as unknown as SpotRow[]).map(s => spotAsPin(s, tripId))
 }
 
 /** The whole Roaminglog catalogue for the Spot List (/roam), shaped like pins. */
 export async function fetchAllSpots(): Promise<Pin[]> {
-  const { data, error } = await client().from('spots').select(SPOT_COLUMNS).is('deleted_at', null)
+  const { data, error } = await selectContact(c => client().from('spots').select(c).is('deleted_at', null), SPOT_COLUMNS)
   if (error) throw new Error(error.message)
-  const spots = ((Array.isArray(data) ? data : []) as SpotRow[]).map(s => spotAsPin(s, ''))
+  const spots = ((Array.isArray(data) ? data : []) as unknown as SpotRow[]).map(s => spotAsPin(s, ''))
   for (const s of spots) spotIds.add(s.id)
   return spots.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export async function fetchPins(tripId: string): Promise<Pin[]> {
   const [{ data, error }, spots] = await Promise.all([
-    client().from('pins').select(PIN_COLUMNS).eq('trip_id', tripId),
+    selectContact(c => client().from('pins').select(c).eq('trip_id', tripId), PIN_COLUMNS),
     fetchSpots(tripId)
   ])
   if (error) throw new Error(error.message)
   for (const s of spots) spotIds.add(s.id)
   // Until the move (0022) runs, a place can be both a pin and a spot: show it once.
   const spotPlaces = new Set(spots.map(s => s.google_place_id).filter(Boolean))
-  const own = ((data ?? []) as Pin[])
+  const own = ((data ?? []) as unknown as Pin[])
     .filter(p => !(p.google_place_id && spotPlaces.has(p.google_place_id)))
     .map(p => ({ ...p, source: 'pin' as const }))
   return [...own, ...spots].sort((a, b) => a.name.localeCompare(b.name))
@@ -107,14 +119,25 @@ export async function fetchReviews(pinIds: string[]): Promise<Review[]> {
   return out
 }
 
-function spotFields(f: PinFields) {
-  const { google_place_id, name, address, lat, lng, category, subcategory, subsubcategory, note } = f
-  return { google_place_id, name, address, lat, lng, category, subcategory, subsubcategory, note }
+function spotFields(f: PinFields): Record<string, unknown> {
+  const { google_place_id, name, address, phone, website, lat, lng, category, subcategory, subsubcategory, note } = f
+  const row = { google_place_id, name, address, phone, website, lat, lng, category, subcategory, subsubcategory, note }
+  return 'phone' in f ? row : withoutContact(row)
 }
 
 /** Adds a pin, or saves changes to one. Returns its id. A non-food place goes
  * to Roaminglog's spots (shared by every trip); a food place stays a trip pin. */
 export async function savePin(fields: PinFields, id?: string): Promise<string> {
+  try {
+    return await savePinOnce(fields, id)
+  } catch (e) {
+    // Before 0026 runs: save everything else.
+    if (!missingContactColumns(e as Error)) throw e
+    return savePinOnce(withoutContact(fields) as PinFields, id)
+  }
+}
+
+async function savePinOnce(fields: PinFields, id?: string): Promise<string> {
   // One pin per Google place per trip (0014, Hanh session 10); one spot per place (0021).
   const fail = (e: { code?: string; message: string }, spot: boolean) =>
     new Error(e.code === '23505' ? (spot ? 'That place is already in Roaminglog.' : 'That place is already pinned on this trip.') : e.message)
