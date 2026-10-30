@@ -31,7 +31,7 @@ export interface FakePerson {
   joined_at: string | null
 }
 
-export interface FakeDay { id: string; trip_id: string; date: string | null; repeat_after?: string | null; note: string | null; created_at: string }
+export interface FakeDay { id: string; trip_id: string; date: string | null; repeat_after?: string | null; note: string | null; locked?: boolean; created_at: string }
 export interface FakeLeg { id: string; day_id: string; [k: string]: unknown }
 export type FakeRow = Record<string, unknown>
 
