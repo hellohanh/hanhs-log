@@ -16,6 +16,7 @@ import {
   fillTripDates,
   syncRepeatDays,
   saveDayNote,
+  setDayLocked,
   saveLeg,
   deleteActivity,
   fetchActivities,
@@ -58,9 +59,12 @@ import {
 } from '../../lib/itineraryLayout'
 import TravelForm from './TravelForm'
 import { fetchTrips, placeLabel, todayISO, type TripSummary } from '../../lib/trips'
-import { ActivityBlock, ActivityFields, AddPopup, usePopupStyle } from './ActivityBlock'
+import { ActivityBlock, ActivityFields, AddPopup, DayLockContext, usePopupStyle } from './ActivityBlock'
 import { ADD_SNAP_MIN, NEW_BLOCK_MIN, hhmm, minuteAt, toMin } from '../../lib/itineraryDays'
 import styles from './Itinerary.module.css'
+
+/** Room under 11:59 pm so the day's last hour can be scrolled clear (Hanh, session 16). */
+const DAY_END_BUFFER = 100
 
 // The itinerary panel (approved inline mockup, session 4): a right-hand
 // panel over the map, 320 px or 640 px wide (covers the map), closed by
@@ -407,6 +411,31 @@ export default function ItineraryPanel({
     }
   }
 
+  // Day lock (migration 0025, session 16): shared by everyone on the trip.
+  // Days start locked; a locked day's blocks can't be moved or resized.
+  const [lockNote, setLockNote] = useState(false)
+  const lockTimer = useRef<number | undefined>(undefined)
+  const showLockNote = useCallback(() => {
+    setLockNote(true)
+    window.clearTimeout(lockTimer.current)
+    lockTimer.current = window.setTimeout(() => setLockNote(false), 1800)
+  }, [])
+  useEffect(() => () => window.clearTimeout(lockTimer.current), [])
+  const dayLock = useMemo(() => ({ locked: !!day?.locked, onBlocked: showLockNote }), [day?.locked, showLockNote])
+  async function toggleLock() {
+    if (!day) return
+    const id = day.id
+    const next = !day.locked
+    setLockNote(false)
+    setDays(ds => ds && ds.map(d => (d.id === id ? { ...d, locked: next } : d)))
+    try {
+      await setDayLocked(id, next)
+    } catch (e) {
+      setDays(ds => ds && ds.map(d => (d.id === id ? { ...d, locked: !next } : d)))
+      setError((e as Error).message)
+    }
+  }
+
   // Dated days follow the trip's dates (change them in Edit trip); extra
   // days, and dated days outside the trip's dates, can be deleted.
   const canDelete = !!day && (!day.date || !start || !end || day.date < start || day.date > end)
@@ -478,7 +507,10 @@ export default function ItineraryPanel({
                   }}
                 >
                   {t.top}
-                  <b>{t.main}</b>
+                  <b>
+                    {t.main}
+                    {d.locked && <span className={styles.dayLock} title="Day locked" aria-label="locked"><LockIcon locked size={12} /></span>}
+                  </b>
                   {tabCities(d, days, legs).map(c => <span key={c} className={styles.dayCity}>{c}</span>)}
                 </button>
               )
@@ -511,6 +543,14 @@ export default function ItineraryPanel({
                     <input type="checkbox" checked={showRoute} onChange={e => setShowRoute(e.target.checked)} /> Day route
                   </label>
                 )}
+                <IconBtn
+                  label={day.locked ? 'Day locked: unlock to move or resize things' : 'Day unlocked: lock to stop moves'}
+                  pressed={!!day.locked}
+                  className={day.locked ? styles.lockOn : undefined}
+                  onClick={toggleLock}
+                >
+                  <LockIcon locked={!!day.locked} />
+                </IconBtn>
                 {!phone && <IconBtn label="Add travel (flight, train, bus, own transport)" onClick={() => setForm({ leg: null })}><PlaneIcon /></IconBtn>}
                 <IconBtn label="Day note" pressed={noteOpen || !!day.note} onClick={() => setNoteOpen(o => !o)}><NoteIcon /></IconBtn>
                 {canDelete && <IconBtn label="Delete this day" onClick={() => setConfirmDay(true)}><TrashIcon /></IconBtn>}
@@ -575,10 +615,16 @@ export default function ItineraryPanel({
                   />
                 </div>
               ) : (
+                <DayLockContext.Provider value={dayLock}>
                 <div className={styles.timeline} ref={timeline} data-scroll="timeline">
+                  {lockNote && (
+                    <div className={styles.lockNoteWrap}>
+                      <p className={styles.lockNote} role="status">Day locked. Tap the lock to move things.</p>
+                    </div>
+                  )}
                   <div
                     className={`${styles.hours} ${dropTarget === 'timeline' ? styles.timelineDrop : ''}`}
-                    style={{ height: 24 * HOUR_PX }}
+                    style={{ height: 24 * HOUR_PX, marginBottom: DAY_END_BUFFER }}
                     data-testid="day-timeline"
                     onClick={e => {
                       if (adding || editing || editStop) {
@@ -750,6 +796,7 @@ export default function ItineraryPanel({
                     )}
                   </div>
                 </div>
+                </DayLockContext.Provider>
               )}
             </>
           )}
@@ -931,9 +978,9 @@ function Badge({ leg }: { leg: TravelLeg }) {
   return <span className={styles.modeDot} style={{ background: cfg.color }} dangerouslySetInnerHTML={{ __html: cfg.svg }} />
 }
 
-function IconBtn({ label, pressed, onClick, children }: { label: string; pressed?: boolean; onClick: () => void; children: React.ReactNode }) {
+function IconBtn({ label, pressed, className, onClick, children }: { label: string; pressed?: boolean; className?: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" className={styles.ib} aria-label={label} title={label} aria-pressed={pressed} onClick={onClick}>
+    <button type="button" className={`${styles.ib} ${className ?? ''}`} aria-label={label} title={label} aria-pressed={pressed} onClick={onClick}>
       {children}
     </button>
   )
@@ -944,6 +991,12 @@ const WidenIcon = () => <svg {...svg}><path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 
 const CloseIcon = () => <svg {...svg}><path d="M6 6l12 12M18 6 6 18" /></svg>
 const PlaneIcon = () => <svg {...svg}><path d="M21 16v-2l-8-5V4.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-3 2v1.5l4.5-1 4.5 1V21l-3-2v-4.5l8 2.5z" /></svg>
 const NoteIcon = () => <svg {...svg}><path d="M5 4h14v16H5z" /><path d="M9 9h6M9 13h6M9 17h3" /></svg>
+const LockIcon = ({ locked, size = 18 }: { locked: boolean; size?: number }) => (
+  <svg {...svg} width={size} height={size}>
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d={locked ? 'M8 11V7a4 4 0 0 1 8 0v4' : 'M8 11V7a4 4 0 0 1 7.5-2'} />
+  </svg>
+)
 const TrashIcon = () => <svg {...svg}><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>
 
 export function ItineraryOpener({ onOpen }: { onOpen: () => void }) {

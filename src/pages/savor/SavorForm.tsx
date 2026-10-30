@@ -14,6 +14,7 @@ import {
 } from '../../lib/eateries'
 import styles from './Savor.module.css'
 import NameFields from '../../components/NameFields'
+import ContactFields, { useContactFields } from '../../components/ContactFields'
 import { joinName, splitName } from '../../lib/placeName'
 import type { ImportPrefill } from '../../lib/pinImport'
 import ImportButtons, { type ImportActions } from '../../components/ImportButtons'
@@ -80,7 +81,11 @@ export default function SavorForm({
   const [confirm, setConfirm] = useState(false)
 
   const subObj = FOOD.subs.find(s => s.key === cuisine)
-  const address = eatery?.address ?? place?.address ?? null
+  // Address, phone, website (session 16): editable, filled in from Google.
+  const contact = useContactFields(
+    eatery ? { address: eatery.address, phone: eatery.phone ?? null, website: eatery.website ?? null } : undefined,
+    eatery ? { placeId: eatery.google_place_id, lat: eatery.lat, lng: eatery.lng } : place ? { placeId: place.id, lat: place.lat, lng: place.lng, address: place.address } : null
+  )
   const look = pinLook({ category: 'food', subcategory: cuisine || null, subsubcategory: dish || null })
   const asSaved: Review[] = [
     ...asReviews(reviews, eatery?.id ?? '').filter(r => r.user_id !== userId),
@@ -98,7 +103,7 @@ export default function SavorForm({
     const fields: EateryFields = {
       google_place_id: eatery?.google_place_id ?? place?.id ?? null,
       name,
-      address,
+      ...contact.values(),
       lat: eatery?.lat ?? place!.lat,
       lng: eatery?.lng ?? place!.lng,
       cuisine: cuisine || null,
@@ -146,7 +151,7 @@ export default function SavorForm({
       </div>
 
       <NameFields value={names} onChange={setNames} fieldClass={styles.field} hintClass={styles.path} google={google} />
-      {address && <p className={styles.path}>{address}</p>}
+      <ContactFields state={contact} fieldClass={styles.field} />
 
       <fieldset className={styles.group}>
         <legend>Cuisine &amp; dish</legend>

@@ -8,7 +8,20 @@
 .title { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
 .names { flex: 1; min-width: 0; display: flow-root; }
 .spacer { float: right; width: 30px; margin-right: -4px; }
-.cat { flex: none; display: flex; }
+.cat { flex: none; display: flex; position: relative; }
+/* Session 16 (approved preview): the pin's badge on the icon, stars under the
+   name, the circle under the bin opening the three chips. */
+.catBadge { position: absolute; right: -5px; bottom: -5px; display: flex; }
+.iconOn { box-shadow: 0 0 0 2px #1B1A18; }
+.stars { display: flex; align-items: center; gap: 1px; margin-top: 4px; outline-offset: 2px; }
+.star { position: relative; width: 22px; height: 22px; display: inline-flex; }
+.half { position: absolute; top: 0; bottom: 0; width: 50%; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.halfL { left: 0; }
+.halfR { right: 0; }
+.starVal { margin-left: 6px; font-size: 12px; color: #5E5A54; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; border: 1px solid #E2DDD5; border-radius: 10px; padding: 8px; margin: 4px 0 6px; background: #FBFAF7; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #E2DDD5; border-radius: 999px; padding: 3px 10px 3px 4px; background: #fff; color: #1B1A18; font: inherit; font-size: 13px; cursor: pointer; }
+.chip[aria-checked='true'] { border-color: #1B1A18; box-shadow: 0 0 0 1px #1B1A18; }
 .en { display: block; margin-top: 10px; font-size: 17px; line-height: 1.3; font-weight: 700; /* Google's box thins <b>; set it outright (session 10) */ }
 .local { display: block; margin-top: 1px; font-size: 15px; line-height: 1.35; font-weight: 400; font-style: italic; color: #8E1B3A; /* our web Segoe has only a 900 italic, so use the system Segoe (or a slanted regular) */ font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
 .vibes { display: block; margin-top: 4px; font-size: 13px; line-height: 1.35; color: #5E5A54; }
@@ -35,6 +48,12 @@
 .fill .local { font-size: 17px; }
 .fill .vibes { font-size: 14px; color: var(--muted); }
 .fill .icon { width: 40px; height: 40px; }
+.fill .star { width: 28px; height: 28px; }
+.fill .star svg { width: 28px; height: 28px; }
+.fill .chips { background: var(--surface); border-color: var(--rule); }
+.fill .chip { background: var(--ground); color: var(--ink); border-color: var(--rule); }
+.fill .starVal { color: var(--muted); }
+.fill .iconOn { box-shadow: 0 0 0 2px var(--ink); }
 .fill .line { margin-top: 8px; }
 .fill .line a, .fill .add { color: #1a6fd1; }
 .fill .noteText { background: var(--ground); }

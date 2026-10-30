@@ -10,6 +10,8 @@ export interface ItineraryDay {
   /** Set on a repeat day (a flight across the date line, migration 0013): the date it follows. */
   repeat_after?: string | null
   note: string | null
+  /** Migration 0025: blocks on a locked day can't be moved or resized (shared, starts locked). Missing before 0025 runs: unlocked. */
+  locked?: boolean
   created_at: string
 }
 

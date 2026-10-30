@@ -14,6 +14,9 @@ export interface Eatery extends Vibes {
   google_place_id: string | null
   name: string
   address: string | null
+  /** Migration 0026: null = never saved (Google's shows), '' = hidden. */
+  phone?: string | null
+  website?: string | null
   lat: number
   lng: number
   /** The food's country (a cuisine key from docs/pin-standard.md). */
@@ -34,6 +37,8 @@ export interface EateryReview extends Omit<Review, 'pin_id'> {
   eatery_id: string
 }
 
+import { missingContactColumns, withoutContact } from './contact'
+
 function client() {
   if (!supabase) throw new Error("Sign-in isn't set up in this build.")
   return supabase
@@ -44,9 +49,12 @@ const COLUMNS =
 
 /** Every live eatery in the catalogue (the queued-for-deletion ones are hidden). */
 export async function fetchCatalogue(): Promise<Eatery[]> {
-  const { data, error } = await client().from('eateries').select(COLUMNS).is('deleted_at', null)
+  const run = (cols: string) => client().from('eateries').select(cols).is('deleted_at', null).returns<Eatery[]>()
+  let { data, error } = await run(COLUMNS + ', phone, website')
+  // Before 0026 runs there's no phone / website yet.
+  if (missingContactColumns(error)) ({ data, error } = await run(COLUMNS))
   if (error) throw new Error(error.message)
-  return ((data ?? []) as Eatery[]).sort((a, b) => a.name.localeCompare(b.name))
+  return (data ?? []).sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /** The catalogue eateries a trip shows: every live one, for anyone on the trip (0015, E101). */
@@ -68,6 +76,16 @@ export async function fetchEateryReviews(ids: string[]): Promise<EateryReview[]>
 
 /** Adds an eatery to the catalogue, or saves changes to one. Returns its id. */
 export async function saveEatery(fields: EateryFields, id?: string): Promise<string> {
+  try {
+    return await saveEateryOnce(fields, id)
+  } catch (e) {
+    // Before 0026 runs: save everything else.
+    if (!missingContactColumns(e as Error)) throw e
+    return saveEateryOnce(withoutContact(fields) as EateryFields, id)
+  }
+}
+
+async function saveEateryOnce(fields: EateryFields, id?: string): Promise<string> {
   if (id) {
     const { error } = await client().from('eateries').update(fields).eq('id', id)
     if (error) throw new Error(error.message)

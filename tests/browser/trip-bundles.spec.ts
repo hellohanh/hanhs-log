@@ -50,8 +50,15 @@ test('a stopped link says so', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText("doesn't work any more")
 })
 
-test('signed out: asked to sign in (no guest join)', async ({ page }) => {
-  await fakeSupabase(page, { signedInAs: null, bundles: [BUNDLE] })
+test('signed out: Join all joins every trip without an email (0024), like a trip\'s own link', async ({ page }) => {
+  const db = await fakeSupabase(page, { signedInAs: null, bundles: [BUNDLE] })
   await page.goto('./wander/join-trips/tok-many')
-  await expect(page.getByRole('link', { name: 'Sign in to join' })).toBeVisible()
+  await expect(page.getByText('No email needed')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'I have an account — sign in first' })).toBeVisible()
+  await page.getByRole('button', { name: 'Join all' }).click()
+  await expect(page).toHaveURL(/\/wander$/)
+  const guest = '44444444-4444-4444-4444-444444444444'
+  expect(db.people['trip-saigon']?.some(p => p.user_id === guest)).toBe(true)
+  expect(db.people['trip-undated']?.some(p => p.user_id === guest)).toBe(true)
+  expect(db.calls.some(c => c.path === '/auth/v1/signup')).toBe(true)
 })

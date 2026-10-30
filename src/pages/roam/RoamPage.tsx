@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { isSupabaseConfigured } from '../../lib/supabase'
-import { deletePin, fetchAllSpots, fetchReviews, savePinNote, searchPlaces, type FoundPlace, type Pin, type Review } from '../../lib/pins'
+import { deletePin, fetchAllSpots, fetchReviews, saveMyReview, savePinNote, searchPlaces, type FoundPlace, type Pin, type Review } from '../../lib/pins'
 import { savorlogPeople } from '../../lib/eateries'
 import type { Person } from '../../lib/trips'
 import { resolveScope, type Scope } from '../../lib/savorLocation'
 import { onScreen, type Bounds } from '../../lib/countryBounds'
 import { pinLook } from '../../lib/pinCatalog'
 import { pinBox, pinHtml, popupIconHtml } from '../../lib/pinDraw'
-import { pinBadge, pinFaded, togglePicks } from '../../lib/pinRules'
+import { pinBadge, pinFaded, togglePicks, type MyReview } from '../../lib/pinRules'
 import PinTree from '../wander/PinTree'
 import PinForm from '../wander/PinForm'
 import PlacePopup from '../../components/PlacePopup'
@@ -243,6 +243,7 @@ function RoamLoaded({ userId }: { userId: string }) {
         place={{
           name: popupSpot.name,
           googlePlaceId: popupSpot.google_place_id,
+          contact: { address: popupSpot.address, phone: popupSpot.phone ?? null, website: popupSpot.website ?? null },
           lat: popupSpot.lat,
           lng: popupSpot.lng,
           note: popupSpot.note,
@@ -253,6 +254,15 @@ function RoamLoaded({ userId }: { userId: string }) {
         onEdit={() => { setPopupId(null); setEditing({ mode: 'edit', id: popupSpot.id }); if (phone) setListSnap('full') }}
         onDelete={async () => { await deletePin(popupSpot.id); setPopupId(null); await load() }}
         onSaveNote={async note => { await savePinNote(popupSpot.id, note); await load() }}
+        review={(() => {
+          const list = reviews.filter(r => r.pin_id === popupSpot.id)
+          const mine = list.find(r => r.user_id === userId)
+          return {
+            mine: mine ? { status: mine.status, verdict: mine.verdict, rating: mine.rating } : null,
+            badge: pinBadge(list),
+            onSave: async (r: MyReview) => { await saveMyReview(popupSpot.id, userId, r); await load() }
+          }
+        })()}
       />
     ) : null
 

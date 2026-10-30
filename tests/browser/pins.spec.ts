@@ -314,3 +314,18 @@ test('places sort A–Z inside a branch (session 10)', async () => {
   ])
   expect(t[0].children[0].pins.map(p => p.name)).toEqual(['An Đông Market', 'Bến Thành Market', 'Saigon Square'])
 })
+
+test('popup quick review: badge chips and stars (session 16)', async () => {
+  const { afterVerdict, afterRating } = await import('../../src/lib/pinRules')
+  const wtg = { status: 'wtg' as const, verdict: null, rating: null }
+  // A chip marks it visited with that verdict, keeping the stars.
+  expect(afterVerdict(wtg, 'second')).toEqual({ status: 'vis', verdict: 'second', rating: null })
+  expect(afterVerdict({ status: 'vis', verdict: 'revisit', rating: 4 }, 'no')).toEqual({ status: 'vis', verdict: 'no', rating: 4 })
+  // Tapping the chosen chip again: back to want-to-go.
+  expect(afterVerdict({ status: 'vis', verdict: 'second', rating: 3.5 }, 'second')).toEqual(wtg)
+  // Stars on a want-to-go place: visited, revisit by default; half stars kept.
+  expect(afterRating(wtg, 3.5)).toEqual({ status: 'vis', verdict: 'revisit', rating: 3.5 })
+  expect(afterRating({ status: 'vis', verdict: 'no', rating: 2 }, 1.5)).toEqual({ status: 'vis', verdict: 'no', rating: 1.5 })
+  // Clearing the stars keeps the badge.
+  expect(afterRating({ status: 'vis', verdict: 'no', rating: 2 }, null)).toEqual({ status: 'vis', verdict: 'no', rating: null })
+})

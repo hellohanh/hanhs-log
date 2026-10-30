@@ -19,13 +19,23 @@ function client() {
 
 export async function fetchDays(tripId: string): Promise<ItineraryDay[]> {
   const days = () => client().from('itinerary_days')
-  let { data, error } = await days().select('id, trip_id, date, repeat_after, note, created_at').eq('trip_id', tripId).returns<ItineraryDay[]>()
-  // Before migration 0013 is applied there's no repeat_after yet: load as before.
-  if (error && /repeat_after/.test(error.message)) {
-    ;({ data, error } = await days().select('id, trip_id, date, note, created_at').eq('trip_id', tripId).returns<ItineraryDay[]>())
+  // Newest columns first; until a migration has run, its column is missing, so
+  // fall back a step: 0025 adds locked, 0013 added repeat_after.
+  const tries = ['id, trip_id, date, repeat_after, note, locked, created_at', 'id, trip_id, date, repeat_after, note, created_at', 'id, trip_id, date, note, created_at']
+  let data: ItineraryDay[] | null = null
+  let error: { message: string } | null = null
+  for (const cols of tries) {
+    ;({ data, error } = await days().select(cols).eq('trip_id', tripId).returns<ItineraryDay[]>())
+    if (!error || !/locked|repeat_after/.test(error.message)) break
   }
   if (error) throw new Error(error.message)
   return sortDays((data ?? []) as ItineraryDay[])
+}
+
+/** Lock or unlock a day for everyone on the trip (migration 0025). */
+export async function setDayLocked(dayId: string, locked: boolean): Promise<void> {
+  const { error } = await client().from('itinerary_days').update({ locked }).eq('id', dayId)
+  if (error) throw new Error(/locked/.test(error.message) ? "The day lock isn't switched on yet (database update 0025 still waiting)." : error.message)
 }
 
 /** Adds a day for every trip date that doesn't have one yet. Returns true if any were added. */

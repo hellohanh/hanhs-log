@@ -1,6 +1,6 @@
 import { useWaiting } from '../../components/useWaiting'
 import { isPhone } from '../../lib/usePhone'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import TimeSelect from '../../components/TimeSelect'
 import type { Activity, StopItem, StopKind } from '../../lib/itinerary'
 import { dragTimes, hhmm, toMin } from '../../lib/itineraryDays'
@@ -224,6 +224,13 @@ type Handlers = {
 }
 
 /**
+ * The day lock (migration 0025, session 16): on a locked day blocks can't be
+ * moved or resized; a tap still opens them, a finger scrolls the timeline,
+ * and a mouse drag shows a note (onBlocked).
+ */
+export const DayLockContext = createContext<{ locked: boolean; onBlocked: () => void }>({ locked: false, onBlocked: () => {} })
+
+/**
  * Pointer-drag for a time block on the timeline: the middle moves it, the top
  * and bottom handles resize it (5-minute steps), and a click without dragging
  * opens it. Shared by activity blocks and place (stop) blocks (session 4).
@@ -233,12 +240,13 @@ export function useTimeBlockDrag(
   endTime: string,
   onChange: (start: string, end: string) => void,
   onOpen: () => void
-): { shown: { start: number; end: number }; dragging: boolean; handlers: (part: Part) => Handlers } {
+): { shown: { start: number; end: number }; dragging: boolean; locked: boolean; handlers: (part: Part) => Handlers } {
   const s0 = toMin(startTime)
   const e0 = toMin(endTime)
   const [live, setLive] = useState<{ start: number; end: number } | null>(null)
-  const drag = useRef<{ part: Part; y: number; moved: boolean } | null>(null)
+  const drag = useRef<{ part: Part; y: number; moved: boolean; mouse?: boolean } | null>(null)
   const shown = live ?? { start: s0, end: e0 }
+  const lock = useContext(DayLockContext)
 
   useEffect(() => setLive(null), [startTime, endTime])
 
@@ -255,7 +263,33 @@ export function useTimeBlockDrag(
       }
     }
     const none: Handlers = { onPointerDown() {}, onPointerMove() {}, onPointerUp() {} }
-    return { shown, dragging: false, handlers: (part: Part) => (part === 'move' ? tap : none) }
+    return { shown, dragging: false, locked: false, handlers: (part: Part) => (part === 'move' ? tap : none) }
+  }
+
+  if (lock.locked) {
+    const tap: Handlers = {
+      onPointerDown(e) {
+        e.stopPropagation()
+        const mouse = e.pointerType !== 'touch'
+        // A mouse keeps the pointer so the note shows; a finger is left free to scroll.
+        if (mouse) (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+        drag.current = { part: 'move', y: e.clientY, moved: false, mouse }
+      },
+      onPointerMove(e) {
+        const d = drag.current
+        if (!d || d.moved || Math.abs(e.clientY - d.y) <= 3) return
+        d.moved = true
+        if (d.mouse) lock.onBlocked()
+      },
+      onPointerUp(e) {
+        const d = drag.current
+        drag.current = null
+        e.stopPropagation()
+        if (d && !d.moved) onOpen()
+      }
+    }
+    const none: Handlers = { onPointerDown() {}, onPointerMove() {}, onPointerUp() {} }
+    return { shown, dragging: false, locked: true, handlers: (p: Part) => (p === 'move' ? tap : none) }
   }
 
   const handlers = (part: Part): Handlers => ({
@@ -287,7 +321,7 @@ export function useTimeBlockDrag(
     }
   })
 
-  return { shown, dragging: live !== null, handlers }
+  return { shown, dragging: live !== null, locked: false, handlers }
 }
 
 export function ActivityBlock({
@@ -301,20 +335,20 @@ export function ActivityBlock({
   onChange: (start: string, end: string) => void
   onOpen: () => void
 }) {
-  const { shown, dragging, handlers } = useTimeBlockDrag(activity.start_time, activity.end_time, onChange, onOpen)
+  const { shown, dragging, locked, handlers } = useTimeBlockDrag(activity.start_time, activity.end_time, onChange, onOpen)
   const top = (shown.start / 60) * HOUR_PX
   const height = Math.max(18, ((shown.end - shown.start) / 60) * HOUR_PX)
   const label = `${activity.title}, ${hhmm(shown.start)} to ${hhmm(shown.end)}`
   const waiting = useWaiting(activity.id)
   return (
     <div
-      className={`${styles.act} ${height < 44 ? styles.actShort : ''} ${dragging ? styles.actDragging : ''} ${waiting ? styles.waiting : ''}`}
+      className={`${styles.act} ${height < 44 ? styles.actShort : ''} ${dragging ? styles.actDragging : ''} ${locked ? styles.actLocked : ''} ${waiting ? styles.waiting : ''}`}
       style={{ top, height, ...pos }}
       {...handlers('move')}
       onClick={e => e.stopPropagation()}
       role="button"
       tabIndex={0}
-      aria-label={`${label}. Drag to move, or press Enter to edit`}
+      aria-label={locked ? `${label}. Day locked; press Enter to edit` : `${label}. Drag to move, or press Enter to edit`}
       title={activity.note ? `${label}\n${activity.note}` : label}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -323,12 +357,12 @@ export function ActivityBlock({
         }
       }}
     >
-      <span className={`${styles.handle} ${styles.handleTop}`} {...handlers('top')} aria-hidden="true" title="Drag to change the start" />
+      {!locked && <span className={`${styles.handle} ${styles.handleTop}`} {...handlers('top')} aria-hidden="true" title="Drag to change the start" />}
       <b>{activity.title}</b>
       <span className={styles.actTime}>{hhmm(shown.start)} – {hhmm(shown.end)}</span>
       {activity.note && <span className={styles.blockNote}>{activity.note}</span>}
       {waiting && <span className={styles.waitTag}>waiting to send</span>}
-      <span className={`${styles.handle} ${styles.handleBottom}`} {...handlers('bottom')} aria-hidden="true" title="Drag to change the end" />
+      {!locked && <span className={`${styles.handle} ${styles.handleBottom}`} {...handlers('bottom')} aria-hidden="true" title="Drag to change the end" />}
     </div>
   )
 }

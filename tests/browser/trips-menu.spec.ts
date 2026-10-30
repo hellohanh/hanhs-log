@@ -15,7 +15,7 @@ test('computer: + New trip and a ☰ with the other actions', async ({ page }, i
   const btn = page.getByRole('button', { name: 'More trip actions' })
   await btn.click()
   const menu = page.getByRole('menu')
-  await expect(menu.getByRole('menuitem')).toHaveText([/Invite to several trips/, /Import old pins/])
+  await expect(menu.getByRole('menuitem')).toHaveText([/Join with a link/, /Invite to several trips/, /Import old pins/])
   // Escape closes it; picking an item does what the button used to.
   await page.keyboard.press('Escape')
   await expect(menu).toHaveCount(0)
