@@ -350,6 +350,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
           place={{
             name: popupItem.name,
             googlePlaceId: popupItem.google_place_id,
+            contact: { address: popupItem.address, phone: popupItem.phone ?? null, website: popupItem.website ?? null },
             lat: popupItem.lat,
             lng: popupItem.lng,
             note: popupItem.note,
@@ -641,6 +642,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
                   place={{
                     name: popupItem.name,
                     googlePlaceId: popupItem.google_place_id,
+                    contact: { address: popupItem.address, phone: popupItem.phone ?? null, website: popupItem.website ?? null },
                     lat: popupItem.lat,
                     lng: popupItem.lng,
                     note: popupItem.note,
