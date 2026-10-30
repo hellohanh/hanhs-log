@@ -331,3 +331,13 @@
 .waiting { outline: 2px dashed #E0A526; outline-offset: -2px; }
 .waitTag { display: inline-block; align-self: flex-start; margin-top: 2px; font-size: 11px; line-height: 1.4; padding: 0 7px; border-radius: 10px; background: #FFF4D6; color: #5a4300; white-space: nowrap; }
 .actShort .waitTag { display: none; }
+
+/* Day lock (session 16): a locked day's blocks don't move; a finger scrolls. */
+.actLocked { touch-action: pan-y; cursor: pointer; }
+.dayLock { display: inline-flex; vertical-align: -1px; margin-left: 4px; opacity: 0.8; }
+.dayLock svg { display: inline-block; }
+.lockOn { background: color-mix(in srgb, #EF9F27 22%, transparent) !important; border-color: #EF9F27 !important; color: #854F0B !important; }
+:global(:root[data-theme='dark']) .lockOn { color: #FAC775 !important; }
+@media (prefers-color-scheme: dark) { :global(:root:not([data-theme='light'])) .lockOn { color: #FAC775 !important; } }
+.lockNoteWrap { position: sticky; top: 8px; height: 0; z-index: 30; }
+.lockNote { position: absolute; margin: 0; left: 50%; transform: translateX(-50%); z-index: 30; width: max-content; max-width: 90%; padding: 4px 12px; border-radius: var(--radius-s); font-size: 12px; background: var(--surface); border: 1px solid var(--rule); color: var(--ink); box-shadow: var(--shadow); pointer-events: none; }

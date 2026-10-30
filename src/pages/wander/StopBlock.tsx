@@ -31,7 +31,7 @@ export function StopBlock({
   onChange: (start: string, end: string) => void
   onOpen: () => void
 }) {
-  const { shown, dragging, handlers } = useTimeBlockDrag(stop.start_time, stop.end_time, onChange, onOpen)
+  const { shown, dragging, locked, handlers } = useTimeBlockDrag(stop.start_time, stop.end_time, onChange, onOpen)
   const look = pinLook(item)
   const top = (shown.start / 60) * HOUR_PX
   const height = Math.max(18, ((shown.end - shown.start) / 60) * HOUR_PX)
@@ -41,13 +41,13 @@ export function StopBlock({
   const waiting = useWaiting(stop.id)
   return (
     <div
-      className={`${styles.act} ${styles.stop} ${short ? styles.actShort : ''} ${dragging ? styles.actDragging : ''} ${waiting ? styles.waiting : ''}`}
+      className={`${styles.act} ${styles.stop} ${short ? styles.actShort : ''} ${dragging ? styles.actDragging : ''} ${locked ? styles.actLocked : ''} ${waiting ? styles.waiting : ''}`}
       style={{ top, height, borderLeftColor: look.color, ...pos }}
       {...handlers('move')}
       onClick={e => e.stopPropagation()}
       role="button"
       tabIndex={0}
-      aria-label={`${label}. Drag to move, or press Enter to open`}
+      aria-label={locked ? `${label}. Day locked; press Enter to open` : `${label}. Drag to move, or press Enter to open`}
       title={stop.note ? `${label}\n${stop.note}` : label}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -56,7 +56,7 @@ export function StopBlock({
         }
       }}
     >
-      <span className={`${styles.handle} ${styles.handleTop}`} {...handlers('top')} aria-hidden="true" title="Drag to change the start" />
+      {!locked && <span className={`${styles.handle} ${styles.handleTop}`} {...handlers('top')} aria-hidden="true" title="Drag to change the start" />}
       <span className={styles.stopName}>
         <span className={styles.stopIcon} style={{ background: look.color }} dangerouslySetInnerHTML={{ __html: iconSvg(look.icon, 11) }} aria-hidden="true" />
         <b>{item.name}</b>
@@ -65,7 +65,7 @@ export function StopBlock({
       <span className={styles.actTime}>{hhmm(shown.start)} – {hhmm(shown.end)}{stars}</span>
       {stop.note && <span className={styles.blockNote}>{stop.note}</span>}
       {waiting && <span className={styles.waitTag}>waiting to send</span>}
-      <span className={`${styles.handle} ${styles.handleBottom}`} {...handlers('bottom')} aria-hidden="true" title="Drag to change the end" />
+      {!locked && <span className={`${styles.handle} ${styles.handleBottom}`} {...handlers('bottom')} aria-hidden="true" title="Drag to change the end" />}
     </div>
   )
 }

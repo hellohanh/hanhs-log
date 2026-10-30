@@ -188,7 +188,7 @@ export function patchFields(body: string, keep: (k: string) => boolean): string 
 const FIELD_WORDS: Record<string, string> = {
   note: 'note', title: 'title', name: 'name', start_time: 'start', end_time: 'end', category: 'category',
   subcategory: 'type', subsubcategory: 'type', address: 'address', date: 'date', mode: 'travel type',
-  from_time: 'departure', to_time: 'arrival', from_location: 'from', to_location: 'to'
+  from_time: 'departure', to_time: 'arrival', from_location: 'from', to_location: 'to', locked: 'day lock'
 }
 export const fieldWord = (k: string) => FIELD_WORDS[k] ?? k.replace(/_/g, ' ')
 /** How a value reads in the picker: times without seconds, empty as "(empty)". */
