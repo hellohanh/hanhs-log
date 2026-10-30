@@ -586,3 +586,41 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 - Try offline on the phone (airplane mode, change a note, back online) and the picker with a second device; close and reopen the phone app once so it picks up the How-to page.
 - Phone step 3 (add/edit forms, mockup first at 412 × 891), the Map check results, the import queue (Bib places), M5.2b (now migration 0024 or later), Q6/Q7, M6, M7.
 - Parked: monetization (project doc).
+
+## Session 16 — 2026-10-20 to 2026-10-30
+
+**Goal:**
+- Fix family members not seeing their trips after opening a shared link.
+- Rate and badge places straight from the popup.
+- Keep the Supabase project from pausing.
+- Stop accidental drags on a phone held sideways; room under the day's end.
+- Editable address, phone and website on every edit panel.
+
+**Decisions made:** E127 (several-trips link without email; updates E117), E128 (Join with a link), E129 (popup stars and badge chips), E130 (database heartbeat), E131 (day lock: shared, starts locked, stops moves only), E132 (100 px under 11:59 pm), E133 (address / phone / website: saved, else Google; cleared = hidden).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #123: several-trips link joins without an email; migration **0024** `bundle_guests` (applied).
+- #124: Join with a link (☰), `JoinLinkDialog.tsx`, `lib/inviteLink.ts`; `join-with-link.spec.ts`.
+- #125: popup stars, badge overlay and Revisit / 2nd try / No go chips (trips, Munch List, Spot List); `afterVerdict` / `afterRating` tests.
+- #126: `db-heartbeat.yml`, daily API pings (the PR's first heartbeat failed on the expected "permission denied"; fixed to accept 42501).
+- #127: day lock, migration **0025** `day_lock` (applied); 100 px under 11:59 pm; `day-lock.spec.ts`.
+- #128: address / phone / website, migration **0026** `place_contact` (applied); `lib/contact.ts`, `components/ContactFields.tsx`; `place-contact.spec.ts`.
+- Plus this PR: the session 16 docs added to the open sessions 14–15 docs PR (#122).
+
+**Done outside code:**
+- Found why family members didn't see trips: the email sign-in landed on the home page or in another browser; on iPhones the home-screen app keeps its own sign-in apart from Safari.
+- Checked the nightly backup (green every night) and explained why it may not count as activity.
+- Actions: every run green at the end (313 db checks, 507 browser tests); migrations 0024–0026 approved and applied.
+
+**Design work:** popup stars / badge previews (stars under the name, badge on the icon, chips behind a circle under the bin); day-lock mockup (phone held sideways); address / phone / website edit-panel mockup with the from Google / edited / hidden tags.
+
+**Lessons:** L72 (email links and home-screen apps: join inside the app), L73 (heartbeat: 42501 means awake), L74 (migration numbers in open PRs: stack and merge in order), L75 (L71 again: docs PR still open).
+
+**Open questions:** Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S016 OCT 30 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:**
+- Try session 16 on the phone: hold it sideways over a locked day, rate from a popup, add a phone number.
+- Try offline on the phone; phone step 3 (add/edit forms, mockup first at 412 × 891); the Map check results; the import queue (Bib places); M5.2b (now migration 0027 or later); Q6/Q7; M6; M7.
+- Parked: monetization (project doc).
