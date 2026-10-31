@@ -624,3 +624,29 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 - Try session 16 on the phone: hold it sideways over a locked day, rate from a popup, add a phone number.
 - Try offline on the phone; phone step 3 (add/edit forms, mockup first at 412 × 891); the Map check results; the import queue (Bib places); M5.2b (now migration 0027 or later); Q6/Q7; M6; M7.
 - Parked: monetization (project doc).
+
+## Session 17 — 2026-10-31
+
+**Goal:** a text size control for the itinerary panel, modelled on the TNCFL tracker's chip.
+
+**Decisions made:** E134 (text size chip: block text only, 9–21 px in 2 px steps, default 13, not remembered, before the lock, computer and phone).
+
+**Built and merged (through a pull request with a preview and green checks):**
+- #129: `TextSizeChip` in `ItineraryPanel.tsx`, `--bfs` block text sizes and `.fz` chip styles in `Itinerary.module.css` (the chip and buttons stay together on the narrow computer panel); `text-size.spec.ts`; `block-notes.spec.ts` clicks inside a slot.
+- Plus this PR: the session 17 docs added to the still-open sessions 14–16 docs PR (#122).
+
+**Done outside code:** read the TNCFL tracker's chip (Entry 417: − | reset | +, 2 px steps) to model it.
+
+**Design work:** the chip preview; four side-by-side previews (default first; block text only; block text + hour labels; everything in the panel) with a size picker from 11 to 23. Hanh chose block text only, 9–21.
+
+**Lessons:** L76 (click inside a time slot, not on its line).
+
+**Open questions:** Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S017 OCT 31 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:**
+- Merge #122 (sessions 14–17 docs).
+- Try sessions 16–17 on the phone: locked day held sideways, text size chip, rating from a popup, a phone number from an edit panel.
+- Try offline on the phone; phone step 3 (add/edit forms, mockup first at 412 × 891); the Map check results; the import queue (Bib places); M5.2b (migration 0027 or later); Q6/Q7; M6; M7.
+- Parked: monetization (project doc).

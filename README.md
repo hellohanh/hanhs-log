@@ -5,7 +5,7 @@ One app for trip planning (**Wanderlog**), eateries (**Savorlog**) and other pla
 login and one database (its own Supabase project; the old Wanderlog site and
 database are separate and untouched). Live at https://hellohanh.github.io/hanhs-log/
 
-## Current state (Session 16, OCT 30 2026)
+## Current state (Session 17, OCT 31 2026)
 
 | Milestone | Status |
 |---|---|
@@ -20,6 +20,8 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 | M7 Switch over from the old Wanderlog | planned |
 
 ## What's built
+- **Session 17:**
+  - **Text size chip** on the itinerary (− | ↺ | +, before the lock): block text from 9 to 21 px, back to 13 each visit (E134).
 - **Session 16:**
   - **Joining:** a several-trips link works without an email, like a trip's own link (E127, migration 0024); **Join with a link** in the ☰ pastes an invite inside the app, for the iPhone home-screen app (E128).
   - **Popup:** grey stars under the name (half stars), the pin's badge on the icon, and a circle under the bin with Revisit / 2nd try / No go chips, on trips, Munch List and Spot List (E129).
@@ -86,7 +88,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
   - all workflow actions run on Node 24 (L42).
 
 ## What's next
-1. **Try session 16 on the phone**: hold it sideways on a trip and scroll across a locked day; rate a place from its popup; fill in a phone number from an edit panel.
+1. **Try sessions 16–17 on the phone**: hold it sideways on a trip and scroll across a locked day; try the text size chip; rate a place from its popup; fill in a phone number from an edit panel.
 2. **Try offline on the phone**: open a trip, airplane mode, change a note, back online; check the picker with a second device (E122–E124).
 3. **Check Roaminglog live**: the Spot List and a trip after a full refresh; in the import queue tap Bib on Bib places (E118).
 4. **Map check results**: run Map look → Check all controls on the live site and grey out anything Google can't do on Terrain / Satellite.
@@ -101,7 +103,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
 
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E133, Q1–Q10, L1–L75), README.md, SESSION_LEDGER.md and docs/pin-standard.md
+> Read SKILL.md (E1–E134, Q1–Q10, L1–L76), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project and
 > started from a clean slate (live Wanderlog is never touched). M3, M4 and M5 are live: trips +
 > map + itinerary, all of Savorlog (catalogue, location gate, add/edit + photos, family invite),
@@ -124,7 +126,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
 > migrations 0021–0022). Session 15: offline (saved copy E122, waiting changes E123, the which-one-stays picker E124, migration 0023),
 > the How-to page (E125) and the Your trips ☰ (E126). Session 16: several-trips links without email (E127, migration 0024),
 > Join with a link (E128), popup stars and badge chips (E129), the database heartbeat (E130), the day lock and 100 px under the day
-> (E131–E132, migration 0025) and editable address / phone / website (E133, migration 0026). Next: try offline on the phone, phone step 3
+> (E131–E132, migration 0025) and editable address / phone / website (E133, migration 0026). Session 17: the itinerary text size chip (E134). Next: try offline on the phone, phone step 3
 > (add/edit forms, mockup first at 412 × 891), or the Map check results. Help me with the import as I work through it; the only deferred M5
 > piece is **M5.2b** (now migration 0027 or later, forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
 > infer, always show the merge link when something's ready to merge, and don't leave red build
@@ -150,7 +152,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
    Check it on your phone and laptop.
 3. Click **Merge** (use "Create a merge commit"). The live site updates in about two minutes.
 
-Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S016 OCT 30 2026).
+Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S017 OCT 31 2026).
 
 ## Database
 Hanh's Log has its own Supabase project (live Wanderlog's database is never touched). It has its own rules, nightly
