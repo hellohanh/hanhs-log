@@ -59,7 +59,7 @@
 /* The city lines on a date that repeats across the date line (session 10). */
 .dayCity { display: block; font-size: 11px; line-height: 1.3; color: #c48a1a; }
 
-.tools { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--rule); font-size: 13px; color: var(--muted); flex: none; }
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; row-gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--rule); font-size: 13px; color: var(--muted); flex: none; }
 .showAll { display: flex; align-items: center; gap: 6px; margin-right: auto; }
 
 .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 16px; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); font-size: 14px; }
@@ -112,14 +112,14 @@
   background: var(--surface);
   color: var(--ink);
   text-align: left;
-  font-size: 12px;
+  font-size: calc(var(--bfs, 13px) - 1px);
   overflow: hidden;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 .leg:hover { background: var(--ground); }
 .legTop { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.legTop b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legTop b { font-size: var(--bfs, 13px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legRoute { color: var(--ink); overflow-wrap: anywhere; }
 .legMeta { color: var(--muted); }
 .logo { width: 22px; height: 22px; object-fit: contain; flex: none; }
@@ -248,13 +248,13 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--accent) 7%, var(--surface));
   color: var(--ink);
-  font-size: 12px;
+  font-size: calc(var(--bfs, 13px) - 1px);
   overflow: hidden;
   cursor: grab;
   touch-action: none;
   user-select: none;
 }
-.act b { flex: none; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.act b { flex: none; font-size: var(--bfs, 13px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .actTime { flex: none; }
 /* 30 minutes or less: title and time on one line. */
 .actShort { flex-direction: row; align-items: center; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
@@ -265,7 +265,7 @@
 @container (max-width: 150px) {
   .actShort .actTime { display: none; }
 }
-.actTime { color: var(--muted); font-size: 11.5px; }
+.actTime { color: var(--muted); font-size: calc(var(--bfs, 13px) - 1.5px); }
 .actDragging { cursor: grabbing; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); z-index: 5; opacity: 0.95; }
 .act:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .handle { position: absolute; left: 0; right: 0; height: 8px; cursor: ns-resize; }
@@ -277,7 +277,7 @@
 /* A place dropped onto a day (session 4): the pin's colour on the left edge. */
 .stop { background: var(--surface); border-left-width: 5px; }
 .stopName { display: flex; align-items: center; gap: 5px; min-width: 0; }
-.stopName b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.stopName b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--bfs, 13px); }
 .stopIcon { width: 15px; height: 15px; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
 .stopIcon :global(svg) { color: #fff; }
 .stopBadge { flex: none; display: inline-flex; margin-left: auto; }
@@ -324,7 +324,7 @@
 .addBtn { min-height: 36px; padding: 0 14px; border: 1px solid var(--rule); border-radius: var(--pill); background: var(--surface); color: var(--accent); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 
 /* A time block's note (session 14): a short grey line under the title; cut off with … */
-.blockNote { display: block; font-size: 12px; line-height: 1.3; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.blockNote { display: block; font-size: calc(var(--bfs, 13px) - 1px); line-height: 1.3; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .actShort .blockNote { display: none; }
 
 /* Offline step 2 (approved mockup): a change waiting to be sent. */
@@ -341,3 +341,13 @@
 @media (prefers-color-scheme: dark) { :global(:root:not([data-theme='light'])) .lockOn { color: #FAC775 !important; } }
 .lockNoteWrap { position: sticky; top: 8px; height: 0; z-index: 30; }
 .lockNote { position: absolute; margin: 0; left: 50%; transform: translateX(-50%); z-index: 30; width: max-content; max-width: 90%; padding: 4px 12px; border-radius: var(--radius-s); font-size: 12px; background: var(--surface); border: 1px solid var(--rule); color: var(--ink); box-shadow: var(--shadow); pointer-events: none; }
+
+/* Text size chip (session 17, modelled on the TNCFL tracker's): − | reset | +,
+   just before the lock; changes the block text only (--bfs on the timeline). */
+.fz { display: inline-flex; align-items: center; flex: none; height: 34px; border: 1px solid var(--rule); border-radius: var(--pill); overflow: hidden; background: var(--surface); }
+.fz button { display: flex; align-items: center; justify-content: center; width: 28px; height: 100%; padding: 0; border: 0; background: none; color: var(--muted); cursor: pointer; }
+@media (hover: hover) { .fz button:hover:not(:disabled) { color: var(--ink); background: var(--ground); } }
+.fz button:disabled { opacity: 0.3; cursor: default; background: none; }
+.fz svg { display: block; }
+.fzSep { width: 1px; height: 14px; background: var(--rule); }
+.toolBtns { display: flex; align-items: center; gap: 8px; margin-left: auto; }
