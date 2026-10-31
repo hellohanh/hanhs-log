@@ -63,6 +63,9 @@ import { ActivityBlock, ActivityFields, AddPopup, DayLockContext, usePopupStyle 
 import { ADD_SNAP_MIN, NEW_BLOCK_MIN, hhmm, minuteAt, toMin } from '../../lib/itineraryDays'
 import styles from './Itinerary.module.css'
 
+/** Block text size (session 17): 2 px steps, 9–21, back to 13 each visit (not remembered). */
+export const BLOCK_FS = { min: 9, max: 21, step: 2, default: 13 }
+
 /** Room under 11:59 pm so the day's last hour can be scrolled clear (Hanh, session 16). */
 const DAY_END_BUFFER = 100
 
@@ -413,6 +416,7 @@ export default function ItineraryPanel({
 
   // Day lock (migration 0025, session 16): shared by everyone on the trip.
   // Days start locked; a locked day's blocks can't be moved or resized.
+  const [blockFs, setBlockFs] = useState(BLOCK_FS.default)
   const [lockNote, setLockNote] = useState(false)
   const lockTimer = useRef<number | undefined>(undefined)
   const showLockNote = useCallback(() => {
@@ -543,6 +547,8 @@ export default function ItineraryPanel({
                     <input type="checkbox" checked={showRoute} onChange={e => setShowRoute(e.target.checked)} /> Day route
                   </label>
                 )}
+                <span className={styles.toolBtns}>
+                <TextSizeChip value={blockFs} onChange={setBlockFs} />
                 <IconBtn
                   label={day.locked ? 'Day locked: unlock to move or resize things' : 'Day unlocked: lock to stop moves'}
                   pressed={!!day.locked}
@@ -554,6 +560,7 @@ export default function ItineraryPanel({
                 {!phone && <IconBtn label="Add travel (flight, train, bus, own transport)" onClick={() => setForm({ leg: null })}><PlaneIcon /></IconBtn>}
                 <IconBtn label="Day note" pressed={noteOpen || !!day.note} onClick={() => setNoteOpen(o => !o)}><NoteIcon /></IconBtn>
                 {canDelete && <IconBtn label="Delete this day" onClick={() => setConfirmDay(true)}><TrashIcon /></IconBtn>}
+                </span>
               </div>
 
               {confirmDay && (
@@ -616,7 +623,7 @@ export default function ItineraryPanel({
                 </div>
               ) : (
                 <DayLockContext.Provider value={dayLock}>
-                <div className={styles.timeline} ref={timeline} data-scroll="timeline">
+                <div className={styles.timeline} ref={timeline} data-scroll="timeline" style={{ ['--bfs' as string]: `${blockFs}px` }}>
                   {lockNote && (
                     <div className={styles.lockNoteWrap}>
                       <p className={styles.lockNote} role="status">Day locked. Tap the lock to move things.</p>
@@ -976,6 +983,26 @@ function Badge({ leg }: { leg: TravelLeg }) {
     return <img className={styles.logo} src={carrierLogoPath(leg.carrier)} alt="" onError={() => setLogoFailed(true)} />
   }
   return <span className={styles.modeDot} style={{ background: cfg.color }} dangerouslySetInnerHTML={{ __html: cfg.svg }} />
+}
+
+/** − | reset | + for the block text, modelled on the TNCFL tracker's chip (session 17). */
+function TextSizeChip({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const step = (d: number) => onChange(Math.max(BLOCK_FS.min, Math.min(BLOCK_FS.max, value + d)))
+  const line = (d: string) => <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d={d} stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+  return (
+    <div className={styles.fz} role="group" aria-label={`Text size ${value} px`} title="Text size">
+      <button type="button" aria-label="Smaller text" disabled={value <= BLOCK_FS.min} onClick={() => step(-BLOCK_FS.step)}>{line('M1 5H9')}</button>
+      <span className={styles.fzSep} aria-hidden="true" />
+      <button type="button" aria-label="Reset text size" title="Reset text size" disabled={value === BLOCK_FS.default} onClick={() => onChange(BLOCK_FS.default)}>
+        <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
+          <path d="M2.2 6.6A3.9 3.9 0 1 0 3.4 3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M1.6 1.4V4.2H4.4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <span className={styles.fzSep} aria-hidden="true" />
+      <button type="button" aria-label="Larger text" disabled={value >= BLOCK_FS.max} onClick={() => step(BLOCK_FS.step)}>{line('M1 5H9M5 1V9')}</button>
+    </div>
+  )
 }
 
 function IconBtn({ label, pressed, className, onClick, children }: { label: string; pressed?: boolean; className?: string; onClick: () => void; children: React.ReactNode }) {

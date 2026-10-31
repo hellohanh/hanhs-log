@@ -20,7 +20,7 @@ async function clickTimeline(panel: Locator, minute: number) {
   const tl = panel.getByTestId('day-timeline')
   await tl.scrollIntoViewIfNeeded()
   await panel.locator('[data-scroll="timeline"]').evaluate((el, y) => (el.scrollTop = y), minute - 100)
-  await tl.click({ position: { x: 150, y: minute }, force: true })
+  await tl.click({ position: { x: 150, y: minute + 5 }, force: true }) // inside the slot, not on its line
 }
 
 test('an activity saves its note', async ({ page }) => {
