@@ -14,7 +14,7 @@ export default defineConfig(({ command }) => ({
       // "new version" notice (src/components/UpdateNotice.tsx), so nothing
       // half-typed is lost; the app checks each time you return to it.
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon-plane.svg', 'apple-touch-icon-plane.png'],
       manifest: {
         name: "Hanh's Log",
         short_name: "Hanh's Log",
@@ -25,9 +25,9 @@ export default defineConfig(({ command }) => ({
         background_color: '#F6F4F0',
         theme_color: '#F6F4F0',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+          { src: 'icon-plane-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-plane-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icon-plane-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
       workbox: {
