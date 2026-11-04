@@ -268,6 +268,20 @@ export default function ItineraryPanel({
   useEffect(() => {
     if (timeline.current) timeline.current.scrollTop = SCROLL_TO_HOUR * HOUR_PX
   }, [selected, days === null, form === null])
+  // Phone sheet (session 18): the timeline may be hidden (sheet closed) when
+  // that runs, so it would stay at 0:00; set 6:00 when it first shows.
+  useEffect(() => {
+    const el = timeline.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    let shown = el.clientHeight > 0
+    const ro = new ResizeObserver(() => {
+      const now = el.clientHeight > 0
+      if (now && !shown && el.scrollTop === 0) el.scrollTop = SCROLL_TO_HOUR * HOUR_PX
+      shown = now
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [selected, days === null, form === null])
 
   // The 🔗 line on a block: where else this leg shows (or where it comes from).
   const alsoOn = (l: TravelLeg): string | null => {
