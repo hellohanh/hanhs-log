@@ -63,7 +63,7 @@
 .body { flex: 1; min-height: 0; display: flex; }
 
 /* Narrow windows: stack (full phone design comes later). */
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-height: 650px) {
   .page { height: auto; }
   .bar, .edit { padding-left: 16px; padding-right: 16px; }
   .body { flex-direction: column; }

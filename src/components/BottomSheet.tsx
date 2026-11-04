@@ -23,6 +23,8 @@ export default function BottomSheet({
   hidden,
   edge = 'bottom',
   fit = false,
+  tallHalf = false,
+  fill = false,
   children
 }: {
   snap: Snap
@@ -33,6 +35,10 @@ export default function BottomSheet({
   edge?: 'bottom' | 'top'
   /** Half = as tall as its contents, up to half the room (Munch List search). */
   fit?: boolean
+  /** Session 18 (Fold8 cover): on a short screen half opens taller (68%) so more of the day shows. */
+  tallHalf?: boolean
+  /** Session 18: the contents fill the sheet and scroll themselves (the Itinerary: tabs stay, the timeline scrolls). */
+  fill?: boolean
   children: React.ReactNode
 }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -62,7 +68,7 @@ export default function BottomSheet({
     return () => ro.disconnect()
   }, [])
 
-  const halfPx = Math.round(room * 0.5)
+  const halfPx = Math.round(room * (tallHalf && room < 640 ? 0.68 : 0.5))
   const heights: Record<Snap, number> = { closed: HANDLE_PX, half: fit && content > 0 ? Math.min(halfPx, content + HANDLE_PX) : halfPx, full: Math.max(HANDLE_PX, room - (top ? 0 : 8)) }
   const height = live ?? heights[snap]
   const closed = snap === 'closed' && live === null
@@ -122,8 +128,8 @@ export default function BottomSheet({
       data-snap={snap}
     >
       {!top && handle}
-      <div className={styles.body} style={{ overflowY: closed ? 'hidden' : 'auto', visibility: closed ? 'hidden' : undefined }}>
-        <div ref={inner}>{children}</div>
+      <div className={styles.body} style={{ overflowY: closed || fill ? 'hidden' : 'auto', visibility: closed ? 'hidden' : undefined }}>
+        <div ref={inner} style={fill ? { height: '100%' } : undefined}>{children}</div>
       </div>
       {top && handle}
     </section>

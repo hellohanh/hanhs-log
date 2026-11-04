@@ -470,7 +470,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               onAddToDay={(id, kind) => setAddReq(r => ({ id, kind, n: (r?.n ?? 0) + 1 }))}
             />
           </BottomSheet>
-          <BottomSheet label="Itinerary" snap={snap} onSnap={setSnap} hidden={tab !== 'itinerary' || !!card}>
+          <BottomSheet label="Itinerary" tallHalf fill snap={snap} onSnap={setSnap} hidden={tab !== 'itinerary' || !!card}>
             <ItineraryPanel
               tripId={trip.id}
               start={trip.start_date}

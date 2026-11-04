@@ -161,13 +161,13 @@
 .addTile { aspect-ratio: 1; border: 1.5px dashed var(--rule); border-radius: 8px; background: var(--ground); color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; cursor: pointer; }
 .addTile svg { width: 18px; height: 18px; }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-height: 650px) {
   .page { height: auto; }
   .body { flex-direction: column; }
   .side { width: auto; border-right: 0; border-bottom: 1px solid var(--rule); }
   .mapArea { min-height: 360px; }
 }
-@media (max-width: 760px) { .node, .row { min-height: 48px; } .addDay { width: 36px; height: 36px; } }
+@media (max-width: 760px), (pointer: coarse) and (max-height: 650px) { .node, .row { min-height: 48px; } .addDay { width: 36px; height: 36px; } }
 
 /* Phones (session 13, E107): Munch List as map + sheets. */
 .phoneEyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); line-height: 1.1; }
