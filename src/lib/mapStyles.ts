@@ -5,48 +5,6 @@
 
 type Style = google.maps.MapTypeStyle[]
 
-export const PAPER: Style = [
-  { elementType: 'geometry', stylers: [{ color: '#f1eadb' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#7a7064' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#f6efe2' }] },
-  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#d9cfbd' }] },
-  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#e9e1d0' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#dce3c8' }] },
-  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#6d7a55' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e2d8c6' }] },
-  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#fbf6ec' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#d9c9ad' }] },
-  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#9a9083' }] },
-  { featureType: 'transit.line', elementType: 'geometry', stylers: [{ color: '#d9cfbd' }] },
-  { featureType: 'transit.station', elementType: 'labels.icon', stylers: [{ saturation: -100 }, { lightness: 20 }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#bfd3d0' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#5f7a76' }] }
-]
-
-export const PAPER_DARK: Style = [
-  { elementType: 'geometry', stylers: [{ color: '#24211e' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#a39a8e' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1e1c1a' }] },
-  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3a3631' }] },
-  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#2a2724' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#2a3026' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#3a3631' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#2c2925' }] },
-  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#4a443d' }] },
-  { featureType: 'transit.line', elementType: 'geometry', stylers: [{ color: '#3a3631' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#2e3d3e' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#7d9693' }] }
-]
-
 const SILVER: Style = [
   { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
@@ -190,8 +148,8 @@ export function savePins(on: boolean): void {
   }
 }
 
-// Order as in the approved switcher (session 4), plus Google dark; Retro, Night and
-// Aubergine removed (session 19, Hanh): 8 looks. Defaults:
+// Order as in the approved switcher (session 4), plus Google dark. Session 19
+// (Hanh): Paper, Paper dark, Retro, Night and Aubergine removed: 6 looks. Defaults:
 // Google standard in light mode, Google dark in dark mode (both can tilt);
 // each mode remembers its own pick on this device.
 export const MAP_LOOKS: MapLook[] = [
@@ -199,10 +157,6 @@ export const MAP_LOOKS: MapLook[] = [
     swatch: { land: '#F2F3F4', water: '#A9D3F5', road: '#FFFFFF', highway: '#FCE8A8', park: '#CDE8C4' } },
   { key: 'google-dark', name: 'Google dark', note: "Google's own dark", mapTypeId: 'roadmap', dark: true,
     swatch: { land: '#1F2933', water: '#0E1A24', road: '#3B4652', highway: '#55606C', park: '#1E3328' } },
-  { key: 'paper', name: 'Paper', note: "Hanh's Log muted", mapTypeId: 'roadmap', styles: PAPER,
-    swatch: { land: '#F1EADB', water: '#BFD3D0', road: '#FFFFFF', highway: '#FBF6EC', park: '#DCE3C8' } },
-  { key: 'paper-dark', name: 'Paper, dark', note: 'Paper at night', mapTypeId: 'roadmap', styles: PAPER_DARK,
-    swatch: { land: '#24211E', water: '#2E3D3E', road: '#3A3631', highway: '#4A443D', park: '#2A3026' } },
   { key: 'silver', name: 'Silver', note: 'Light grey', mapTypeId: 'roadmap', styles: SILVER,
     swatch: { land: '#F5F5F5', water: '#C9C9C9', road: '#FFFFFF', highway: '#DADADA', park: '#E5E5E5' } },
   { key: 'dark', name: 'Dark', note: 'Charcoal', mapTypeId: 'roadmap', styles: DARK,
@@ -227,7 +181,7 @@ export function readLook(mode: Mode): MapLook {
     /* storage unavailable: use the default */
   }
   if (k === 'hybrid') k = 'satellite' // "Satellite + labels" merged into Satellite (session 4)
-  // A removed look (Retro, Night, Aubergine; session 19) falls back to the default below.
+  // A removed look (Paper, Paper dark, Retro, Night, Aubergine; session 19) falls back to the default below.
   return MAP_LOOKS.find(l => l.key === k) ?? MAP_LOOKS.find(l => l.key === DEFAULT_LOOK[mode])!
 }
 

@@ -175,7 +175,7 @@ test('the map looks up the Primary City in its Country; Districts within 20 km o
 test('pins toggle: hides only Google\'s place pins, and which map each look needs', async () => {
   const { MAP_LOOKS, lookOptions, canHidePins } = await import('../../src/lib/mapStyles')
   const by = (k: string) => MAP_LOOKS.find(l => l.key === k)!
-  expect(MAP_LOOKS).toHaveLength(8) // one Satellite look (photos with names)
+  expect(MAP_LOOKS).toHaveLength(6) // one Satellite look (photos with names)
   expect(by('satellite').mapTypeId).toBe('hybrid')
   // Pins shown: Google's own looks stay on the tilt map, untouched.
   expect(lookOptions(by('standard'), true)).toMatchObject({ styles: null, tiltable: true })
@@ -197,9 +197,9 @@ test('pins toggle: hides only Google\'s place pins, and which map each look need
   expect(lookOptions(by('google-dark'), false)).toMatchObject({ styles: null, tiltable: true })
 })
 
-test('the switcher offers 8 looks; a removed one falls back to the default (session 19)', async () => {
+test('the switcher offers 6 looks; a removed one falls back to the default (session 19)', async () => {
   const { MAP_LOOKS, readLook } = await import('../../src/lib/mapStyles')
-  expect(MAP_LOOKS.map(l => l.key)).toEqual(['standard', 'google-dark', 'paper', 'paper-dark', 'silver', 'dark', 'terrain', 'satellite'])
+  expect(MAP_LOOKS.map(l => l.key)).toEqual(['standard', 'google-dark', 'silver', 'dark', 'terrain', 'satellite'])
   expect(readLook('light').key).toBe('standard')
 })
 
@@ -220,12 +220,12 @@ test('GPins OFF keeps tilt on Google looks with the no-pins Map ID (session 9)',
   }
   expect(mapKind(by('google-dark'), lookOptions(by('google-dark'), false, true), ids).kind).toBe('tilt-dark-nopins')
   // Hand-made looks stay on the flat map either way.
-  expect(mapKind(by('paper'), lookOptions(by('paper'), false, true), ids).kind).toBe('flat')
+  expect(mapKind(by('silver'), lookOptions(by('silver'), false, true), ids).kind).toBe('flat')
   // No base Map ID at all: flat everywhere.
   expect(mapKind(by('standard'), lookOptions(by('standard'), true, false), {}).kind).toBe('flat')
-  // The Map check: all 8 looks with GPins ON, plus Google's 4 own looks with GPins OFF.
-  expect(checkCases(true)).toHaveLength(12)
-  expect(checkCases(false)).toHaveLength(11) // Google dark can't turn GPins OFF without the Map ID
+  // The Map check: all 6 looks with GPins ON, plus Google's 4 own looks with GPins OFF.
+  expect(checkCases(true)).toHaveLength(10)
+  expect(checkCases(false)).toHaveLength(9) // Google dark can't turn GPins OFF without the Map ID
 })
 
 test('Districts chip: shows only while an HCMC district is in view', async () => {
