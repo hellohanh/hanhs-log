@@ -175,7 +175,7 @@ test('the map looks up the Primary City in its Country; Districts within 20 km o
 test('pins toggle: hides only Google\'s place pins, and which map each look needs', async () => {
   const { MAP_LOOKS, lookOptions, canHidePins } = await import('../../src/lib/mapStyles')
   const by = (k: string) => MAP_LOOKS.find(l => l.key === k)!
-  expect(MAP_LOOKS).toHaveLength(11) // one Satellite look (photos with names)
+  expect(MAP_LOOKS).toHaveLength(8) // one Satellite look (photos with names)
   expect(by('satellite').mapTypeId).toBe('hybrid')
   // Pins shown: Google's own looks stay on the tilt map, untouched.
   expect(lookOptions(by('standard'), true)).toMatchObject({ styles: null, tiltable: true })
