@@ -188,13 +188,19 @@ test('pins toggle: hides only Google\'s place pins, and which map each look need
   expect(off).not.toContain('"featureType":"road"')
   expect(lookOptions(by('standard'), false).tiltable).toBe(false)
   expect(lookOptions(by('satellite'), false)).toMatchObject({ mapTypeId: 'hybrid', tiltable: false })
-  // Hand-made Night keeps its own colours and labels, minus the pins.
-  const night = JSON.stringify(lookOptions(by('night'), false).styles)
-  expect(night).toContain('#242f3e')
-  expect(night).toContain('"featureType":"poi","elementType":"labels"')
+  // Hand-made Dark keeps its own colours and labels, minus the pins.
+  const dark = JSON.stringify(lookOptions(by('dark'), false).styles)
+  expect(dark).toContain('#212121')
+  expect(dark).toContain('"featureType":"poi","elementType":"labels"')
   // Without the no-pins Map ID, Google dark's pins can't be hidden.
   expect(canHidePins(by('google-dark'))).toBe(false)
   expect(lookOptions(by('google-dark'), false)).toMatchObject({ styles: null, tiltable: true })
+})
+
+test('the switcher offers 8 looks; a removed one falls back to the default (session 19)', async () => {
+  const { MAP_LOOKS, readLook } = await import('../../src/lib/mapStyles')
+  expect(MAP_LOOKS.map(l => l.key)).toEqual(['standard', 'google-dark', 'paper', 'paper-dark', 'silver', 'dark', 'terrain', 'satellite'])
+  expect(readLook('light').key).toBe('standard')
 })
 
 test('GPins OFF keeps tilt on Google looks with the no-pins Map ID (session 9)', async () => {
@@ -217,9 +223,9 @@ test('GPins OFF keeps tilt on Google looks with the no-pins Map ID (session 9)',
   expect(mapKind(by('paper'), lookOptions(by('paper'), false, true), ids).kind).toBe('flat')
   // No base Map ID at all: flat everywhere.
   expect(mapKind(by('standard'), lookOptions(by('standard'), true, false), {}).kind).toBe('flat')
-  // The Map check: all 11 looks with GPins ON, plus Google's 4 own looks with GPins OFF.
-  expect(checkCases(true)).toHaveLength(15)
-  expect(checkCases(false)).toHaveLength(14) // Google dark can't turn GPins OFF without the Map ID
+  // The Map check: all 8 looks with GPins ON, plus Google's 4 own looks with GPins OFF.
+  expect(checkCases(true)).toHaveLength(12)
+  expect(checkCases(false)).toHaveLength(11) // Google dark can't turn GPins OFF without the Map ID
 })
 
 test('Districts chip: shows only while an HCMC district is in view', async () => {
@@ -585,4 +591,14 @@ test('centring in the visible part of the map (session 10)', async () => {
   expect(right.lng - saigon.lng).toBeCloseTo((210 / (256 * 2 ** 13)) * 360, 6)
   // A place shown below the middle: the centre is north of it.
   expect(centreFor(saigon, 15, 0, 100).lat).toBeGreaterThan(saigon.lat)
+})
+
+test('Open in Apple Maps: the place name and position only (session 19)', async () => {
+  const { appleMapsLink } = await import('../../src/lib/placeDetails')
+  const url = new URL(appleMapsLink('Bến Thành Market', 10.772, 106.698, 'Lê Lợi, Quận 1'))
+  expect(url.origin).toBe('https://maps.apple.com')
+  expect(url.searchParams.get('q')).toBe('Bến Thành Market')
+  expect(url.searchParams.get('ll')).toBe('10.772,106.698')
+  expect(url.searchParams.get('address')).toBe('Lê Lợi, Quận 1')
+  expect(new URL(appleMapsLink('A', 1, 2)).searchParams.has('address')).toBe(false)
 })

@@ -18,6 +18,15 @@ export function mapsLink(placeId: string | null, lat: number, lng: number): stri
   return placeId ? `https://www.google.com/maps/search/?api=1&${q}&query_place_id=${encodeURIComponent(placeId)}` : `https://www.google.com/maps/search/?api=1&${q}`
 }
 
+/** Apple Maps for a place (session 19, Hanh): opens the Apple Maps app on an
+ * iPhone / Mac, Apple's web map elsewhere. Only the name and position go; no
+ * Google content is put on an Apple map. */
+export function appleMapsLink(name: string, lat: number, lng: number, address?: string | null): string {
+  const q = new URLSearchParams({ q: name, ll: `${lat},${lng}` })
+  if (address) q.set('address', address)
+  return `https://maps.apple.com/?${q.toString()}`
+}
+
 export async function placeDetails(placeId: string | null, at: { lat: number; lng: number }): Promise<PlaceDetails> {
   const fallback: PlaceDetails = { address: null, phone: null, tel: null, website: null, mapsUrl: mapsLink(placeId, at.lat, at.lng) }
   const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? ''

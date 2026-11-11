@@ -20,7 +20,7 @@ export type { MapPin } from './mapPinLayer'
 
 // The trip map (M3 step 3, approved mockup v2, session 4): opens on the
 // trip's Primary City centre at zoom 13, no pins yet (old Wanderlog pins
-// appear only after Hanh sorts them). Map look switcher with 11 looks and a
+// appear only after Hanh sorts them). Map look switcher with 8 looks and a
 // Pins / No pins chip for Google's place pins (remembered on this device),
 // remembered per mode on this device; HCMC Districts chip whenever any
 // HCMC district is in view. Our own camera control (3 × 4) with
