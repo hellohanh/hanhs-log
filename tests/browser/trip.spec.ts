@@ -602,3 +602,27 @@ test('Open in Apple Maps: the place name and position only (session 19)', async 
   expect(url.searchParams.get('address')).toBe('Lê Lợi, Quận 1')
   expect(new URL(appleMapsLink('A', 1, 2)).searchParams.has('address')).toBe(false)
 })
+
+test('My location trouble: says what went wrong and how to allow it on this phone (session 19)', async () => {
+  const { browserOf, locationProblem } = await import('../../src/lib/locationHelp')
+  const chrome = 'Mozilla/5.0 (Linux; Android 16; SM-F976U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Mobile Safari/537.36'
+  const samsung = chrome.replace('Chrome/141.0', 'SamsungBrowser/29.0 Chrome/141.0')
+  const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.1 Mobile/15E148 Safari/604.1'
+  expect(browserOf(chrome)).toBe('android')
+  expect(browserOf(chrome, true)).toBe('android-app')
+  expect(browserOf(samsung)).toBe('samsung')
+  expect(browserOf(iphone)).toBe('iphone')
+  expect(browserOf('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/141.0')).toBe('other')
+  // Blocked: the steps for this browser, ending with "try again".
+  const blocked = locationProblem(1, 'android')
+  expect(blocked.title).toBe('Location is blocked for Hanh’s Log.')
+  expect(blocked.steps.join(' ')).toContain('icon left of the web address')
+  expect(blocked.steps.at(-1)).toBe('Then tap My location again and choose Allow.')
+  expect(locationProblem(1, 'android-app').steps.join(' ')).toContain('Long-press the Hanh’s Log icon')
+  expect(locationProblem(1, 'iphone').steps.join(' ')).toContain('Safari Websites')
+  expect(locationProblem(1, 'samsung').steps.join(' ')).toContain('Site permissions')
+  // No signal / timed out: no permission steps.
+  expect(locationProblem(2, 'android').title).toBe('Your phone couldn’t tell where you are.')
+  expect(locationProblem(3, 'android').title).toBe('Finding you took too long.')
+  expect(locationProblem(3, 'android').steps.join(' ')).not.toContain('Permissions')
+})
