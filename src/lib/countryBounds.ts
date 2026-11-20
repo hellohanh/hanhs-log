@@ -44,7 +44,7 @@ export function inView(b: Bounds, lat: number, lng: number): boolean {
 }
 
 /**
- * The places to list for the map's visible area (Munch List, and a trip's
+ * The places to list for the map's visible area (Foodie Finds, and a trip's
  * Nom-Nom since session 13): those inside the view; before the map reports a
  * view, nothing — or everything when there's no map at all (no key).
  */

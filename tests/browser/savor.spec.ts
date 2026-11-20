@@ -36,7 +36,7 @@ async function fakeGoogle(page: Page) {
   })
 }
 
-// The computer layout; phones have their own Munch List (savor-phone.spec.ts).
+// The computer layout; phones have their own Foodie Finds (savor-phone.spec.ts).
 test.beforeEach(({}, info) => { test.skip(info.project.name === 'phone', 'computer layout; phone layout in savor-phone.spec.ts') })
 
 // Session 13 (E108): no startup popup; the City/Country field picks a place.
@@ -48,10 +48,10 @@ async function enter(page: Page, type: string, name: RegExp) {
   await side.getByRole('list', { name: 'Places' }).getByRole('button', { name }).click()
 }
 
-test('Munch List opens on the map with no startup popup (session 13); the top bar has no place line', async ({ page }) => {
+test('Foodie Finds opens on the map with no startup popup (session 13); the top bar has no place line', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await page.goto('./savor')
-  await expect(page.getByRole('heading', { name: 'Munch List' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Foodie Finds' })).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByText(/Showing/)).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0)

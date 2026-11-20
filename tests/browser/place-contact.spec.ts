@@ -81,7 +81,7 @@ test.describe('computer edit panels', () => {
     expect(db.pins.find(p => p.id === 'pin-pho')).toMatchObject({ address: '', phone: '028 3829 7943', website: null })
   })
 
-  test('a Munch List eatery: a hidden phone stays hidden, the website can be added', async ({ page }) => {
+  test('a Foodie Finds eatery: a hidden phone stays hidden, the website can be added', async ({ page }) => {
     const EATERY = {
       id: 'e1', google_place_id: 'gp1', name: 'Phở Hòa Pasteur', address: 'Quận 3', phone: '', website: null, lat: 10.789, lng: 106.689, cuisine: 'vietnamese', dish: 'pho',
       michelin: null, michelin_year: null, street_food: false, fine_dining: false, price: 2, note: null, deleted_at: null

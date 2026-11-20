@@ -56,7 +56,7 @@ function Message({ text, children }: { text: string; children?: React.ReactNode 
   return (
     <main className="page segoe">
       <p className="eyebrow">Savorlog</p>
-      <h1 style={{ fontSize: 48, margin: '12px 0 16px' }}>Munch List</h1>
+      <h1 style={{ fontSize: 48, margin: '12px 0 16px' }}>Foodie Finds</h1>
       <p className="lede" role="status">{text}</p>
       {children}
     </main>
@@ -266,10 +266,10 @@ function SavorLoaded({ userId }: { userId: string }) {
           </Link>
           <div className={tstyles.pTitles}>
             <span className={styles.phoneEyebrow}>Savorlog</span>
-            <h1 className={tstyles.pH1}>Munch List</h1>
+            <h1 className={tstyles.pH1}>Foodie Finds</h1>
           </div>
           <div className={tstyles.pMenuWrap}>
-            <button type="button" className={tstyles.pIcon} aria-label="Munch List menu" aria-expanded={savorMenu} onClick={() => setSavorMenu(m => !m)}>
+            <button type="button" className={tstyles.pIcon} aria-label="Foodie Finds menu" aria-expanded={savorMenu} onClick={() => setSavorMenu(m => !m)}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
             </button>
             {savorMenu && (
@@ -352,7 +352,7 @@ function SavorLoaded({ userId }: { userId: string }) {
       <div className={styles.bar}>
         <div className={styles.titles}>
           <p className={styles.eyebrow}>Savorlog</p>
-          <h1 className={styles.h1}>Munch List</h1>
+          <h1 className={styles.h1}>Foodie Finds</h1>
         </div>
         <div className={styles.where}>
           {/* Family is the circle's own: trip co-travelers can browse the
