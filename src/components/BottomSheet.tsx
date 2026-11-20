@@ -69,7 +69,17 @@ export default function BottomSheet({
   }, [])
 
   const halfPx = Math.round(room * (tallHalf && room < 640 ? 0.68 : 0.5))
-  const heights: Record<Snap, number> = { closed: HANDLE_PX, half: fit && content > 0 ? Math.min(halfPx, content + HANDLE_PX) : halfPx, full: Math.max(HANDLE_PX, room - (top ? 0 : 8)) }
+  // A top sheet (the Foodie Finds search) hangs from the top, so its handle is
+  // at its bottom edge. Cap its height so the handle never reaches the bottom
+  // of the screen (Hanh, session 19): it grows only to fit its content, up to
+  // two-thirds of the room, and a longer result list then scrolls inside it.
+  const contentH = fit && content > 0 ? content + HANDLE_PX : null
+  const topCap = Math.round(room * 0.66)
+  const heights: Record<Snap, number> = {
+    closed: HANDLE_PX,
+    half: contentH ? Math.min(halfPx, contentH) : halfPx,
+    full: top ? Math.min(topCap, contentH ?? topCap) : Math.max(HANDLE_PX, room - (top ? 0 : 8))
+  }
   const height = live ?? heights[snap]
   const closed = snap === 'closed' && live === null
   const stepOpen = (s: Snap): Snap => (s === 'closed' ? 'half' : s === 'half' ? 'full' : 'half')
