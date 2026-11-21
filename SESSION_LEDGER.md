@@ -650,3 +650,48 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 - Try sessions 16–17 on the phone: locked day held sideways, text size chip, rating from a popup, a phone number from an edit panel.
 - Try offline on the phone; phone step 3 (add/edit forms, mockup first at 412 × 891); the Map check results; the import queue (Bib places); M5.2b (migration 0027 or later); Q6/Q7; M6; M7.
 - Parked: monetization (project doc).
+
+## Session 18 — 2026-11-01 to 2026-11-10
+
+**Goal:**
+- Replace the H site icon with the splash page's red plane, then make it transparent.
+- Make the site work well on Hanh's Galaxy Z Fold8 (the wide model).
+
+**Decisions made:**
+- E135: site icon, the red paper plane, transparent where allowed.
+- E136: short touch screens get the phone layout.
+- E137: Itinerary sheet on phones: taller half, tabs fixed, timeline from 6:00.
+
+**Built and merged (through pull requests with previews and green checks):**
+- #130: plane icon on dark, chosen from options A–D (C); new file names.
+- #131: transparent icon wherever allowed; Android's shaped icon keeps the dark square.
+
+**Built, waiting to merge:**
+- #132: the Fold8 work: `PHONE_QUERY` and the phone style rules; `BottomSheet` `tallHalf` and `fill`; the 6:00 start for the phone Itinerary; `fold8.spec.ts`. All checks green.
+- Plus this PR: the session 18 docs.
+
+**Done outside code:**
+- Looked up the Fold8 line-up: the wide Fold8 has a 5.5" cover at about 416 × 657 and a 7.6" landscape inner screen at about 816 × 616; the Fold8 Ultra is the other model.
+- Took screenshots of every main screen at the cover, opened and upright sizes, with and without the browser bar.
+- Explained how a transparent icon behaves on each device.
+
+**Design work:**
+- Site icon options A–D (cream, white, dark, plane alone).
+- Fold8 before / after screenshots.
+- Three ways to handle the opened screen; Hanh picked A, the phone layout.
+
+**Lessons:**
+- L77: check a new device's size in CSS pixels first.
+- L78: check which element actually scrolls.
+- L79: blank screenshots mean the test build didn't finish.
+
+**Open questions:** Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S018 NOV 10 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:**
+- Merge #132 and try it on the Fold8, folded and opened.
+- Re-add the home-screen app to get the new icon.
+- Try sessions 16–17 on the phone.
+- Then: offline on the phone; phone step 3; the Map check results; the import queue; M5.2b (migration 0027 or later); Q6/Q7; M6; M7.
+- Parked: monetization (project doc).
