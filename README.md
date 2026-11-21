@@ -5,7 +5,7 @@ One app for trip planning (**Wanderlog**), eateries (**Savorlog**) and other pla
 login and one database (its own Supabase project; the old Wanderlog site and
 database are separate and untouched). Live at https://hellohanh.github.io/hanhs-log/
 
-## Current state (Session 18, NOV 10 2026)
+## Current state (Session 19, NOV 20 2026)
 
 | Milestone | Status |
 |---|---|
@@ -20,6 +20,12 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 | M7 Switch over from the old Wanderlog | planned |
 
 ## What's built
+- **Session 19:**
+  - **Foodie Finds:** the eatery page is now called **Foodie Finds** (was Munch List) — the shown name only; the Savorlog eyebrow and the `/savor` route stay (E140).
+  - **Map looks:** trimmed to **six** — Google standard, Google dark, Terrain, Satellite, Silver, Dark (E138). **Open in Apple Maps** now sits beside View in Google Maps in the pin popup, and the trip map's My-location help is clearer (E139; #134).
+  - **Search sheet:** on phones the top Search handle stays **off the bottom** of the screen — the sheet grows to fit its content up to two-thirds of the room, and a longer list scrolls inside (E141).
+  - **Desktop / mobile layout toggle:** on touch devices, a floating lower-left icon and a ☰ text item flip the whole app between the desktop and mobile layouts, remembered per device — for tablets and the **Z Fold 8 open in landscape** (E142).
+  - **My location** button on the Foodie Finds map (phone and computer), below GPins, like Wanderlog's — centres on you with a blue dot (E143).
 - **Session 18:**
   - **New site icon:** the red paper plane from the splash, transparent where allowed (E135).
   - **Galaxy Z Fold8:** opened, it gets the phone layout (full map, Places / Itinerary sheets); the Itinerary sheet opens taller on short screens, keeps its day tabs in place and starts at 6:00 (E136, E137; #132).
@@ -47,7 +53,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
   - Phones: sheets close to just a cherry-red (light) / mustard (dark) handle, swipe up to half and full; one-line bottom bar (E104). The splash shows its search panel from the start (E105). Munch List is a map with a top search handle (go to a place or add an eatery) and a bottom Catalogue handle (E107).
   - GPins is a pin-with-G icon everywhere (E106). Munch List has no startup popup (E108). The pin popup's note box is readable in dark mode.
 - **Phones** (screens 760 px or narrower; monitor and laptop unchanged): a slim header with a ☰ menu; on a trip, one title bar, map buttons for Map look, My location and Day route, and **Places** / **Itinerary** as sheets that slide up from the bottom. The itinerary opens on today during the trip; tap a time block to edit its times; the back gesture steps back one layer. Day route fades the other pins as on the computer (E90, E91). Session 13: closed / half / full sheets with coloured handles (E104), the splash (E105) and Munch List (E107) on phones. Still to come: add/edit forms on phones (step 3).
-- **Savorlog (Munch List)**: the list and pins follow the map; move to the next city and it fills in. The City/Country field glides the map to a place (E92, E95; no startup popup since E108). The cuisine menu in the add card is A–Z (E93).
+- **Savorlog (Foodie Finds)**: the list and pins follow the map; move to the next city and it fills in. The City/Country field glides the map to a place (E92, E95; no startup popup since E108). The cuisine menu in the add card is A–Z (E93).
 - **Maps**: crowded pins merge into red numbered bubbles that split when tapped (E96); picking a place, clicking a list row or tapping a bubble glides the map (E97).
 - **Pins and popup**: Hanh's own line-art icons for every non-food category in the pins and the popup (E98, E99). The popup is 350 px, with ✕ / ✎ / bin down the right and the English name over the local name in red italic (E100).
 - **Nom-Nom** is an ordinary A–Z category in a trip's Places list (E89).
@@ -59,7 +65,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
 - **Wanderlog trip list (`/wander`)**: a clean slate in Hanh's Log's own database. Upcoming trips (soonest first) and past trips (faded), with cities · Country, dates, pin count (sorted pins only) and people, owned/shared labels; owner-only delete. **New trip** opens a popup: Trip name; Country (suggests as you type); Primary City (the map opens here), Secondary, Tertiary; dates optional; it shows "✓ Map opens on: …" before saving. Built for a 2560 × 1440 monitor first.
 - **Trip page (`/wander/trip/<id>`)**: name, cities · Country and dates, people, Edit trip (same form), and Share & people (invite link, owner-only Reset link and Remove, first names).
 - **Trip map**: opens on the Primary City's centre at zoom 13, with the trip's own pins drawn on it.
-  - **Map look**: 11 looks. Defaults are Google standard (light) and Google dark (dark), remembered per mode on this device.
+  - **Map look**: 6 looks (Google standard, Google dark, Terrain, Satellite, Silver, Dark; E138). Defaults are Google standard (light) and Google dark (dark), remembered per mode on this device.
   - **Pins / No pins**: hides Google's shop, restaurant and landmark pins and keeps transit pins (this is separate from the trip's own pins).
   - **Districts**: the old Wanderlog's coloured HCMC overlay; the chip shows whenever a district is in view.
   - **Camera control**: our own 3 × 4 control with tilt (10°), rotate (15°) and a reset button. Tilt works on Google's own looks (and needs a Vector Map ID); it's greyed out on hand-made looks and while pins are hidden.
@@ -91,7 +97,7 @@ database are separate and untouched). Live at https://hellohanh.github.io/hanhs-
   - all workflow actions run on Node 24 (L42).
 
 ## What's next
-1. **Merge #132 (Fold8) and try it on the Fold8**, folded and opened; re-add the home-screen app to get the new icon.
+1. **Try session 19 on the phone and the Z Fold 8**: the layout toggle (lower-left icon + ☰), the capped Search sheet, My location on Foodie Finds, Open in Apple Maps. Try the Fold8 folded and opened; re-add the home-screen app to get the new icon.
 2. **Try sessions 16–17 on the phone**: hold it sideways on a trip and scroll across a locked day; try the text size chip; rate a place from its popup; fill in a phone number from an edit panel.
 3. **Try offline on the phone**: open a trip, airplane mode, change a note, back online; check the picker with a second device (E122–E124).
 4. **Check Roaminglog live**: the Spot List and a trip after a full refresh; in the import queue tap Bib on Bib places (E118).
@@ -107,7 +113,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
 
 ## Resume prompt
 > We're continuing Hanh's Log (repo hellohanh/hanhs-log, live at hellohanh.github.io/hanhs-log).
-> Read SKILL.md (E1–E137, Q1–Q10, L1–L79), README.md, SESSION_LEDGER.md and docs/pin-standard.md
+> Read SKILL.md (E1–E143, Q1–Q10, L1–L80), README.md, SESSION_LEDGER.md and docs/pin-standard.md
 > first, plus CLAUDE.md for the working agreement. Hanh's Log has its own Supabase project and
 > started from a clean slate (live Wanderlog is never touched). M3, M4 and M5 are live: trips +
 > map + itinerary, all of Savorlog (catalogue, location gate, add/edit + photos, family invite),
@@ -130,7 +136,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
 > migrations 0021–0022). Session 15: offline (saved copy E122, waiting changes E123, the which-one-stays picker E124, migration 0023),
 > the How-to page (E125) and the Your trips ☰ (E126). Session 16: several-trips links without email (E127, migration 0024),
 > Join with a link (E128), popup stars and badge chips (E129), the database heartbeat (E130), the day lock and 100 px under the day
-> (E131–E132, migration 0025) and editable address / phone / website (E133, migration 0026). Session 17: the itinerary text size chip (E134). Session 18: the red-plane site icon (E135) and the Galaxy Z Fold8 / short touch screens (E136–E137, #132). Next: try offline on the phone, phone step 3
+> (E131–E132, migration 0025) and editable address / phone / website (E133, migration 0026). Session 17: the itinerary text size chip (E134). Session 18: the red-plane site icon (E135) and the Galaxy Z Fold8 / short touch screens (E136–E137, #132). Session 19: six map looks (E138), Open in Apple Maps (E139), the **Foodie Finds** rename (E140), the capped phone Search sheet (E141), the desktop / mobile layout toggle (E142) and a My location button on the Foodie Finds map (E143). Next: try offline on the phone, phone step 3
 > (add/edit forms, mockup first at 412 × 891), or the Map check results. Help me with the import as I work through it; the only deferred M5
 > piece is **M5.2b** (now migration 0027 or later, forbidding new food pins in `pins`). Ask decisions as tappable multiple-choice questions, never
 > infer, always show the merge link when something's ready to merge, and don't leave red build
@@ -156,7 +162,7 @@ Also open: **Q6** (American icon names: chicken bucket, curly fries, chili bowl,
    Check it on your phone and laptop.
 3. Click **Merge** (use "Create a merge commit"). The live site updates in about two minutes.
 
-Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S018 NOV 10 2026).
+Git history is the full record. A zip snapshot is also made at each Stop Protocol (latest: S019 NOV 20 2026).
 
 ## Database
 Hanh's Log has its own Supabase project (live Wanderlog's database is never touched). It has its own rules, nightly
