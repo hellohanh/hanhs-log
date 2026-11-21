@@ -218,6 +218,28 @@ export default function SavorMap({
   const notice = noKey ? "The map can't load in this build (no Google Maps key)." : mapError
   const defaultName = MAP_LOOKS.find(x => x.key === DEFAULT_LOOK[mode])!.name
 
+  // My location (session 19, Hanh): a blue dot, and the map centres on it —
+  // the same as the trip map's. On the Foodie Finds map it sits under GPins.
+  const [locating, setLocating] = useState('')
+  const meDot = useRef<google.maps.Circle | null>(null)
+  const locate = () => {
+    if (!map || !navigator.geolocation) return setLocating("Your phone didn't share its location.")
+    setLocating('Finding you…')
+    navigator.geolocation.getCurrentPosition(
+      p => {
+        const at = { lat: p.coords.latitude, lng: p.coords.longitude }
+        meDot.current?.setMap(null)
+        meDot.current = new google.maps.Circle({ map, center: at, radius: Math.max(12, p.coords.accuracy / 4), fillColor: '#1A8CFF', fillOpacity: 0.9, strokeColor: '#FFFFFF', strokeWeight: 3, clickable: false, zIndex: 9 })
+        map.panTo(at)
+        if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
+        setLocating('')
+      },
+      () => setLocating("Couldn't get your location. Check the browser's location permission."),
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+  useEffect(() => () => { meDot.current?.setMap(null) }, [])
+
   // The pin popup (session 10).
   const popupEl = useMapPopup(map, popup ? popupAt ?? null : null, () => onPopupClose?.())
   useEffect(() => {
@@ -229,7 +251,7 @@ export default function SavorMap({
     <div className={styles.wrap}>
       {popupEl && popup ? createPortal(popup, popupEl) : null}
       <div ref={box} className={styles.map} role="region" aria-label="Map" />
-      {notice && <p className={styles.notice} role="status">{notice}</p>}
+      {(locating || notice) && <p className={styles.notice} role="status">{locating || notice}</p>}
       {map && !phone && <CameraControl map={map} home={home} tiltable={tiltable} right={16} />}
       {ready && (
         <div className={phone ? styles.phoneCtl : styles.controls}>
@@ -259,6 +281,9 @@ export default function SavorMap({
             }}
           >
             <GPinsIcon off={!(pinsLocked || showPins)} />
+          </button>
+          <button type="button" className={styles.chip} aria-label="My location" title="My location" onClick={locate}>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>
           </button>
         </div>
       )}
