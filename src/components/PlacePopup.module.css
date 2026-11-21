@@ -58,3 +58,6 @@
 .fill .line a, .fill .add { color: #1a6fd1; }
 .fill .noteText { background: var(--ground); }
 .fill .note { background: var(--surface); color: var(--ink); caret-color: var(--ink); border-color: var(--rule); }
+
+/* "View in Google Maps · Open in Apple Maps" (session 19). */
+.linkSep { margin: 0 6px; color: var(--muted); }

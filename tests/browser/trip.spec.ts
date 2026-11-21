@@ -175,7 +175,7 @@ test('the map looks up the Primary City in its Country; Districts within 20 km o
 test('pins toggle: hides only Google\'s place pins, and which map each look needs', async () => {
   const { MAP_LOOKS, lookOptions, canHidePins } = await import('../../src/lib/mapStyles')
   const by = (k: string) => MAP_LOOKS.find(l => l.key === k)!
-  expect(MAP_LOOKS).toHaveLength(11) // one Satellite look (photos with names)
+  expect(MAP_LOOKS).toHaveLength(6) // one Satellite look (photos with names)
   expect(by('satellite').mapTypeId).toBe('hybrid')
   // Pins shown: Google's own looks stay on the tilt map, untouched.
   expect(lookOptions(by('standard'), true)).toMatchObject({ styles: null, tiltable: true })
@@ -188,13 +188,19 @@ test('pins toggle: hides only Google\'s place pins, and which map each look need
   expect(off).not.toContain('"featureType":"road"')
   expect(lookOptions(by('standard'), false).tiltable).toBe(false)
   expect(lookOptions(by('satellite'), false)).toMatchObject({ mapTypeId: 'hybrid', tiltable: false })
-  // Hand-made Night keeps its own colours and labels, minus the pins.
-  const night = JSON.stringify(lookOptions(by('night'), false).styles)
-  expect(night).toContain('#242f3e')
-  expect(night).toContain('"featureType":"poi","elementType":"labels"')
+  // Hand-made Dark keeps its own colours and labels, minus the pins.
+  const dark = JSON.stringify(lookOptions(by('dark'), false).styles)
+  expect(dark).toContain('#212121')
+  expect(dark).toContain('"featureType":"poi","elementType":"labels"')
   // Without the no-pins Map ID, Google dark's pins can't be hidden.
   expect(canHidePins(by('google-dark'))).toBe(false)
   expect(lookOptions(by('google-dark'), false)).toMatchObject({ styles: null, tiltable: true })
+})
+
+test('the switcher offers 6 looks; a removed one falls back to the default (session 19)', async () => {
+  const { MAP_LOOKS, readLook } = await import('../../src/lib/mapStyles')
+  expect(MAP_LOOKS.map(l => l.key)).toEqual(['standard', 'google-dark', 'silver', 'dark', 'terrain', 'satellite'])
+  expect(readLook('light').key).toBe('standard')
 })
 
 test('GPins OFF keeps tilt on Google looks with the no-pins Map ID (session 9)', async () => {
@@ -214,12 +220,12 @@ test('GPins OFF keeps tilt on Google looks with the no-pins Map ID (session 9)',
   }
   expect(mapKind(by('google-dark'), lookOptions(by('google-dark'), false, true), ids).kind).toBe('tilt-dark-nopins')
   // Hand-made looks stay on the flat map either way.
-  expect(mapKind(by('paper'), lookOptions(by('paper'), false, true), ids).kind).toBe('flat')
+  expect(mapKind(by('silver'), lookOptions(by('silver'), false, true), ids).kind).toBe('flat')
   // No base Map ID at all: flat everywhere.
   expect(mapKind(by('standard'), lookOptions(by('standard'), true, false), {}).kind).toBe('flat')
-  // The Map check: all 11 looks with GPins ON, plus Google's 4 own looks with GPins OFF.
-  expect(checkCases(true)).toHaveLength(15)
-  expect(checkCases(false)).toHaveLength(14) // Google dark can't turn GPins OFF without the Map ID
+  // The Map check: all 6 looks with GPins ON, plus Google's 4 own looks with GPins OFF.
+  expect(checkCases(true)).toHaveLength(10)
+  expect(checkCases(false)).toHaveLength(9) // Google dark can't turn GPins OFF without the Map ID
 })
 
 test('Districts chip: shows only while an HCMC district is in view', async () => {
@@ -585,4 +591,38 @@ test('centring in the visible part of the map (session 10)', async () => {
   expect(right.lng - saigon.lng).toBeCloseTo((210 / (256 * 2 ** 13)) * 360, 6)
   // A place shown below the middle: the centre is north of it.
   expect(centreFor(saigon, 15, 0, 100).lat).toBeGreaterThan(saigon.lat)
+})
+
+test('Open in Apple Maps: the place name and position only (session 19)', async () => {
+  const { appleMapsLink } = await import('../../src/lib/placeDetails')
+  const url = new URL(appleMapsLink('Bến Thành Market', 10.772, 106.698, 'Lê Lợi, Quận 1'))
+  expect(url.origin).toBe('https://maps.apple.com')
+  expect(url.searchParams.get('q')).toBe('Bến Thành Market')
+  expect(url.searchParams.get('ll')).toBe('10.772,106.698')
+  expect(url.searchParams.get('address')).toBe('Lê Lợi, Quận 1')
+  expect(new URL(appleMapsLink('A', 1, 2)).searchParams.has('address')).toBe(false)
+})
+
+test('My location trouble: says what went wrong and how to allow it on this phone (session 19)', async () => {
+  const { browserOf, locationProblem } = await import('../../src/lib/locationHelp')
+  const chrome = 'Mozilla/5.0 (Linux; Android 16; SM-F976U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Mobile Safari/537.36'
+  const samsung = chrome.replace('Chrome/141.0', 'SamsungBrowser/29.0 Chrome/141.0')
+  const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.1 Mobile/15E148 Safari/604.1'
+  expect(browserOf(chrome)).toBe('android')
+  expect(browserOf(chrome, true)).toBe('android-app')
+  expect(browserOf(samsung)).toBe('samsung')
+  expect(browserOf(iphone)).toBe('iphone')
+  expect(browserOf('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/141.0')).toBe('other')
+  // Blocked: the steps for this browser, ending with "try again".
+  const blocked = locationProblem(1, 'android')
+  expect(blocked.title).toBe('Location is blocked for Hanh’s Log.')
+  expect(blocked.steps.join(' ')).toContain('icon left of the web address')
+  expect(blocked.steps.at(-1)).toBe('Then tap My location again and choose Allow.')
+  expect(locationProblem(1, 'android-app').steps.join(' ')).toContain('Long-press the Hanh’s Log icon')
+  expect(locationProblem(1, 'iphone').steps.join(' ')).toContain('Safari Websites')
+  expect(locationProblem(1, 'samsung').steps.join(' ')).toContain('Site permissions')
+  // No signal / timed out: no permission steps.
+  expect(locationProblem(2, 'android').title).toBe('Your phone couldn’t tell where you are.')
+  expect(locationProblem(3, 'android').title).toBe('Finding you took too long.')
+  expect(locationProblem(3, 'android').steps.join(' ')).not.toContain('Permissions')
 })

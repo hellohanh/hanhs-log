@@ -39,7 +39,7 @@ function idle(map: google.maps.Map, ms = 3000): Promise<void> {
   })
 }
 
-/** The cases: all 11 looks with GPins ON, plus Google's own looks with GPins OFF. */
+/** The cases: all 6 looks with GPins ON, plus Google's own looks with GPins OFF. */
 export function checkCases(noPinsId: boolean): { key: string; pins: boolean }[] {
   const on = MAP_LOOKS.map(l => ({ key: l.key, pins: true }))
   const off = MAP_LOOKS.filter(l => !l.styles && canHidePins(l, noPinsId)).map(l => ({ key: l.key, pins: false }))

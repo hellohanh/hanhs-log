@@ -1,6 +1,6 @@
 import { shownContact, telOf, websiteHref, type Contact } from '../lib/contact'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { placeDetails, siteLabel, type PlaceDetails } from '../lib/placeDetails'
+import { placeDetails, siteLabel, type PlaceDetails, appleMapsLink } from '../lib/placeDetails'
 import { popupLines } from '../lib/placeName'
 import { badgeSvg, BADGE, type Badge } from '../lib/pinDraw'
 import { afterRating, afterVerdict, type MyReview, type Verdict } from '../lib/pinRules'
@@ -242,7 +242,11 @@ export default function PlacePopup({
           {shown.website && (
             <p className={styles.line}><span aria-hidden="true">🌐</span><a href={websiteHref(shown.website)} target="_blank" rel="noreferrer">{siteLabel(shown.website)}</a></p>
           )}
-          <p className={styles.line}><span aria-hidden="true">↗</span><a href={info.mapsUrl} target="_blank" rel="noreferrer">View in Google Maps</a></p>
+          <p className={styles.line}>
+            <span aria-hidden="true">↗</span><a href={info.mapsUrl} target="_blank" rel="noreferrer">View in Google Maps</a>
+            <span className={styles.linkSep} aria-hidden="true">·</span>
+            <a href={appleMapsLink(place.name, place.lat, place.lng, shown.address)} target="_blank" rel="noreferrer">Open in Apple Maps</a>
+          </p>
         </>
       )}
       <div className={styles.hr} />

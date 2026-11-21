@@ -9,6 +9,7 @@ import { anyDistrictInView } from '../../lib/districts'
 import { type Bounds } from '../../lib/countryBounds'
 import { MODE_COLOR, type RouteSeg } from '../../lib/directions'
 import { useIsDark } from '../../lib/theme'
+import { browserOf, locationProblem, type LocationProblem } from '../../lib/locationHelp'
 import CameraControl from './CameraControl'
 import MapCheck from '../../components/MapCheck'
 import GPinsIcon from '../../components/GPinsIcon'
@@ -20,7 +21,7 @@ export type { MapPin } from './mapPinLayer'
 
 // The trip map (M3 step 3, approved mockup v2, session 4): opens on the
 // trip's Primary City centre at zoom 13, no pins yet (old Wanderlog pins
-// appear only after Hanh sorts them). Map look switcher with 11 looks and a
+// appear only after Hanh sorts them). Map look switcher with 8 looks and a
 // Pins / No pins chip for Google's place pins (remembered on this device),
 // remembered per mode on this device; HCMC Districts chip whenever any
 // HCMC district is in view. Our own camera control (3 × 4) with
@@ -333,9 +334,13 @@ export default function TripMap({
 
   // My location (phone, session 10): a blue dot, and the map centres on it.
   const [locating, setLocating] = useState('')
+  const [locIssue, setLocIssue] = useState<LocationProblem | null>(null)
+  const browser = () => browserOf(navigator.userAgent, window.matchMedia?.('(display-mode: standalone)').matches)
   const meDot = useRef<google.maps.Circle | null>(null)
   const locate = () => {
-    if (!map || !navigator.geolocation) return setLocating("Your phone didn't share its location.")
+    setLocIssue(null)
+    if (!map) return
+    if (!navigator.geolocation) return setLocIssue(locationProblem(0, browser()))
     setLocating('Finding you…')
     navigator.geolocation.getCurrentPosition(
       p => {
@@ -346,7 +351,10 @@ export default function TripMap({
         if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
         setLocating('')
       },
-      () => setLocating("Couldn't get your location. Check the browser's location permission."),
+      err => {
+        setLocating('')
+        setLocIssue(locationProblem(err.code, browser()))
+      },
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }
@@ -383,6 +391,13 @@ export default function TripMap({
         </div>
       )}
       {locating && <p className={styles.notice} role="status">{locating}</p>}
+      {locIssue && (
+        <div className={`${styles.notice} ${styles.locHelp}`} role="alertdialog" aria-label={locIssue.title}>
+          <p className={styles.locTitle}>{locIssue.title}</p>
+          <ol className={styles.locSteps}>{locIssue.steps.map(t => <li key={t}>{t}</li>)}</ol>
+          <button type="button" className={styles.locOk} onClick={() => setLocIssue(null)}>OK</button>
+        </div>
+      )}
       {ready && !phone && (
         <div className={styles.controls}>
           <button
