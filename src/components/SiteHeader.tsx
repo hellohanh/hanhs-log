@@ -33,7 +33,7 @@ export default function SiteHeader() {
   // merges into the trip's own title bar, so it isn't drawn at all.
   const phone = useIsPhone()
   const { pathname } = useLocation()
-  // Munch List (/savor) too since session 13 when signed in: it has its own
+  // Foodie Finds (/savor) too since session 13 when signed in: it has its own
   // title bar on phones (signed out it shows a sign-in message, so keep the header).
   const hidden = phone && (/^\/wander\/trip\//.test(pathname) || (!!session && /^\/(savor|roam)\/?$/.test(pathname)))
 

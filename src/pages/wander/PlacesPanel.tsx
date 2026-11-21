@@ -12,7 +12,7 @@ import styles from './Places.module.css'
 
 // The Places panel (left of the map). Pins are the trip's non-food places;
 // dining lives in Savorlog, so the Nom-Nom section shows the catalogue's
-// eateries on screen (session 13, E101: it follows the map like Munch List),
+// eateries on screen (session 13, E101: it follows the map like Foodie Finds),
 // and picking Nom-Nom while adding hands off to the full Savorlog add panel.
 
 export type Editing = { mode: 'add'; place: FoundPlace } | { mode: 'edit'; pinId: string } | null

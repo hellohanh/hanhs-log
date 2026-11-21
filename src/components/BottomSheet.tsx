@@ -7,8 +7,8 @@ import styles from './BottomSheet.module.css'
 // (closed → half → full); swipe it back toward its edge to close it
 // completely. A tap on the handle steps open (closed → half → full → half).
 // The handle is deep cherry red in light mode and mustard in dark mode.
-// edge="bottom" (Places / Itinerary / Munch List catalogue) sits on the bottom
-// of its positioned parent; edge="top" (Munch List search) hangs from the top.
+// edge="bottom" (Places / Itinerary / Foodie Finds catalogue) sits on the bottom
+// of its positioned parent; edge="top" (Foodie Finds search) hangs from the top.
 
 export type Snap = 'closed' | 'half' | 'full'
 /** The closed sheet: just its handle. */
@@ -31,7 +31,7 @@ export default function BottomSheet({
   /** Kept mounted but not shown (the other tab's sheet). */
   hidden?: boolean
   edge?: 'bottom' | 'top'
-  /** Half = as tall as its contents, up to half the room (Munch List search). */
+  /** Half = as tall as its contents, up to half the room (Foodie Finds search). */
   fit?: boolean
   children: React.ReactNode
 }) {

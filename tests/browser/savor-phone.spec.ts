@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { fakeSupabase, ME, FRIEND } from './fake-supabase'
 
-// Munch List on phones (session 13, E107, approved mockup at 412 × 891): the
+// Foodie Finds on phones (session 13, E107, approved mockup at 412 × 891): the
 // map fills the screen; a top sheet holds one search box (a place to go to,
 // or an eatery to add) and opens pulled down; the Catalogue is a bottom sheet
 // whose handle closes it completely; Family and Map look live in ⋯.
@@ -36,7 +36,7 @@ async function open(page: Page, opts: Parameters<typeof fakeSupabase>[1] = {}) {
   const db = await fakeSupabase(page, { eateries: EATERIES, ...opts })
   await fakeGoogle(page)
   await page.goto('./savor')
-  await expect(page.getByRole('heading', { level: 1, name: 'Munch List' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Foodie Finds' })).toBeVisible()
   return db
 }
 
@@ -46,7 +46,7 @@ test('opens with the search pulled down, no popup, Catalogue closed to its handl
   await expect(page.getByRole('region', { name: 'Search' })).toHaveAttribute('data-snap', 'half')
   await expect(page.getByRole('searchbox', { name: 'City, country or eatery' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Catalogue' })).toHaveAttribute('data-snap', 'closed')
-  // The site header gives way to Munch List's own title bar.
+  // The site header gives way to Foodie Finds's own title bar.
   await expect(page.getByRole('link', { name: 'Home' })).toBeVisible()
 })
 
@@ -81,7 +81,7 @@ test('the Catalogue handle opens half, then full; ⋯ holds Family and Map look'
   await cat.getByRole('button', { name: /Catalogue: make bigger/ }).click()
   await expect(cat).toHaveAttribute('data-snap', 'full')
 
-  await page.getByRole('button', { name: 'Munch List menu' }).click()
+  await page.getByRole('button', { name: 'Foodie Finds menu' }).click()
   await expect(page.getByRole('menuitem')).toHaveText(['Family', 'Map look & GPins'])
   await page.getByRole('menuitem', { name: 'Family' }).click()
   await expect(page.getByRole('dialog', { name: 'Savorlog family' })).toBeVisible()

@@ -34,7 +34,7 @@ async function fakeGoogle(page: Page) {
 }
 
 test('type a new main dish on the eatery card', async ({ page }, info) => {
-  test.skip(info.project.name === 'phone', 'computer Munch List; the phone uses the same card')
+  test.skip(info.project.name === 'phone', 'computer Foodie Finds; the phone uses the same card')
   const db = await fakeSupabase(page, { eateries: [], customDishes: [{ cuisine: 'thai', key: 'x-boat-noodles', label: 'Boat Noodles' }] })
   await fakeGoogle(page)
   await page.goto('./savor')

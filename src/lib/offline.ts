@@ -1,6 +1,6 @@
 // Offline (session 15, step 1 of 3, approved mockup at 412 × 891): every
 // database read is kept on this phone or computer, per person, as it
-// happens, so a trip you've opened (and the Munch List and Spot List) still
+// happens, so a trip you've opened (and the Foodie Finds and Spot List) still
 // shows with no signal: "Offline · showing what was saved Tue 9:42".
 // Hanh's choice: trips you've opened (nothing is fetched ahead). Changes made
 // offline wait and send later (step 2); clashes are asked about (step 3).

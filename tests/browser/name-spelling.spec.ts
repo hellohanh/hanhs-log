@@ -32,7 +32,7 @@ async function fakeGoogle(page: Page) {
 }
 
 test('the add card offers Google\'s spelling and saves it exactly', async ({ page }, info) => {
-  test.skip(info.project.name === 'phone', 'computer Munch List; the phone uses the same card')
+  test.skip(info.project.name === 'phone', 'computer Foodie Finds; the phone uses the same card')
   const db = await fakeSupabase(page, { eateries: [] })
   await fakeGoogle(page)
   await page.goto('./savor')

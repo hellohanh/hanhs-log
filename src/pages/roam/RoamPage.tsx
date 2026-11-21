@@ -25,7 +25,7 @@ import { useBackStep } from '../../lib/useBackStep'
 
 // Roaminglog's Spot List (/roam, session 14, step 4): the shared catalogue of
 // non-eatery places (sights, stays, shops, airports, stations), laid out like
-// the Munch List: the list follows the map, a pin or row opens the popup,
+// the Foodie Finds: the list follows the map, a pin or row opens the popup,
 // double-click (or ✎) edits, and the Google search adds a spot. Every trip's
 // map shows these spots too. Removing one sends it to the owner's
 // pending-deletion list.
