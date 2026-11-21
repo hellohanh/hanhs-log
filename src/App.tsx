@@ -9,6 +9,7 @@ import Search from './pages/Search'
 import NotFound from './pages/NotFound'
 import UpdateNotice from './components/UpdateNotice'
 import OfflineBanner from './components/OfflineBanner'
+import LayoutToggle from './components/LayoutToggle'
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <UpdateNotice />
+      <LayoutToggle />
     </>
   )
 }

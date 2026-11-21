@@ -8,3 +8,8 @@
 .rule { border: 0; border-top: 1px solid var(--rule); margin: 4px 0; }
 .label { flex: 1; }
 .sub { margin-left: 16px; color: var(--muted); font-size: 14px; }
+
+/* Desktop / mobile layout toggle item (session 19): arrow, device icon, label. */
+.layout { display: flex; align-items: center; gap: 8px; }
+.layout .arrow { color: var(--muted); }
+.layout svg { flex: none; }

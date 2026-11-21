@@ -1,0 +1,22 @@
+/* Desktop / mobile layout toggle (session 19). The floating icon sits at the
+   bottom-left, lifted above the map's Google logo, clear of the right-hand map
+   controls and the bottom sheet handles. */
+.float {
+  position: fixed;
+  left: 10px;
+  bottom: 28px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.float:hover { background: var(--ground); }
+.float:active { transform: scale(0.97); }
