@@ -3,6 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { usePageMenu } from '../lib/pageMenu'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
+import { useLayoutToggle } from '../lib/usePhone'
+import { layoutTarget } from './LayoutToggle'
 import styles from './PhoneMenu.module.css'
 
 // The ☰ menu on phones (session 10, approved): Wanderlog, Savorlog, dark /
@@ -13,6 +15,8 @@ import styles from './PhoneMenu.module.css'
 export default function PhoneMenu() {
   const { session, signOut } = useAuth()
   const { isDark, toggle } = useTheme()
+  const { phone, flip } = useLayoutToggle()
+  const target = layoutTarget(phone)
   const [open, setOpen] = useState(false)
   const page = usePageMenu()
   const navigate = useNavigate()
@@ -49,6 +53,11 @@ export default function PhoneMenu() {
           <a href={`${import.meta.env.BASE_URL}how-to/`} className={styles.item} onClick={() => setOpen(false)}>How-to</a>
           <button type="button" className={styles.item} data-testid="theme-toggle" onClick={() => { toggle(); setOpen(false) }}>
             {isDark ? 'Light mode' : 'Dark mode'}
+          </button>
+          <button type="button" className={`${styles.item} ${styles.layout}`} onClick={() => { flip(); setOpen(false) }}>
+            <span aria-hidden="true" className={styles.arrow}>→</span>
+            <target.Icon />
+            <span className={styles.label}>{target.label}</span>
           </button>
           {session ? (
             <button type="button" className={styles.item} onClick={() => { setOpen(false); signOut() }}>Sign out</button>
