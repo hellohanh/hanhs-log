@@ -119,7 +119,7 @@
 .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); font-size: 14px; }
 .confirm span { margin-right: auto; }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-height: 650px) {
   .side { width: auto; border-right: 0; border-bottom: 0; max-height: none; padding-top: 4px; }
   /* Phone (session 10): rows and buttons big enough for a thumb (48 px rows). */
   .node, .row { min-height: 48px; }

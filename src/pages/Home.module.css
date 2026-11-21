@@ -134,7 +134,7 @@
 }
 
 /* On narrow screens the search card sits under the picture instead of over it. */
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-height: 650px) {
   /* Phones: full-width picture, panel below it (shown from the start, E105). */
   .heroBand { display: block; height: auto; padding-top: 40px; }
   .column { width: 100%; height: auto; transform: none; }
@@ -163,7 +163,7 @@
   padding: 88px var(--gutter) 112px;
   scroll-margin-top: var(--header-h);
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-height: 650px) {
   .choose { padding: 48px var(--gutter) 72px; }
 }
 
@@ -243,7 +243,7 @@
    Where to? and the cards show from the start under the picture, so the
    first screen isn't half empty; the plane still flies over the picture as
    you scroll. */
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-height: 650px) {
   .reveal { opacity: 1; transform: none; transition: none; }
 }
 
