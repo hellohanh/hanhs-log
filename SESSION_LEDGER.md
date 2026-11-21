@@ -695,3 +695,40 @@ M3 step 4: adding and editing pins, and scheduling them onto itinerary days. Con
 - Try sessions 16–17 on the phone.
 - Then: offline on the phone; phone step 3; the Map check results; the import queue; M5.2b (migration 0027 or later); Q6/Q7; M6; M7.
 - Parked: monetization (project doc).
+
+## Session 19 — 2026-11-20
+
+**Goal:**
+- Trim the map looks and add Open in Apple Maps.
+- Rename the eatery page to Foodie Finds.
+- Keep the phone Search sheet's handle off the bottom of the screen.
+- A desktop / mobile layout toggle for tablets and the Z Fold 8 in landscape.
+- A My location button on the Foodie Finds map, like Wanderlog's.
+
+**Decisions made:** E138 (six map looks: Google standard, Google dark, Terrain, Satellite, Silver, Dark), E139 (Open in Apple Maps beside View in Google Maps; clearer My-location help), E140 (Munch List → Foodie Finds, display name only; Savorlog eyebrow and /savor stay), E141 (top Search sheet capped at two-thirds of the room so its handle stays off the bottom), E142 (per-device desktop / mobile layout toggle — floating lower-left icon + ☰ text item, touch devices only, remembered per device), E143 (My location button on the Foodie Finds map, phone and computer, below GPins).
+
+**Built and merged (all through pull requests with previews and green checks):**
+- #134: six map looks; Open in Apple Maps (`lib/placeDetails.ts`, `PlacePopup.tsx`); clearer trip-map My-location help.
+- #135: rename Munch List → Foodie Finds (display name; `/savor` and the Savorlog eyebrow unchanged).
+- #136: cap the top Search sheet's height (`topCap` in `BottomSheet.tsx`) so the handle never reaches the bottom; a longer list scrolls inside.
+- #137: desktop / mobile layout toggle (`LayoutToggle.tsx`, `lib/usePhone.ts` override, `App.tsx`, `PhoneMenu.tsx`); `layout-toggle.spec.ts`.
+- #138: My location button on the Foodie Finds map (`SavorMap.tsx`), phone and computer, below GPins.
+- Plus this PR: the session 19 docs.
+
+**Done outside code:**
+- Confirmed #122 (sessions 14–17 docs) is merged and session 18's docs landed; no open PRs before this one.
+- Rebuilt the screenshot pipeline (maps stub + system Chrome) after the container was swapped; CI stays the authoritative gate.
+
+**Design work:** the Foodie Finds rename shown on the Savorlog mobile layout; the layout-toggle icon (arrow → the target device's glyph) and its ☰ text item; the My-location button placement below GPins.
+
+**Lessons:** L80 (a PR left open on a base branch that was merged and deleted never reaches main — retarget it; the search-cap fix was missing from the live site until #136 was retargeted).
+
+**Open questions:** Q6 (American icon names), Q7 (no lobster icon).
+
+**Stop Protocol completed:** zip `S019 NOV 20 2026 Hanhs Log.zip` produced and presented.
+
+**Next session starts at:**
+- Try session 19 on the phone and the Z Fold 8: the layout toggle (icon + ☰), the capped Search sheet, My location on Foodie Finds, Open in Apple Maps.
+- Try sessions 16–18 on the phone still outstanding; re-add the home-screen app for the icon.
+- Then: offline on the phone; phone step 3 (add/edit forms, mockup first at 412 × 891); the Map check results on the six looks; the import queue; M5.2b (migration 0027 or later); Q6/Q7; M6; M7.
+- Parked: monetization (project doc).
