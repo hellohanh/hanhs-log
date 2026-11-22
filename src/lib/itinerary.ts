@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import type { Michelin } from './pinDraw'
 import { isSpot } from './pins'
+import { arrivesInCity } from './place'
 
 // The itinerary panel's data (migration 0002): a trip's days (dated days
 // for the trip's dates plus extra undated days), each day's note, and
@@ -108,6 +109,35 @@ async function selectLegs(col: 'day_id' | 'id', ids: string[]): Promise<TravelLe
 export async function fetchLegs(dayIds: string[]): Promise<TravelLeg[]> {
   if (dayIds.length === 0) return []
   return selectLegs('day_id', dayIds)
+}
+
+// ---- Overnight legs from your other trips (session 20, Hanh) ----
+
+/** Overnight travel on your other trips that arrives on one of this trip's
+ *  days in one of its cities (the "next leg"): shown here from 00:00 to the
+ *  arrival, read only, "Continues from: <trip>". Only trips you're on are
+ *  readable, so only legs you can see come back. Never throws (offline → none). */
+export async function fetchOvernightInto(
+  tripId: string,
+  dates: string[],
+  cities: (string | null | undefined)[]
+): Promise<TravelLeg[]> {
+  if (dates.length === 0) return []
+  try {
+    const { data, error } = await client()
+      .from('travel_legs')
+      .select(`${LEG_COLUMNS}, itinerary_days!inner(trip_id, trips(name))`)
+      .in('to_date', dates)
+      .neq('itinerary_days.trip_id', tripId)
+    if (error || !data) return []
+    type Row = TravelLeg & { itinerary_days: { trip_id: string; trips: { name: string } | null } | null }
+    return (data as unknown as Row[])
+      .filter(r => r.from_date && r.to_date && r.from_date < r.to_date && r.itinerary_days?.trip_id !== tripId)
+      .filter(r => arrivesInCity(r.to_location, cities))
+      .map(({ itinerary_days, ...leg }) => ({ ...leg, day_id: '', continuesFrom: itinerary_days?.trips?.name ?? 'another trip' }))
+  } catch {
+    return []
+  }
 }
 
 // ---- Legs linked to other trips (migration 0012, session 9) ----

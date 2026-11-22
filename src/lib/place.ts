@@ -19,3 +19,17 @@ export function mapQuery(p: Pick<TripPlace, 'country' | 'city_primary'>): string
   return `${p.city_primary.trim()}, ${p.country.trim()}`
 }
 
+
+/** Strip accents and case so "Nha Trang", "nha trang" and "Nha Trang, Khánh Hòa" compare. */
+function fold(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().trim()
+}
+
+/** Does a leg's arrival place name one of a trip's cities? */
+export function arrivesInCity(toLocation: string, cities: (string | null | undefined)[]): boolean {
+  const place = fold(toLocation)
+  return cities.some(c => {
+    const city = c ? fold(c) : ''
+    return city.length > 1 && place.includes(city)
+  })
+}

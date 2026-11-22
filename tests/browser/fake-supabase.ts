@@ -318,6 +318,19 @@ export async function fakeSupabase(
       if (req.method() === 'GET') {
         const list = (k: string) => (url.searchParams.get(k) ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(x => x.replace(/"/g, ''))
         if (url.searchParams.get('id')) return route.fulfill({ json: db.legs.filter(l => list('id').includes(l.id)) })
+        // Overnight legs from other trips (session 20): by arrival date, with their trip's name.
+        if (url.searchParams.get('to_date')) {
+          const not = url.searchParams.get('itinerary_days.trip_id')?.replace('neq.', '')
+          return route.fulfill({
+            json: db.legs
+              .filter(l => list('to_date').includes(String(l.to_date)))
+              .map(l => {
+                const tripId = db.days.find(d => d.id === l.day_id)?.trip_id ?? ''
+                return { ...l, itinerary_days: { trip_id: tripId, trips: { name: db.trips.find(t => t.id === tripId)?.name ?? '' } } }
+              })
+              .filter(l => l.itinerary_days.trip_id !== not)
+          })
+        }
         return route.fulfill({ json: db.legs.filter(l => list('day_id').includes(l.day_id)) })
       }
       if (req.method() === 'POST') {
