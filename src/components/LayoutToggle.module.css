@@ -1,22 +1,9 @@
-/* Desktop / mobile layout toggle (session 19). The floating icon sits at the
-   bottom-left, lifted above the map's Google logo, clear of the right-hand map
-   controls and the bottom sheet handles. */
-.float {
-  position: fixed;
-  left: 10px;
-  bottom: 28px;
-  z-index: 40;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--rule);
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow);
-  cursor: pointer;
-}
-.float:hover { background: var(--ground); }
-.float:active { transform: scale(0.97); }
+/* Desktop / mobile layout button (session 20, Hanh's approved mockup v4 + rail):
+   a round map button, last in each map's button set, with a plain arrow just
+   outside its left edge. The arrow's tip is 1.5 px from the circle's outer
+   edge: the button has a 1 px border, so 1 + 1.5 = 2.5 px past the padding box. */
+.mapBtn { position: relative; overflow: visible; }
+.arrow { position: absolute; right: calc(100% + 2.5px); top: 50%; transform: translateY(-50%); width: 13px; height: 12px; overflow: visible; pointer-events: none; }
+.mapBtn svg.arrow { width: 13px; height: 12px; }
+/* In the computer's row the arrow needs room from the button before it. */
+.inRow { margin-left: 10px; }
