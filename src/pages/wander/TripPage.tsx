@@ -475,6 +475,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               tripId={trip.id}
               start={trip.start_date}
               end={trip.end_date}
+              cities={[trip.city_primary, trip.city_secondary, trip.city_tertiary]}
               wide={false}
               phone
               routeOn={routeOn}
@@ -674,6 +675,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               tripId={trip.id}
               start={trip.start_date}
               end={trip.end_date}
+              cities={[trip.city_primary, trip.city_secondary, trip.city_tertiary]}
               wide={panel.wide}
               pins={pins}
               reviews={reviews}

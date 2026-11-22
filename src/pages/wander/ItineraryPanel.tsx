@@ -11,6 +11,7 @@ import {
   fetchLegs,
   fetchLegLinks,
   fetchLegsByIds,
+  fetchOvernightInto,
   linkLeg,
   type LegLink,
   fillTripDates,
@@ -81,6 +82,7 @@ const GUTTER = 72 // wider so connector badges clear the hour labels (session 6)
 
 export default function ItineraryPanel({
   tripId,
+  cities = [],
   start,
   end,
   wide,
@@ -98,6 +100,8 @@ export default function ItineraryPanel({
   routeOn
 }: {
   tripId: string
+  /** The trip's cities: an overnight leg on another trip that arrives in one shows here (session 20). */
+  cities?: (string | null)[]
   start: string | null
   end: string | null
   wide: boolean
@@ -155,6 +159,7 @@ export default function ItineraryPanel({
   const [dropTarget, setDropTarget] = useState<string | 'timeline' | null>(null)
   const timeline = useRef<HTMLDivElement>(null)
 
+  const citiesKey = cities.filter(Boolean).join('|')
   // This trip's own legs, plus legs linked in from other trips, placed on
   // the day matching their departure date (read only here).
   const loadLegs = useCallback(async (list: ItineraryDay[]): Promise<TravelLeg[]> => {
@@ -166,11 +171,18 @@ export default function ItineraryPanel({
       day_id: list.find(d => d.date && d.date === l.from_date && !d.repeat_after)?.id ?? '',
       linkedFrom: incoming.find(k => k.leg_id === l.id)?.other_trip_name ?? 'another trip'
     }))
-    const all = [...own, ...linked]
+    // Session 20 (Hanh): overnight travel on your other trips that arrives
+    // on one of these days in one of this trip's cities shows from 00:00 to
+    // the arrival, read only ("Continues from"). Same-trip overnight legs
+    // already continue on their own; linked-in legs aren't repeated.
+    const dates = list.filter(d => d.date && !d.repeat_after).map(d => d.date as string)
+    const seen = new Set([...own, ...linked].map(l => l.id))
+    const overnight = (await fetchOvernightInto(tripId, dates, citiesKey ? citiesKey.split('|') : [])).filter(l => !seen.has(l.id))
+    const all = [...own, ...linked, ...overnight]
     setLinks(ls)
     setLegs(all)
     return all
-  }, [tripId])
+  }, [tripId, citiesKey])
 
   const load = useCallback(async () => {
     try {
@@ -180,7 +192,7 @@ export default function ItineraryPanel({
       const allActs = await fetchActivities(list.map(d => d.id))
       const allStops = await fetchStops(list.map(d => d.id))
       // Flights across the date line get their repeat day (session 10).
-      if (await syncRepeatDays(tripId, list, wantedRepeats(allLegs), d => repeatIsEmpty(d, { legs: allLegs, acts: allActs, stops: allStops }))) {
+      if (await syncRepeatDays(tripId, list, wantedRepeats(allLegs.filter(l => !l.continuesFrom)), d => repeatIsEmpty(d, { legs: allLegs, acts: allActs, stops: allStops }))) {
         list = await fetchDays(tripId)
       }
       setDays(list)
@@ -264,9 +276,12 @@ export default function ItineraryPanel({
     tabsRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ inline: 'center', block: 'nearest' })
   }, [phone, selected, days])
 
-  // Start each day's timeline at 6:00, as in old Wanderlog.
+  // Start each day's timeline at 6:00, as in old Wanderlog — or higher when
+  // the day has a block before 6:00, so it shows (session 20, Hanh: an
+  // overnight train's 00:00–05:45 part). Set each render below the layout.
+  const startTop = useRef(SCROLL_TO_HOUR * HOUR_PX)
   useEffect(() => {
-    if (timeline.current) timeline.current.scrollTop = SCROLL_TO_HOUR * HOUR_PX
+    if (timeline.current) timeline.current.scrollTop = startTop.current
   }, [selected, days === null, form === null])
   // Phone sheet (session 18): the timeline may be hidden (sheet closed) when
   // that runs, so it would stay at 0:00; set 6:00 when it first shows.
@@ -276,7 +291,7 @@ export default function ItineraryPanel({
     let shown = el.clientHeight > 0
     const ro = new ResizeObserver(() => {
       const now = el.clientHeight > 0
-      if (now && !shown && el.scrollTop === 0) el.scrollTop = SCROLL_TO_HOUR * HOUR_PX
+      if (now && !shown && el.scrollTop === 0) el.scrollTop = startTop.current
       shown = now
     })
     ro.observe(el)
@@ -285,6 +300,7 @@ export default function ItineraryPanel({
 
   // The 🔗 line on a block: where else this leg shows (or where it comes from).
   const alsoOn = (l: TravelLeg): string | null => {
+    if (l.continuesFrom) return `Continues from: ${l.continuesFrom}`
     if (l.linkedFrom) return `Linked from: ${l.linkedFrom}`
     const names = links.filter(k => k.leg_id === l.id && k.direction === 'out').map(k => k.other_trip_name)
     return names.length ? `Also on: ${names.join(', ')}` : null
@@ -344,6 +360,16 @@ export default function ItineraryPanel({
       ]),
     [own, continuing, dayActs, dayStops, contGeometry]
   )
+  {
+    const tops = [
+      ...own.map(l => legBlockGeometry(l).top),
+      ...continuing.map(l => contGeometry(l).top),
+      ...dayActs.map(a => (toMin(a.start_time) / 60) * HOUR_PX),
+      ...dayStops.map(st => (toMin(st.start_time) / 60) * HOUR_PX)
+    ]
+    const earliest = tops.length ? Math.min(...tops) : Infinity
+    startTop.current = Math.max(0, Math.min(SCROLL_TO_HOUR * HOUR_PX, earliest - 8))
+  }
 
   // Fetch each set connector's live Google route (time, distance, road path).
   useEffect(() => {
@@ -688,7 +714,7 @@ export default function ItineraryPanel({
                         <LegCard key={`c-${l.id}`} leg={l} top={g.top} height={g.height}
                           note={day.repeat_after ? `← from ${shortDate(day.repeat_after)} · ${cityOf(l.from_location)}` : '← continued from the day before'}
                           pos={blockPositionStyle(layout.get(`c-${l.id}`), GUTTER)} alsoOn={alsoOn(l)}
-                          onClick={() => (l.linkedFrom ? setViewLinked(l) : setForm({ leg: l }))} />
+                          onClick={() => (l.linkedFrom || l.continuesFrom ? setViewLinked(l) : setForm({ leg: l }))} />
                       )
                     })}
                     {dayActs.map(a => (
@@ -980,11 +1006,13 @@ function CopyToTrip({ leg, tripId, linkedTo, onCancel, onCopied }: { leg: Travel
 function LinkedLegCard({ leg, onClose }: { leg: TravelLeg; onClose: () => void }) {
   const carrier = [leg.carrier, leg.reference].filter(Boolean).join(' ')
   return (
-    <div className={styles.copyBox} role="dialog" aria-label="Linked travel">
+    <div className={styles.copyBox} role="dialog" aria-label={leg.continuesFrom ? 'Overnight travel' : 'Linked travel'}>
       <strong>{leg.title || carrier || LEG_MODE_CONFIG[leg.mode].label}</strong>
       {leg.title && carrier && <span>{carrier}</span>}
       <span>{endLabel(leg.from_location, leg.from_date, leg.from_time, leg.from_timezone)} ••• {endLabel(leg.to_location, leg.to_date, leg.to_time, leg.to_timezone)}</span>
-      <span className={styles.muted0}>Linked from {leg.linkedFrom}. Edit or delete it there; deleting removes it from every trip.</span>
+      <span className={styles.muted0}>{leg.continuesFrom
+        ? `Overnight from ${leg.continuesFrom}. Edit or delete it there.`
+        : `Linked from ${leg.linkedFrom}. Edit or delete it there; deleting removes it from every trip.`}</span>
       <button type="button" className="btn btn-quiet" onClick={onClose}>Close</button>
     </div>
   )

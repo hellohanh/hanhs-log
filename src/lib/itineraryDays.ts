@@ -34,6 +34,9 @@ export interface TravelLeg {
   note?: string | null
   /** Set when this leg belongs to another trip and is linked in (read only here). */
   linkedFrom?: string
+  /** Set when this is an overnight leg on another of your trips that arrives
+   *  on this trip (session 20): only its after-midnight part shows, read only. */
+  continuesFrom?: string
 }
 
 export interface Activity {
