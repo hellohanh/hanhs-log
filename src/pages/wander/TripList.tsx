@@ -152,7 +152,10 @@ function SignedInList({ userId }: { userId: string }) {
     { label: 'Join with a link', onSelect: () => setJoiningLink(true) },
     ...(bundles.length > 0 ? [{ label: 'Several-trips links', sub: String(bundles.length), onSelect: () => setShowBundles(true) }] : []),
     { label: 'Invite to several trips', onSelect: startPicking },
-    ...(importLeft !== null ? [{ label: 'Import old pins', sub: importLeft >= 0 ? `${importLeft} left` : undefined, onSelect: () => navigate('/wander/import') }] : [])
+    ...(importLeft !== null ? [{ label: 'Import old pins', sub: importLeft >= 0 ? `${importLeft} left` : undefined, onSelect: () => navigate('/wander/import') }] : []),
+    // Session 20: on phones Conversion is in the site's ☰ already (after
+    // Roaminglog); the computer layout has no site ☰, so it goes here.
+    ...(!phone ? [{ label: 'Conversion', onSelect: () => navigate('/convert') }] : [])
   ]
   // On phones these go in the site's ☰ menu while Your trips is open.
   const menuKey = menuItems.map(i => `${i.label}:${i.sub ?? ''}`).join('|')
