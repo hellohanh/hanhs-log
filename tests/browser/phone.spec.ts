@@ -57,6 +57,34 @@ test.describe('phone', () => {
     await expect(page.getByRole('region', { name: 'Itinerary' }).getByRole('tab', { selected: true })).toContainText('Dec 25')
   })
 
+  test('the handle has a bigger invisible touch area, and a wobbly tap still counts (session 20)', async ({ page }) => {
+    await fakeSupabase(page, { pins: PINS })
+    await openTrip(page)
+    const views = page.getByRole('navigation', { name: 'Trip views' })
+    await views.getByRole('button', { name: 'Places' }).click()
+    await views.getByRole('button', { name: 'Places' }).click()
+    const places = page.getByRole('region', { name: 'Places' })
+    await expect(places).toHaveAttribute('data-snap', 'closed')
+    const grab = places.getByRole('button', { name: /Places: make bigger/ })
+    await page.waitForTimeout(400)
+    const b = (await grab.boundingBox())!
+    // 15 px above the closed pill, and 22 px beside it: both open it a step.
+    await page.mouse.click(b.x + b.width / 2, b.y - 15)
+    await expect(places).toHaveAttribute('data-snap', 'half')
+    await views.getByRole('button', { name: 'Places' }).click()
+    await expect(places).toHaveAttribute('data-snap', 'closed')
+    await page.waitForTimeout(400) // the sheet shrinks to the pill (0.22 s)
+    const c = (await grab.boundingBox())!
+    await page.mouse.click(c.x + c.width + 22, c.y + c.height / 2)
+    await expect(places).toHaveAttribute('data-snap', 'half')
+    // A tap whose finger wobbles 12 px (less than a swipe) still steps it open.
+    await grab.evaluate(el => {
+      const at = (type: string, y: number) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, clientX: 200, clientY: y }))
+      at('pointerdown', 500); at('pointermove', 504); at('pointermove', 509); at('pointermove', 512); at('pointerup', 512)
+    })
+    await expect(places).toHaveAttribute('data-snap', 'full')
+  })
+
   test('the bottom bar swaps sheets; tapping the open one drops it; the handle steps up', async ({ page }) => {
     await fakeSupabase(page, { pins: PINS })
     await openTrip(page)
