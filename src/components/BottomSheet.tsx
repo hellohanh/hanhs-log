@@ -11,7 +11,8 @@ import styles from './BottomSheet.module.css'
 // of its positioned parent; edge="top" (Foodie Finds search) hangs from the top.
 
 export type Snap = 'closed' | 'half' | 'full'
-/** The closed sheet: just its handle. */
+/** The closed sheet: just its handle. (Session 20, Hanh: it looks the same,
+ *  but an invisible touch area reaches past it — see .grabZone::before.) */
 export const HANDLE_PX = 30
 /** How far a swipe must travel to count as a swipe (px). */
 const SWIPE_PX = 24
@@ -94,7 +95,7 @@ export default function BottomSheet({
       tabIndex={0}
       aria-label={`${label}: ${snap === 'full' ? 'make smaller' : 'make bigger'}`}
       onPointerDown={e => {
-        ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+        try { ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId) } catch { /* pointer already gone */ }
         drag.current = { y: e.clientY, h: height, moved: false }
       }}
       onPointerMove={e => {
@@ -110,9 +111,11 @@ export default function BottomSheet({
         setLive(null)
         if (!d) return
         const by = openBy(d.y, e.clientY)
-        if (!d.moved) onSnap(stepOpen(snap))
-        else if (by >= SWIPE_PX) onSnap(opener(snap))
+        // A short wobble counts as a tap (session 20): before, a finger that
+        // moved 5–23 px did nothing at all, which felt unresponsive.
+        if (by >= SWIPE_PX) onSnap(opener(snap))
         else if (by <= -SWIPE_PX) onSnap('closed')
+        else onSnap(stepOpen(snap))
       }}
       onPointerCancel={() => { drag.current = null; setLive(null) }}
       onKeyDown={e => {

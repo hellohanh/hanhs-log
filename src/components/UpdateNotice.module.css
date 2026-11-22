@@ -8,7 +8,9 @@
 }
 .reload { border: 0; border-radius: var(--pill); height: 34px; padding: 0 16px; background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer; }
 .x { border: 0; background: transparent; color: var(--ground); opacity: 0.7; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; }
-/* Phones: just above the Places / Itinerary bar (46 px since session 13) and the sheet handles, shorter text. */
-.phone { bottom: calc(56px + env(safe-area-inset-bottom, 0px)); gap: 6px; padding: 6px 6px 6px 12px; font-size: 12px; }
-.phone .reload { height: 30px; padding: 0 12px; font-size: 12px; }
-.phone .x { width: 24px; }
+/* Phones (session 20, Hanh, option A): a bigger pill in the middle of the
+   screen, both ways; Reload and ✕ are 44 px (the phone tap size) and 10 px
+   apart, so a tap can't miss Reload or catch ✕ by mistake. */
+.phone { top: 50%; bottom: auto; transform: translate(-50%, -50%); gap: 10px; padding: 6px 6px 6px 16px; font-size: 14px; }
+.phone .reload { height: 44px; padding: 0 20px; font-size: 15px; }
+.phone .x { width: 44px; height: 44px; }
