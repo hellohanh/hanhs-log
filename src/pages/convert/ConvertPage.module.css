@@ -1,0 +1,30 @@
+/* Conversion (session 20): one card, centred, about 480 px wide on a computer;
+   full width on phones. */
+.page { max-width: 528px; margin: 0 auto; padding: 32px var(--gutter) 64px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-l); padding: 24px 20px 20px; }
+.title { font-size: 32px; margin: 4px 0 20px; }
+.box { border: 1px solid var(--rule); border-radius: var(--radius-m); padding: 10px 14px 6px; background: var(--ground); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; font-size: 14px; color: var(--muted); }
+.which b { color: var(--ink); font-weight: 600; }
+.change { border: 1px solid var(--rule); border-radius: var(--pill); background: var(--surface); color: var(--accent); font: inherit; font-size: 14px; padding: 4px 12px; cursor: pointer; }
+.amount { width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 30px; padding: 2px 0 4px; outline: none; }
+.amount:disabled { font-size: 18px; color: var(--muted); }
+.amount::placeholder { color: var(--muted); }
+.swap { display: flex; justify-content: center; color: var(--accent); margin: 8px 0; }
+.meta { margin-top: 16px; font-size: 14px; color: var(--muted); }
+.meta p { margin: 0 0 4px; }
+.meta a { color: var(--accent); }
+.backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.35); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+.picker { width: min(528px, 100%); max-height: 80vh; background: var(--surface); border-radius: var(--radius-l) var(--radius-l) 0 0; display: flex; flex-direction: column; }
+@media (min-width: 761px) { .backdrop { align-items: center; } .picker { border-radius: var(--radius-l); } }
+.pickHead { display: flex; gap: 8px; padding: 14px; border-bottom: 1px solid var(--rule); }
+.pickHead .field { min-height: 44px; }
+.pickHead .btn { min-height: 44px; padding: 0 16px; }
+.list { list-style: none; margin: 0; padding: 6px 0; overflow-y: auto; }
+.option { display: flex; width: 100%; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; text-align: left; cursor: pointer; }
+.option b { color: var(--muted); font-weight: 600; }
+.option:hover, .on { background: var(--ground); }
+.empty { padding: 16px; color: var(--muted); margin: 0; }
+/* Focus shows on the whole box, not a rectangle inside it. */
+.amount:focus-visible { outline: none; }
+.box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }

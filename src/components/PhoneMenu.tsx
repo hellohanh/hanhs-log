@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { usePageMenu } from '../lib/pageMenu'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
@@ -21,6 +21,11 @@ export default function PhoneMenu() {
   const page = usePageMenu()
   const navigate = useNavigate()
   const box = useRef<HTMLDivElement>(null)
+  // Conversion (session 20): from inside a trip it opens with that trip's
+  // country currency on top.
+  const { pathname } = useLocation()
+  const tripId = /^\/wander\/trip\/([^/]+)/.exec(pathname)?.[1]
+  const convertTo = tripId ? `/convert?trip=${encodeURIComponent(tripId)}` : '/convert'
 
   useEffect(() => {
     if (!open) return
@@ -41,6 +46,7 @@ export default function PhoneMenu() {
           <NavLink to="/wander" className={styles.item} onClick={() => setOpen(false)}>Wanderlog</NavLink>
           <NavLink to="/savor" className={styles.item} onClick={() => setOpen(false)}>Savorlog</NavLink>
           <NavLink to="/roam" className={styles.item} onClick={() => setOpen(false)}>Roaminglog</NavLink>
+          <NavLink to={convertTo} className={styles.item} onClick={() => setOpen(false)}>Conversion</NavLink>
           {page.length > 0 && <hr className={styles.rule} />}
           {page.map(i => (
             <button key={i.label} type="button" className={styles.item} onClick={() => { setOpen(false); if (i.to) navigate(i.to); else i.onSelect?.() }}>

@@ -6,6 +6,10 @@ test.beforeEach(async ({ page }) => {
   await page.route(/fonts\.(googleapis|gstatic)\.com/, route =>
     route.fulfill({ status: 200, contentType: 'text/css', body: '' })
   )
+  // Conversion's daily rates (ExchangeRate-API): a fixed reply, no network.
+  await page.route(/open\.er-api\.com/, route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ result: 'success', time_last_update_unix: 1763683200, time_next_update_unix: 1763769600, rates: { USD: 1, VND: 26000, JPY: 155, EUR: 0.92 } }) })
+  )
 })
 
 // Every page listed here is opened at every size in playwright.config.ts.
@@ -22,6 +26,7 @@ const pages = [
   { name: 'roaminglog', path: './roam' },
   { name: 'signin', path: './signin' },
   { name: 'city-search', path: './search?city=Rome' },
+  { name: 'conversion', path: './convert' },
   { name: 'not-found', path: './no-such-page' }
 ]
 
