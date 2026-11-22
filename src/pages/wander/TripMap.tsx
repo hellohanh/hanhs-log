@@ -372,6 +372,7 @@ export default function TripMap({
       {map && !phone && <CameraControl map={map} home={resetView} tiltable={tiltable} right={rightInset + 16} inset={rightInset} />}
       {ready && phone && (
         <div className={styles.phoneCtl}>
+          <MapLayoutButton className={styles.chip} />
           <button type="button" className={styles.chip} aria-expanded={open} aria-controls="map-look-panel" aria-label={`Map look: ${look.name}`} onClick={() => setOpen(o => !o)}>
             <MapIcon />
           </button>
@@ -389,7 +390,6 @@ export default function TripMap({
               <HomePinIcon />
             </button>
           )}
-          <MapLayoutButton className={styles.chip} />
         </div>
       )}
       {locating && <p className={styles.notice} role="status">{locating}</p>}
@@ -402,6 +402,7 @@ export default function TripMap({
       )}
       {ready && !phone && (
         <div className={styles.controls}>
+          <MapLayoutButton className={styles.chip} />
           <button
             ref={lookBtnRef}
             type="button"
@@ -452,7 +453,6 @@ export default function TripMap({
               <LayersIcon />
             </button>
           )}
-          <MapLayoutButton className={styles.chip} row />
         </div>
       )}
       {ready && open && (

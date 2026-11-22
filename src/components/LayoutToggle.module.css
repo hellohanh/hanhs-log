@@ -1,9 +1,7 @@
 /* Desktop / mobile layout button (session 20, Hanh's approved mockup v4 + rail):
-   a round map button, last in each map's button set, with a plain arrow just
+   a round map button, first in each map's button set, with a plain arrow just
    outside its left edge. The arrow's tip is 1.5 px from the circle's outer
    edge: the button has a 1 px border, so 1 + 1.5 = 2.5 px past the padding box. */
 .mapBtn { position: relative; overflow: visible; }
 .arrow { position: absolute; right: calc(100% + 2.5px); top: 50%; transform: translateY(-50%); width: 13px; height: 12px; overflow: visible; pointer-events: none; }
 .mapBtn svg.arrow { width: 13px; height: 12px; }
-/* In the computer's row the arrow needs room from the button before it. */
-.inRow { margin-left: 10px; }
