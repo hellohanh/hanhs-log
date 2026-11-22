@@ -16,6 +16,7 @@ import GPinsIcon from '../../components/GPinsIcon'
 import { glideTo } from '../../lib/glide'
 import { makePinLayer, type MapPin, type PinLayer } from './mapPinLayer'
 import styles from './TripMap.module.css'
+import { MapLayoutButton } from '../../components/LayoutToggle'
 
 export type { MapPin } from './mapPinLayer'
 
@@ -388,6 +389,7 @@ export default function TripMap({
               <HomePinIcon />
             </button>
           )}
+          <MapLayoutButton className={styles.chip} />
         </div>
       )}
       {locating && <p className={styles.notice} role="status">{locating}</p>}
@@ -450,6 +452,7 @@ export default function TripMap({
               <LayersIcon />
             </button>
           )}
+          <MapLayoutButton className={styles.chip} row />
         </div>
       )}
       {ready && open && (

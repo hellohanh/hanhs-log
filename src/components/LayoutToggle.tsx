@@ -4,7 +4,8 @@ import styles from './LayoutToggle.module.css'
 // Desktop / mobile layout toggle (session 19, Hanh). The control always shows
 // where a tap takes you: in the mobile layout it offers Desktop (a monitor);
 // in the desktop layout it offers Mobile (a phone). Two surfaces share it — a
-// floating icon on touch devices (below) and a ☰ menu item (TargetLabel).
+// round button in each map's button set (session 20; the floating pill is
+// gone) and a ☰ menu item.
 
 /** A monitor on a stand — the desktop layout. */
 export function DesktopIcon() {
@@ -31,21 +32,26 @@ export function layoutTarget(phone: boolean): { label: string; title: string; Ic
     : { label: 'Mobile', title: 'Switch to mobile layout', Icon: PhoneIcon }
 }
 
+/** The arrow beside the map button: its tip sits 1.5 px left of the
+ *  circle's outer edge (Hanh's rail, session 20). Drawn outside the button,
+ *  no background. */
 function Arrow() {
   return (
-    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h12M13 6l6 6-6 6" />
+    <svg className={styles.arrow} viewBox="0 0 13 12" width="13" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M1 6H13M8.5 1.5L13 6L8.5 10.5" />
     </svg>
   )
 }
 
-/** The floating icon: touch devices only, every page, either layout. */
-export default function LayoutToggle() {
+/** The map button (session 20, Hanh): last in each map's button set — the
+ *  phone column and the computer row on trip maps, Foodie Finds and the Spot
+ *  List. Touch devices only. Takes the map's own round-button class. */
+export function MapLayoutButton({ className, row }: { className: string; row?: boolean }) {
   const { phone, flip } = useLayoutToggle()
   if (!isTouch()) return null
   const t = layoutTarget(phone)
   return (
-    <button type="button" className={styles.float} onClick={flip} aria-label={t.title} title={t.title}>
+    <button type="button" className={`${className} ${styles.mapBtn} ${row ? styles.inRow : ''}`} onClick={flip} aria-label={t.title} title={t.title}>
       <Arrow />
       <t.Icon />
     </button>
