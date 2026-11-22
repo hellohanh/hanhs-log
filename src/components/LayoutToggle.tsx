@@ -43,15 +43,16 @@ function Arrow() {
   )
 }
 
-/** The map button (session 20, Hanh): last in each map's button set — the
- *  phone column and the computer row on trip maps, Foodie Finds and the Spot
- *  List. Touch devices only. Takes the map's own round-button class. */
-export function MapLayoutButton({ className, row }: { className: string; row?: boolean }) {
+/** The map button (session 20, Hanh): first in each map's button set — top
+ *  of the phone column, start of the computer row — on trip maps, Foodie
+ *  Finds and the Spot List. Touch devices only. Takes the map's own
+ *  round-button class. */
+export function MapLayoutButton({ className }: { className: string }) {
   const { phone, flip } = useLayoutToggle()
   if (!isTouch()) return null
   const t = layoutTarget(phone)
   return (
-    <button type="button" className={`${className} ${styles.mapBtn} ${row ? styles.inRow : ''}`} onClick={flip} aria-label={t.title} title={t.title}>
+    <button type="button" className={`${className} ${styles.mapBtn}`} onClick={flip} aria-label={t.title} title={t.title}>
       <Arrow />
       <t.Icon />
     </button>

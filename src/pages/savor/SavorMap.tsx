@@ -256,6 +256,7 @@ export default function SavorMap({
       {map && !phone && <CameraControl map={map} home={home} tiltable={tiltable} right={16} />}
       {ready && (
         <div className={phone ? styles.phoneCtl : styles.controls}>
+          <MapLayoutButton className={styles.chip} />
           <button
             ref={lookBtnRef}
             type="button"
@@ -286,7 +287,6 @@ export default function SavorMap({
           <button type="button" className={styles.chip} aria-label="My location" title="My location" onClick={locate}>
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>
           </button>
-          <MapLayoutButton className={styles.chip} row={!phone} />
         </div>
       )}
       {ready && open && (
