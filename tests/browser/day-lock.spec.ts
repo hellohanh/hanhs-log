@@ -66,9 +66,9 @@ test('day lock: a locked day keeps its blocks in place, a tap still opens them, 
 test('day lock: a day saved as locked opens locked, and the phone has the lock too', async ({ page }) => {
   const db = await fakeSupabase(page)
   const phone = (page.viewportSize()?.width ?? 1000) <= 760
-  // The phone opens on the Itinerary sheet; larger screens open the panel.
+  // The phone opens closed since session 20: tap Itinerary; larger screens open the panel.
   const open = async () => {
-    if (phone) return
+    if (phone) { await page.getByRole('navigation', { name: 'Trip views' }).getByRole('button', { name: 'Itinerary' }).click(); return }
     const opener = page.getByRole('button', { name: 'Open the itinerary' })
     const panel = page.getByRole('complementary', { name: 'Itinerary' })
     await expect(opener.or(panel).first()).toBeVisible()
@@ -92,6 +92,7 @@ test('itinerary: 100 px of room under 11:59 pm so the day can be scrolled past i
   await page.goto('./wander/trip/trip-saigon')
   const phone = (page.viewportSize()?.width ?? 1000) <= 760
   if (!phone) await page.getByRole('button', { name: 'Open the itinerary' }).click()
+  else await page.getByRole('navigation', { name: 'Trip views' }).getByRole('button', { name: 'Itinerary' }).click()
   const tl = page.getByTestId('day-timeline')
   await expect(tl).toBeVisible()
   const room = await tl.evaluate(el => {

@@ -43,7 +43,7 @@ test.beforeEach(({}, info) => { test.skip(info.project.name === 'phone', 'comput
 async function enter(page: Page, type: string, name: RegExp) {
   await fakeGoogle(page)
   await page.goto('./savor')
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await side.getByRole('searchbox', { name: 'City or country' }).fill(type)
   await side.getByRole('list', { name: 'Places' }).getByRole('button', { name }).click()
 }
@@ -57,7 +57,7 @@ test('Foodie Finds opens on the map with no startup popup (session 13); the top 
   await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Family' })).toBeVisible()
   // A pick only moves the map; without a map (no key) the list shows everything.
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await expect(side.getByText('3', { exact: true }).first()).toBeVisible()
   await side.getByRole('button', { name: /^Vietnamese/ }).click()
   await expect(side.getByRole('button', { name: /Anan Saigon/ }).first()).toBeVisible()
@@ -68,7 +68,7 @@ test('the City/Country field in the panel picks a place like the popup does', as
   await fakeGoogle(page)
   await page.goto('./savor')
 
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   const field = side.getByRole('searchbox', { name: 'City or country' })
   await expect(field).toHaveAttribute('placeholder', 'City/Country')
   await field.fill('viet')
@@ -86,7 +86,7 @@ test('the City/Country field in the panel picks a place like the popup does', as
 test('search-to-add opens the add card and saves a new eatery', async ({ page }) => {
   const db = await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await side.getByRole('searchbox', { name: /Search Google/ }).fill('bun')
   await side.getByRole('button', { name: 'Search' }).click()
   await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first().click()
@@ -106,7 +106,7 @@ test('search-to-add opens the add card and saves a new eatery', async ({ page })
 test('the cuisine picker in the add card is A–Z (session 11)', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await side.getByRole('searchbox', { name: /Search Google/ }).fill('bun')
   await side.getByRole('button', { name: 'Search' }).click()
   await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first().click()
@@ -119,7 +119,7 @@ test('the cuisine picker in the add card is A–Z (session 11)', async ({ page }
 test('the main dish picker in the add card is A–Z (session 14)', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await side.getByRole('searchbox', { name: /Search Google/ }).fill('bun')
   await side.getByRole('button', { name: 'Search' }).click()
   await side.getByRole('button', { name: /Bún Chả Hương Liên/ }).first().click()
@@ -133,7 +133,7 @@ test('the main dish picker in the add card is A–Z (session 14)', async ({ page
 test('editing an eatery shows its fields and the photo placeholder', async ({ page }) => {
   await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await side.getByRole('button', { name: /^Vietnamese/ }).click()
   await side.getByRole('button', { name: /Anan Saigon/ }).first().click()
 
@@ -145,7 +145,7 @@ test('editing an eatery shows its fields and the photo placeholder', async ({ pa
 test('removing an eatery sends it to the pending-deletion queue', async ({ page }) => {
   const db = await fakeSupabase(page, { eateries: EATERIES, eateryReviews: REVIEWS })
   await enter(page, 'viet', /Vietnam/)
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await side.getByRole('button', { name: /^Vietnamese/ }).click()
   await side.getByRole('button', { name: /Anan Saigon/ }).first().click()
   await side.getByRole('form', { name: 'Edit eatery' }).getByRole('button', { name: 'Remove…' }).click()

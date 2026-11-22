@@ -128,7 +128,9 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
   // the Itinerary at half height (today during the trip).
   const phone = useIsPhone()
   const [tab, setTab] = useState<'places' | 'itinerary'>('itinerary')
-  const [snap, setSnap] = useState<Snap>('half')
+  // Session 20 (Hanh): a trip opens with the sheet closed (just the map and
+  // the Places / Itinerary bar); closed sheets leave no handle behind.
+  const [snap, setSnap] = useState<Snap>('closed')
   const [routeOn, setRouteOn] = useState(false)
   const [tripMenu, setTripMenu] = useState(false)
   const [lookReq, setLookReq] = useState(0)
@@ -439,7 +441,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
             onMapClick={() => { setPopup(null); setSnap('closed'); setTripMenu(false) }}
             onView={setView}
           />
-          <BottomSheet label="Places" snap={snap} onSnap={setSnap} hidden={tab !== 'places' || !!card}>
+          <BottomSheet label="Places" vanish snap={snap} onSnap={setSnap} hidden={tab !== 'places' || !!card}>
             <PlacesPanel
               tripId={trip.id}
               userId={userId}
@@ -470,7 +472,7 @@ function TripLoaded({ tripId, userId }: { tripId: string; userId: string }) {
               onAddToDay={(id, kind) => setAddReq(r => ({ id, kind, n: (r?.n ?? 0) + 1 }))}
             />
           </BottomSheet>
-          <BottomSheet label="Itinerary" tallHalf fill snap={snap} onSnap={setSnap} hidden={tab !== 'itinerary' || !!card}>
+          <BottomSheet label="Itinerary" vanish tallHalf fill snap={snap} onSnap={setSnap} hidden={tab !== 'itinerary' || !!card}>
             <ItineraryPanel
               tripId={trip.id}
               start={trip.start_date}

@@ -21,8 +21,9 @@ test('the Spot List: header link, tree of spots, add, edit and remove', async ({
   await expect(page).toHaveURL(/\/roam$/)
   await expect(page.getByRole('heading', { name: 'Spot List' })).toBeVisible()
 
-  if (info.project.name === 'phone') await page.getByRole('button', { name: /Spots/ }).first().click().catch(() => undefined)
-  const list = info.project.name === 'phone' ? page : page.getByRole('complementary', { name: 'Spots' })
+  // Phones (session 20): the bottom bar's Spot List opens the list sheet.
+  if (info.project.name === 'phone') await page.getByRole('navigation', { name: 'Spot List views' }).getByRole('button', { name: 'Spot List' }).click()
+  const list = info.project.name === 'phone' ? page : page.getByRole('complementary', { name: 'Spot List' })
   await expect(list.getByRole('button', { name: /^Airport, 1 pin/ })).toBeVisible()
   await list.getByRole('button', { name: /^Attraction,/ }).click()
   await list.getByRole('button', { name: /^Worship,/ }).click()

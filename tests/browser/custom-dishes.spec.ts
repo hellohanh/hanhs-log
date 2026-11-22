@@ -38,7 +38,7 @@ test('type a new main dish on the eatery card', async ({ page }, info) => {
   const db = await fakeSupabase(page, { eateries: [], customDishes: [{ cuisine: 'thai', key: 'x-boat-noodles', label: 'Boat Noodles' }] })
   await fakeGoogle(page)
   await page.goto('./savor')
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await side.getByRole('searchbox', { name: /Search Google/ }).fill('bun mam')
   await side.getByRole('button', { name: 'Search' }).click()
   await side.getByRole('button', { name: /Bún Mắm Cô Ba/ }).first().click()
