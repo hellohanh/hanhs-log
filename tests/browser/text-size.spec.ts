@@ -12,7 +12,7 @@ test('itinerary text size: − / reset / + change the block text only, 9 to 21, 
   const phone = info.project.name === 'phone'
   const open = async () => {
     await page.goto('./wander/trip/trip-saigon')
-    if (phone) return
+    if (phone) { await page.getByRole('navigation', { name: 'Trip views' }).getByRole('button', { name: 'Itinerary' }).click(); return }
     // The panel may still be open from the last visit.
     const opener = page.getByRole('button', { name: 'Open the itinerary' })
     await expect(opener.or(page.getByRole('complementary', { name: 'Itinerary' })).first()).toBeVisible()

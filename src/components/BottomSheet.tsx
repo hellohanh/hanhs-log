@@ -26,6 +26,7 @@ export default function BottomSheet({
   fit = false,
   tallHalf = false,
   fill = false,
+  vanish = false,
   children
 }: {
   snap: Snap
@@ -40,6 +41,9 @@ export default function BottomSheet({
   tallHalf?: boolean
   /** Session 18: the contents fill the sheet and scroll themselves (the Itinerary: tabs stay, the timeline scrolls). */
   fill?: boolean
+  /** Session 20 (Hanh, trip pages): closed means gone, with no handle pill;
+   *  something else (the Places / Itinerary bar) opens it again. */
+  vanish?: boolean
   children: React.ReactNode
 }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -136,7 +140,7 @@ export default function BottomSheet({
     <section
       ref={ref}
       className={`${styles.sheet} ${top ? styles.top : ''} ${closed ? styles.closed : ''} ${live !== null ? styles.dragging : ''}`}
-      style={{ height, display: hidden ? 'none' : undefined }}
+      style={{ height, display: hidden || (vanish && closed) ? 'none' : undefined }}
       aria-label={label}
       data-snap={snap}
     >

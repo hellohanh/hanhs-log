@@ -1,10 +1,11 @@
 import { test, expect, type Page } from '@playwright/test'
 import { fakeSupabase, ME, FRIEND } from './fake-supabase'
 
-// Foodie Finds on phones (session 13, E107, approved mockup at 412 × 891): the
-// map fills the screen; a top sheet holds one search box (a place to go to,
-// or an eatery to add) and opens pulled down; the Catalogue is a bottom sheet
-// whose handle closes it completely; Family and Map look live in ⋯.
+// Foodie Finds on phones (session 13, E107; session 20, Hanh's option 2): the
+// map fills the screen; a bottom bar like a trip's has Search (one box: a
+// place to go to, or an eatery to add) and Foodie List, each opening its own
+// sheet from the bottom; a closed sheet leaves no handle; Family and Map look
+// live in ⋯.
 test.beforeEach(({}, info) => { test.skip(info.project.name !== 'phone', 'phone layout') })
 
 const EATERIES = [
@@ -40,31 +41,42 @@ async function open(page: Page, opts: Parameters<typeof fakeSupabase>[1] = {}) {
   return db
 }
 
-test('opens with the search pulled down, no popup, Catalogue closed to its handle', async ({ page }) => {
+const bar = (page: Page) => page.getByRole('navigation', { name: 'Foodie Finds views' })
+
+test('opens on just the map: a bottom bar with Search and Foodie List, no sheet, no handle', async ({ page }) => {
   await open(page)
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(page.getByRole('region', { name: 'Search' })).toHaveAttribute('data-snap', 'half')
-  await expect(page.getByRole('searchbox', { name: 'City, country or eatery' })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'Catalogue' })).toHaveAttribute('data-snap', 'closed')
+  await expect(bar(page).getByRole('button')).toHaveText(['Search', 'Foodie List'])
+  await expect(page.getByRole('region', { name: 'Search' })).toBeHidden()
+  await expect(page.getByRole('region', { name: 'Foodie List' })).toBeHidden()
+  await expect(page.getByRole('button', { name: /make bigger|make smaller/ })).toHaveCount(0)
   // The site header gives way to Foodie Finds's own title bar.
   await expect(page.getByRole('link', { name: 'Home' })).toBeVisible()
+  // Search opens its sheet; tapping Search again hides it, handle and all.
+  await bar(page).getByRole('button', { name: 'Search' }).click()
+  await expect(page.getByRole('region', { name: 'Search' })).toHaveAttribute('data-snap', 'half')
+  await expect(page.getByRole('searchbox', { name: 'City, country or eatery' })).toBeVisible()
+  await expect(bar(page).getByRole('button', { name: 'Search' })).toHaveAttribute('aria-pressed', 'true')
+  await bar(page).getByRole('button', { name: 'Search' }).click()
+  await expect(page.getByRole('region', { name: 'Search' })).toBeHidden()
 })
 
 test('one box: a place to go to, or an eatery to add', async ({ page }) => {
   const db = await open(page)
+  await bar(page).getByRole('button', { name: 'Search' }).click()
   const search = page.getByRole('region', { name: 'Search' })
   await search.getByRole('searchbox').fill('viet')
   await expect(search.getByText('Go to a place')).toBeVisible()
   await search.getByRole('list', { name: 'Places' }).getByRole('button', { name: /Vietnam/ }).click()
-  await expect(search).toHaveAttribute('data-snap', 'closed')
+  await expect(search).toBeHidden()
 
-  // Pull it down again and add an eatery.
-  await search.getByRole('button', { name: /Search: make bigger/ }).click()
+  // Open it again and add an eatery.
+  await bar(page).getByRole('button', { name: 'Search' }).click()
   await search.getByRole('searchbox').fill('bun cha')
   const eats = search.getByRole('list', { name: 'Eateries' })
   await expect(eats.getByRole('button', { name: /Anan Saigon.*Already in · open/ })).toBeVisible()
   await eats.getByRole('button', { name: /Bún Chả Hương Liên.*\+ Add/ }).click()
-  const cat = page.getByRole('region', { name: 'Catalogue' })
+  const cat = page.getByRole('region', { name: 'Foodie List' })
   await expect(cat).toHaveAttribute('data-snap', 'full')
   const form = cat.getByRole('form', { name: 'Add an eatery' })
   await form.getByLabel('Cuisine (country)').selectOption({ label: 'Vietnamese' })
@@ -72,14 +84,18 @@ test('one box: a place to go to, or an eatery to add', async ({ page }) => {
   await expect.poll(() => db.eateries.some(e => e.name === 'Bún Chả Hương Liên')).toBe(true)
 })
 
-test('the Catalogue handle opens half, then full; ⋯ holds Family and Map look', async ({ page }) => {
+test('Foodie List opens full, its handle steps it, the bar swaps sheets; ⋯ holds Family and Map look', async ({ page }) => {
   await open(page, { savorPeople: [{ user_id: ME, display_name: 'Hanh', is_owner: true, joined_at: null }, { user_id: FRIEND, display_name: 'Mai', is_owner: false, joined_at: null }] })
-  const cat = page.getByRole('region', { name: 'Catalogue' })
-  await cat.getByRole('button', { name: /Catalogue: make bigger/ }).click()
-  await expect(cat).toHaveAttribute('data-snap', 'half')
-  await expect(cat.getByRole('button', { name: /^Vietnamese/ })).toBeVisible()
-  await cat.getByRole('button', { name: /Catalogue: make bigger/ }).click()
+  await bar(page).getByRole('button', { name: 'Foodie List' }).click()
+  const cat = page.getByRole('region', { name: 'Foodie List' })
   await expect(cat).toHaveAttribute('data-snap', 'full')
+  await expect(cat.getByText('Foodie List', { exact: true })).toBeVisible()
+  await expect(cat.getByRole('button', { name: /^Vietnamese/ })).toBeVisible()
+  await cat.getByRole('button', { name: /Foodie List: make smaller/ }).click()
+  await expect(cat).toHaveAttribute('data-snap', 'half')
+  await bar(page).getByRole('button', { name: 'Search' }).click()
+  await expect(cat).toBeHidden()
+  await expect(page.getByRole('region', { name: 'Search' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Foodie Finds menu' }).click()
   await expect(page.getByRole('menuitem')).toHaveText(['Family', 'Map look & GPins'])
@@ -87,14 +103,16 @@ test('the Catalogue handle opens half, then full; ⋯ holds Family and Map look'
   await expect(page.getByRole('dialog', { name: 'Savorlog family' })).toBeVisible()
 })
 
-test('swiping a handle back toward its edge closes the sheet completely', async ({ page }) => {
+test('dragging a sheet all the way down hides it, handle and all', async ({ page }) => {
   await open(page)
-  const search = page.getByRole('region', { name: 'Search' })
-  const grab = search.getByRole('button', { name: /Search: make bigger/ })
+  await bar(page).getByRole('button', { name: 'Foodie List' }).click()
+  const cat = page.getByRole('region', { name: 'Foodie List' })
+  const grab = cat.getByRole('button', { name: /Foodie List: make/ })
   const box = (await grab.boundingBox())!
-  // Top sheet: swipe up (toward the top edge) closes it.
   await grab.dispatchEvent('pointerdown', { clientX: box.x + box.width / 2, clientY: box.y + 10, pointerId: 1 })
-  await grab.dispatchEvent('pointermove', { clientX: box.x + box.width / 2, clientY: box.y - 80, pointerId: 1 })
-  await grab.dispatchEvent('pointerup', { clientX: box.x + box.width / 2, clientY: box.y - 80, pointerId: 1 })
-  await expect(search).toHaveAttribute('data-snap', 'closed')
+  await grab.dispatchEvent('pointermove', { clientX: box.x + box.width / 2, clientY: box.y + 400, pointerId: 1 })
+  await grab.dispatchEvent('pointerup', { clientX: box.x + box.width / 2, clientY: box.y + 400, pointerId: 1 })
+  await expect(cat).toBeHidden()
+  await expect(page.getByRole('button', { name: /make bigger|make smaller/ })).toHaveCount(0)
+  await expect(bar(page).getByRole('button', { name: 'Foodie List' })).toHaveAttribute('aria-pressed', 'false')
 })

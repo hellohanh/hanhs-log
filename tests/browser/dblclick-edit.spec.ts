@@ -28,7 +28,7 @@ test('double-click a trip place opens its edit panel', async ({ page }) => {
 test('double-click a Foodie Finds eatery opens its edit panel', async ({ page }) => {
   await fakeSupabase(page, { eateries: [EATERY] })
   await page.goto('./savor')
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await side.getByRole('button', { name: /^Vietnamese/ }).click()
   await side.getByRole('button', { name: /^Phở \d/ }).click()
   await side.getByText('Phở Hòa Pasteur').dblclick()

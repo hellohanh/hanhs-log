@@ -94,8 +94,20 @@ function SavorLoaded({ userId }: { userId: string }) {
   // opens pulled down instead of the startup popup; the Catalogue is a bottom
   // sheet; Family and Map look sit in the ⋯ menu.
   const phone = useIsPhone()
-  const [topSnap, setTopSnap] = useState<Snap>('half')
-  const [catSnap, setCatSnap] = useState<Snap>('closed')
+  // Session 20 (Hanh, option 2): a bottom bar like a trip's — Search and
+  // Foodie List — each opening its own sheet from the bottom; the page opens on
+  // just the map, and a closed sheet leaves no handle. One sheet at a time.
+  const [sheet, setSheet] = useState<'search' | 'list'>('search')
+  const [snap, setSnap] = useState<Snap>('closed')
+  const topSnap: Snap = sheet === 'search' ? snap : 'closed'
+  const catSnap: Snap = sheet === 'list' ? snap : 'closed'
+  const setTopSnap = (s: Snap) => { if (s !== 'closed') setSheet('search'); setSnap(s) }
+  const setCatSnap = (s: Snap) => { if (s !== 'closed') setSheet('list'); setSnap(s) }
+  const pickSheet = (t: 'search' | 'list') => {
+    if (snap === 'closed') { setSheet(t); setSnap(t === 'list' ? 'full' : 'half') }
+    else if (t !== sheet) setSheet(t)
+    else setSnap('closed')
+  }
   const [savorMenu, setSavorMenu] = useState(false)
   const [lookReq, setLookReq] = useState(0)
 
@@ -206,7 +218,7 @@ function SavorLoaded({ userId }: { userId: string }) {
     if (editing) setEditing(null)
     else if (popupEatery) setPopupId(null)
     else if (savorMenu) setSavorMenu(false)
-    else setCatSnap('half')
+    else setSnap('half')
   })
 
   if (phone) {
@@ -223,10 +235,10 @@ function SavorLoaded({ userId }: { userId: string }) {
     ) : (
       <div className={styles.phoneCat}>
         <div className={styles.head}>
-          <strong>Catalogue</strong>
+          <strong>Foodie List</strong>
           <span className={styles.count}>{shown.length > 0 ? `${shown.length} on screen` : ''}</span>
         </div>
-        {error && <p className={styles.error} role="alert">Couldn't load the catalogue: {error}</p>}
+        {error && <p className={styles.error} role="alert">Couldn't load the Foodie List: {error}</p>}
         {shown.length > 0 && (
           <div className={styles.filters}>
             <label className={styles.showAll}>
@@ -239,7 +251,7 @@ function SavorLoaded({ userId }: { userId: string }) {
             )}
           </div>
         )}
-        {shown.length === 0 && !error && <p className={styles.muted}>No eateries in this part of the map. Move the map, or pull the search down to add one.</p>}
+        {shown.length === 0 && !error && <p className={styles.muted}>No eateries in this part of the map. Move the map, or tap Search to add one.</p>}
         {shown.length > 0 && (
           <EateryTree
             key="map-view"
@@ -292,7 +304,7 @@ function SavorLoaded({ userId }: { userId: string }) {
             onPinClick={id => { if (shown.some(e => e.id === id)) { setPopupId(id); setCatSnap('closed') } }}
             onMapClick={() => { setPopupId(null); setSavorMenu(false) }}
           />
-          <BottomSheet edge="top" fit label="Search" snap={topSnap} onSnap={setTopSnap}>
+          <BottomSheet vanish fit label="Search" snap={topSnap} onSnap={setTopSnap} hidden={sheet !== 'search'}>
             <PhoneSearch
               near={view ? { lat: (view.south + view.north) / 2, lng: (view.west + view.east) / 2 } : scope?.center}
               isIn={id => eateries.some(e => e.google_place_id === id)}
@@ -300,7 +312,7 @@ function SavorLoaded({ userId }: { userId: string }) {
               onEatery={f => { setTopSnap('closed'); pick(f); setCatSnap('full') }}
             />
           </BottomSheet>
-          <BottomSheet label="Catalogue" snap={editing ? 'full' : catSnap} onSnap={s => { if (!editing) setCatSnap(s) }} hidden={!!popupEatery}>
+          <BottomSheet vanish label="Foodie List" snap={editing ? 'full' : catSnap} onSnap={s => { if (!editing) setCatSnap(s) }} hidden={!!popupEatery || (sheet !== 'list' && !editing)}>
             {catalogue}
           </BottomSheet>
           {popupEatery && (
@@ -327,6 +339,16 @@ function SavorLoaded({ userId }: { userId: string }) {
             </div>
           )}
         </div>
+        <nav className={tstyles.pNav} aria-label="Foodie Finds views">
+          <button type="button" aria-pressed={snap !== 'closed' && sheet === 'search'} onClick={() => { setPopupId(null); pickSheet('search') }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            Search
+          </button>
+          <button type="button" aria-pressed={snap !== 'closed' && sheet === 'list'} onClick={() => { setPopupId(null); pickSheet('list') }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1" /><circle cx="4.5" cy="12" r="1" /><circle cx="4.5" cy="18" r="1" /></svg>
+            Foodie List
+          </button>
+        </nav>
         {sharing && (
           <SavorShareDialog
             token={inviteToken}
@@ -361,7 +383,7 @@ function SavorLoaded({ userId }: { userId: string }) {
         </div>
       </div>
       <div className={styles.body}>
-        <aside className={styles.side} aria-label="Catalogue">
+        <aside className={styles.side} aria-label="Foodie List">
           {editing ? (
             <SavorForm
               key={editing.mode === 'edit' ? editing.id : editing.place.id}
@@ -398,10 +420,10 @@ function SavorLoaded({ userId }: { userId: string }) {
               )}
 
               <div className={styles.head}>
-                <strong>Catalogue</strong>
+                <strong>Foodie List</strong>
                 <span className={styles.count}>{shown.length > 0 ? shown.length : ''}</span>
               </div>
-              {error && <p className={styles.error} role="alert">Couldn't load the catalogue: {error}</p>}
+              {error && <p className={styles.error} role="alert">Couldn't load the Foodie List: {error}</p>}
               {shown.length > 0 && (
                 <div className={styles.filters}>
                   <label className={styles.showAll}>

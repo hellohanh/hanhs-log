@@ -16,6 +16,8 @@ for (const [tag, width, height] of [['opened, browser bar', 816, 530], ['opened,
       // Phone layout: the bottom bar and the Itinerary sheet, no side panels.
       await expect(page.getByRole('button', { name: 'Itinerary', exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Open the itinerary' })).toHaveCount(0)
+      // Session 20: the trip opens with the sheet closed; tap Itinerary.
+      await page.getByRole('navigation', { name: 'Trip views' }).getByRole('button', { name: 'Itinerary' }).click()
       const sheet = page.getByRole('region', { name: 'Itinerary' })
       await expect(sheet.getByRole('tab').first()).toBeVisible()
       const tl = sheet.locator('[data-scroll="timeline"]')

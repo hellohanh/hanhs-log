@@ -33,7 +33,7 @@ test.describe('phone', () => {
     await expect(page).toHaveURL(/\/savor/)
   })
 
-  test('a trip is the map: one title bar, the Itinerary sheet at half, the bottom bar', async ({ page }) => {
+  test('a trip is the map: one title bar, the sheet closed with no handle, the bottom bar (session 20)', async ({ page }) => {
     await fakeSupabase(page, { pins: PINS })
     await openTrip(page)
     // The site header merges into the trip's title bar.
@@ -41,9 +41,16 @@ test.describe('phone', () => {
     await expect(page.getByText('Dec 18 – Jan 2, 2027 · 3 people')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Menu', exact: true })).toBeVisible()
     const views = page.getByRole('navigation', { name: 'Trip views' })
-    await expect(views.getByRole('button', { name: 'Itinerary' })).toHaveAttribute('aria-pressed', 'true')
+    // Closed on arrival: neither tab pressed, no sheet and no handle showing.
+    await expect(views.getByRole('button', { name: 'Itinerary' })).toHaveAttribute('aria-pressed', 'false')
+    await expect(page.getByRole('region', { name: 'Itinerary' })).toBeHidden()
+    await expect(page.getByRole('region', { name: 'Places' })).toBeHidden()
+    await expect(page.getByRole('button', { name: /make bigger|make smaller/ })).toHaveCount(0)
+    // Itinerary opens it, with its handle.
+    await views.getByRole('button', { name: 'Itinerary' }).click()
     const itin = page.getByRole('region', { name: 'Itinerary' })
-    await expect(itin).toHaveAttribute('data-snap', 'half')
+    await expect(itin).toHaveAttribute('data-snap', 'full')
+    await expect(itin.getByRole('button', { name: /Itinerary: make smaller/ })).toBeVisible()
     // Before the trip starts it opens on the first day; days are one row.
     await expect(itin.getByRole('tab', { selected: true })).toContainText('Dec 18')
     const tabs = itin.getByRole('tablist', { name: 'Days' })
@@ -54,6 +61,7 @@ test.describe('phone', () => {
     await fakeSupabase(page)
     await page.clock.setFixedTime(new Date('2026-12-25T10:00:00'))
     await openTrip(page)
+    await page.getByRole('navigation', { name: 'Trip views' }).getByRole('button', { name: 'Itinerary' }).click()
     await expect(page.getByRole('region', { name: 'Itinerary' }).getByRole('tab', { selected: true })).toContainText('Dec 25')
   })
 
@@ -62,43 +70,62 @@ test.describe('phone', () => {
     await openTrip(page)
     const views = page.getByRole('navigation', { name: 'Trip views' })
     await views.getByRole('button', { name: 'Places' }).click()
-    await views.getByRole('button', { name: 'Places' }).click()
     const places = page.getByRole('region', { name: 'Places' })
-    await expect(places).toHaveAttribute('data-snap', 'closed')
-    const grab = places.getByRole('button', { name: /Places: make bigger/ })
-    await page.waitForTimeout(400)
+    await expect(places).toHaveAttribute('data-snap', 'full')
+    const grab = places.getByRole('button', { name: /Places: make/ })
+    await grab.click()
+    await expect(places).toHaveAttribute('data-snap', 'half')
+    await page.waitForTimeout(400) // the sheet settles (0.22 s)
+    // 15 px above the sheet's handle, on the map: still the handle.
     const b = (await grab.boundingBox())!
-    // 15 px above the closed pill, and 22 px beside it: both open it a step.
     await page.mouse.click(b.x + b.width / 2, b.y - 15)
-    await expect(places).toHaveAttribute('data-snap', 'half')
-    await views.getByRole('button', { name: 'Places' }).click()
-    await expect(places).toHaveAttribute('data-snap', 'closed')
-    await page.waitForTimeout(400) // the sheet shrinks to the pill (0.22 s)
-    const c = (await grab.boundingBox())!
-    await page.mouse.click(c.x + c.width + 22, c.y + c.height / 2)
-    await expect(places).toHaveAttribute('data-snap', 'half')
-    // A tap whose finger wobbles 12 px (less than a swipe) still steps it open.
+    await expect(places).toHaveAttribute('data-snap', 'full')
+    // A tap whose finger wobbles 12 px (less than a swipe) still steps it.
     await grab.evaluate(el => {
       const at = (type: string, y: number) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, clientX: 200, clientY: y }))
       at('pointerdown', 500); at('pointermove', 504); at('pointermove', 509); at('pointermove', 512); at('pointerup', 512)
     })
-    await expect(places).toHaveAttribute('data-snap', 'full')
+    await expect(places).toHaveAttribute('data-snap', 'half')
   })
 
-  test('the bottom bar swaps sheets; tapping the open one drops it; the handle steps up', async ({ page }) => {
+  test('dragging the sheet all the way down hides it, handle and all (session 20)', async ({ page }) => {
+    await fakeSupabase(page, { pins: PINS })
+    await openTrip(page)
+    const views = page.getByRole('navigation', { name: 'Trip views' })
+    await views.getByRole('button', { name: 'Itinerary' }).click()
+    const itin = page.getByRole('region', { name: 'Itinerary' })
+    await expect(itin).toHaveAttribute('data-snap', 'full')
+    await itin.getByRole('button', { name: /Itinerary: make/ }).evaluate(el => {
+      const at = (type: string, y: number) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 8, clientX: 200, clientY: y }))
+      at('pointerdown', 120); at('pointermove', 300); at('pointermove', 600); at('pointerup', 800)
+    })
+    await expect(itin).toBeHidden()
+    await expect(page.getByRole('button', { name: /make bigger|make smaller/ })).toHaveCount(0)
+    await expect(views.getByRole('button', { name: 'Itinerary' })).toHaveAttribute('aria-pressed', 'false')
+    // And the bar brings it back.
+    await views.getByRole('button', { name: 'Itinerary' }).click()
+    await expect(itin).toBeVisible()
+  })
+
+  test('the bottom bar opens and swaps sheets; tapping the open one hides it; the handle steps', async ({ page }) => {
     await fakeSupabase(page, { pins: PINS })
     await openTrip(page)
     const views = page.getByRole('navigation', { name: 'Trip views' })
     await views.getByRole('button', { name: 'Places' }).click()
     const places = page.getByRole('region', { name: 'Places' })
-    await expect(places).toHaveAttribute('data-snap', 'half')
+    await expect(places).toHaveAttribute('data-snap', 'full')
     await expect(page.getByRole('region', { name: 'Itinerary' })).toBeHidden()
     await expect(places.getByRole('button', { name: /^Accommodation, 1 pin/ })).toBeVisible()
-    await views.getByRole('button', { name: 'Places' }).click()
-    await expect(places).toHaveAttribute('data-snap', 'closed')
-    await places.getByRole('button', { name: /Places: make bigger/ }).click()
+    // The handle steps it down to half; Itinerary swaps in at the same height.
+    await places.getByRole('button', { name: /Places: make smaller/ }).click()
     await expect(places).toHaveAttribute('data-snap', 'half')
-    await places.getByRole('button', { name: /Places: make bigger/ }).click()
+    await views.getByRole('button', { name: 'Itinerary' }).click()
+    await expect(page.getByRole('region', { name: 'Itinerary' })).toHaveAttribute('data-snap', 'half')
+    // The open tab again closes it: no sheet, no handle.
+    await views.getByRole('button', { name: 'Itinerary' }).click()
+    await expect(page.getByRole('region', { name: 'Itinerary' })).toBeHidden()
+    await expect(page.getByRole('button', { name: /make bigger|make smaller/ })).toHaveCount(0)
+    await views.getByRole('button', { name: 'Places' }).click()
     await expect(places).toHaveAttribute('data-snap', 'full')
     // The phone's back gesture steps the full sheet down, staying on the trip.
     await page.goBack()
@@ -122,6 +149,7 @@ test.describe('phone', () => {
   test('+ Add puts an activity on the day; tapping a block opens it to change times', async ({ page }) => {
     const db = await fakeSupabase(page)
     await openTrip(page)
+    await page.getByRole('navigation', { name: 'Trip views' }).getByRole('button', { name: 'Itinerary' }).click()
     const itin = page.getByRole('region', { name: 'Itinerary' })
     await itin.getByRole('button', { name: '+ Add' }).click()
     const pop = itin.getByRole('dialog', { name: 'Add at 09:00' })

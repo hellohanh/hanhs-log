@@ -36,7 +36,7 @@ test('the add card offers Google\'s spelling and saves it exactly', async ({ pag
   const db = await fakeSupabase(page, { eateries: [] })
   await fakeGoogle(page)
   await page.goto('./savor')
-  const side = page.getByRole('complementary', { name: 'Catalogue' })
+  const side = page.getByRole('complementary', { name: 'Foodie List' })
   await side.getByRole('searchbox', { name: /Search Google/ }).fill('banh xeo')
   await side.getByRole('button', { name: 'Search' }).click()
   await side.getByRole('button', { name: /Bánh Xèo 46A/ }).first().click()
